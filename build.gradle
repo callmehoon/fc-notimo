@@ -17,6 +17,9 @@ sourceSets {
         java {
             srcDirs = ['backend-spring/src/test/java']
         }
+        resources {
+            srcDirs = ['backend-spring/src/test/resources']
+        }
     }
 }
 
@@ -56,6 +59,7 @@ dependencies {
     testImplementation 'io.projectreactor:reactor-test'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'com.h2database:h2'
     runtimeOnly 'com.mysql:mysql-connector-j'
     runtimeOnly 'com.h2database:h2'
     runtimeOnly 'org.springframework.boot:spring-boot-docker-compose'
