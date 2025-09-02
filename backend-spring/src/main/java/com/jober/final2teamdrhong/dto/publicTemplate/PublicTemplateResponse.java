@@ -13,6 +13,7 @@ public class PublicTemplateResponse {
     private Integer publicTemplateId;
     private String publicTemplateTitle;
     private String publicTemplateContent;
+    private String buttonTitle;
     private Integer shareCount;
     private Integer viewCount;
     private LocalDateTime createdAt;
