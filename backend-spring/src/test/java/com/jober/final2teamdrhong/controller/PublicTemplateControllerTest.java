@@ -16,6 +16,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -42,7 +43,7 @@ class PublicTemplateControllerTest {
         );
         Page<PublicTemplateResponse> mockPage = new PageImpl<>(mockContent, PageRequest.of(0, 10), 2);
         
-        when(publicTemplateService.getTemplates("recent", 0, 10)).thenReturn(mockPage);
+        when(publicTemplateService.getTemplates(any(Pageable.class))).thenReturn(mockPage);
 
         // when & then
         mockMvc.perform(get("/public-templates")
@@ -54,7 +55,7 @@ class PublicTemplateControllerTest {
                 .andExpect(jsonPath("$.totalElements").value(2))
                 .andExpect(jsonPath("$.totalPages").value(1));
 
-        verify(publicTemplateService, times(1)).getTemplates("recent", 0, 10);
+        verify(publicTemplateService, times(1)).getTemplates(any(Pageable.class));
     }
 
     @Test
@@ -67,18 +68,18 @@ class PublicTemplateControllerTest {
         );
         Page<PublicTemplateResponse> mockPage = new PageImpl<>(mockContent, PageRequest.of(0, 10), 2);
         
-        when(publicTemplateService.getTemplates("share", 0, 10)).thenReturn(mockPage);
+        when(publicTemplateService.getTemplates(any(Pageable.class))).thenReturn(mockPage);
 
         // when & then
         mockMvc.perform(get("/public-templates")
-                        .param("sortBy", "share")
+                        .param("sort", "shareCount,desc")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(2))
                 .andExpect(jsonPath("$.content[0].shareCount").value(15))
                 .andExpect(jsonPath("$.content[1].shareCount").value(5));
 
-        verify(publicTemplateService, times(1)).getTemplates("share", 0, 10);
+        verify(publicTemplateService, times(1)).getTemplates(any(Pageable.class));
     }
 
     @Test
@@ -91,18 +92,18 @@ class PublicTemplateControllerTest {
         );
         Page<PublicTemplateResponse> mockPage = new PageImpl<>(mockContent, PageRequest.of(0, 10), 2);
         
-        when(publicTemplateService.getTemplates("view", 0, 10)).thenReturn(mockPage);
+        when(publicTemplateService.getTemplates(any(Pageable.class))).thenReturn(mockPage);
 
         // when & then
         mockMvc.perform(get("/public-templates")
-                        .param("sortBy", "view")
+                        .param("sort", "viewCount,desc")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(2))
                 .andExpect(jsonPath("$.content[0].viewCount").value(20))
                 .andExpect(jsonPath("$.content[1].viewCount").value(5));
 
-        verify(publicTemplateService, times(1)).getTemplates("view", 0, 10);
+        verify(publicTemplateService, times(1)).getTemplates(any(Pageable.class));
     }
 
     @Test
@@ -115,18 +116,18 @@ class PublicTemplateControllerTest {
         );
         Page<PublicTemplateResponse> mockPage = new PageImpl<>(mockContent, PageRequest.of(0, 10), 2);
         
-        when(publicTemplateService.getTemplates("title", 0, 10)).thenReturn(mockPage);
+        when(publicTemplateService.getTemplates(any(Pageable.class))).thenReturn(mockPage);
 
         // when & then
         mockMvc.perform(get("/public-templates")
-                        .param("sortBy", "title")
+                        .param("sort", "publicTemplateTitle,asc")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(2))
                 .andExpect(jsonPath("$.content[0].publicTemplateTitle").value("가나다"))
                 .andExpect(jsonPath("$.content[1].publicTemplateTitle").value("나다라"));
 
-        verify(publicTemplateService, times(1)).getTemplates("title", 0, 10);
+        verify(publicTemplateService, times(1)).getTemplates(any(Pageable.class));
     }
 
     @Test
@@ -138,7 +139,7 @@ class PublicTemplateControllerTest {
         );
         Page<PublicTemplateResponse> mockPage = new PageImpl<>(mockContent, PageRequest.of(1, 2), 5);
         
-        when(publicTemplateService.getTemplates("recent", 1, 2)).thenReturn(mockPage);
+        when(publicTemplateService.getTemplates(any(Pageable.class))).thenReturn(mockPage);
 
         // when & then
         mockMvc.perform(get("/public-templates")
@@ -152,7 +153,7 @@ class PublicTemplateControllerTest {
                 .andExpect(jsonPath("$.number").value(1))
                 .andExpect(jsonPath("$.size").value(2));
 
-        verify(publicTemplateService, times(1)).getTemplates("recent", 1, 2);
+        verify(publicTemplateService, times(1)).getTemplates(any(Pageable.class));
     }
 
     @Test
@@ -164,16 +165,16 @@ class PublicTemplateControllerTest {
         );
         Page<PublicTemplateResponse> mockPage = new PageImpl<>(mockContent, PageRequest.of(0, 10), 1);
         
-        when(publicTemplateService.getTemplates("invalid", 0, 10)).thenReturn(mockPage);
+        when(publicTemplateService.getTemplates(any(Pageable.class))).thenReturn(mockPage);
 
         // when & then
         mockMvc.perform(get("/public-templates")
-                        .param("sortBy", "invalid")
+                        .param("sort", "invalid,desc")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(1));
 
-        verify(publicTemplateService, times(1)).getTemplates("invalid", 0, 10);
+        verify(publicTemplateService, times(1)).getTemplates(any(Pageable.class));
     }
 
     @Test
@@ -182,7 +183,7 @@ class PublicTemplateControllerTest {
         // given
         Page<PublicTemplateResponse> mockPage = new PageImpl<>(List.of(), PageRequest.of(0, 10), 0);
         
-        when(publicTemplateService.getTemplates("recent", 0, 10)).thenReturn(mockPage);
+        when(publicTemplateService.getTemplates(any(Pageable.class))).thenReturn(mockPage);
 
         // when & then
         mockMvc.perform(get("/public-templates")
@@ -192,7 +193,7 @@ class PublicTemplateControllerTest {
                 .andExpect(jsonPath("$.totalElements").value(0))
                 .andExpect(jsonPath("$.totalPages").value(0));
 
-        verify(publicTemplateService, times(1)).getTemplates("recent", 0, 10);
+        verify(publicTemplateService, times(1)).getTemplates(any(Pageable.class));
     }
 
     private PublicTemplateResponse createMockResponse(Integer id, String title, String content, 
