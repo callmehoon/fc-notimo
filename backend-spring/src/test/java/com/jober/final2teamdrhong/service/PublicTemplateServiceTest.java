@@ -11,6 +11,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
@@ -68,7 +71,8 @@ class PublicTemplateServiceTest {
     @DisplayName("공유순 정렬 - 내림차순으로 정렬되어야 함")
     void getTemplatesByShareCount() {
         // when
-        Page<PublicTemplateResponse> result = publicTemplateService.getTemplates("share", 0, 10);
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("shareCount").descending());
+        Page<PublicTemplateResponse> result = publicTemplateService.getTemplates(pageable);
         List<PublicTemplateResponse> templates = result.getContent();
 
         // then
@@ -89,7 +93,8 @@ class PublicTemplateServiceTest {
     @DisplayName("조회순 정렬 - 내림차순으로 정렬되어야 함")
     void getTemplatesByViewCount() {
         // when
-        Page<PublicTemplateResponse> result = publicTemplateService.getTemplates("view", 0, 10);
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("viewCount").descending());
+        Page<PublicTemplateResponse> result = publicTemplateService.getTemplates(pageable);
         List<PublicTemplateResponse> templates = result.getContent();
 
         // then
@@ -110,7 +115,8 @@ class PublicTemplateServiceTest {
     @DisplayName("최신순 정렬 - 내림차순으로 정렬되어야 함")
     void getTemplatesByRecent() {
         // when
-        Page<PublicTemplateResponse> result = publicTemplateService.getTemplates("recent", 0, 10);
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("createdAt").descending());
+        Page<PublicTemplateResponse> result = publicTemplateService.getTemplates(pageable);
         List<PublicTemplateResponse> templates = result.getContent();
 
         // then
@@ -127,7 +133,8 @@ class PublicTemplateServiceTest {
     @DisplayName("제목 가나다순 정렬 - 오름차순으로 정렬되어야 함")
     void getTemplatesByTitle() {
         // when
-        Page<PublicTemplateResponse> result = publicTemplateService.getTemplates("title", 0, 10);
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("publicTemplateTitle").ascending());
+        Page<PublicTemplateResponse> result = publicTemplateService.getTemplates(pageable);
         List<PublicTemplateResponse> templates = result.getContent();
 
         // then
@@ -148,8 +155,9 @@ class PublicTemplateServiceTest {
     @DisplayName("기본값 정렬 - 최신순으로 정렬되어야 함")
     void getTemplatesByDefault() {
         // when - sortBy가 null이거나 잘못된 값일 때
-        Page<PublicTemplateResponse> result1 = publicTemplateService.getTemplates(null, 0, 10);
-        Page<PublicTemplateResponse> result2 = publicTemplateService.getTemplates("invalid", 0, 10);
+        Pageable pageableDefault = PageRequest.of(0, 10, Sort.by("createdAt").descending());
+        Page<PublicTemplateResponse> result1 = publicTemplateService.getTemplates(pageableDefault);
+        Page<PublicTemplateResponse> result2 = publicTemplateService.getTemplates(pageableDefault);
         List<PublicTemplateResponse> templates1 = result1.getContent();
         List<PublicTemplateResponse> templates2 = result2.getContent();
 
@@ -170,7 +178,8 @@ class PublicTemplateServiceTest {
     @DisplayName("페이징 테스트 - 페이지 크기와 페이지 번호가 올바르게 적용되어야 함")
     void getTemplatesWithPaging() {
         // when - 페이지 크기 2, 첫 번째 페이지
-        Page<PublicTemplateResponse> result = publicTemplateService.getTemplates("share", 0, 2);
+        Pageable pageable = PageRequest.of(0, 2, Sort.by("shareCount").descending());
+        Page<PublicTemplateResponse> result = publicTemplateService.getTemplates(pageable);
         List<PublicTemplateResponse> templates = result.getContent();
 
         // then
@@ -185,7 +194,8 @@ class PublicTemplateServiceTest {
     @DisplayName("삭제된 템플릿은 조회되지 않아야 함")
     void getTemplatesExcludeDeleted() {
         // when
-        Page<PublicTemplateResponse> result = publicTemplateService.getTemplates("share", 0, 10);
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("shareCount").descending());
+        Page<PublicTemplateResponse> result = publicTemplateService.getTemplates(pageable);
         List<PublicTemplateResponse> templates = result.getContent();
 
         // then
