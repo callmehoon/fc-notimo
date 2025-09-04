@@ -2,9 +2,7 @@ package com.jober.final2teamdrhong.dto.workspace;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.validator.constraints.Length;
 
 /**
@@ -18,6 +16,8 @@ public class WorkspaceRequest {
     @Getter
     @Setter
     @NoArgsConstructor
+    @AllArgsConstructor // @Builder와 더불어, 함께 사용해서 명확하게 public 생성자를 열어줌
+    @Builder // Test 코드 작성시 객체생성을 편리하게 하기 위해 @Builder 채택
     public static class CreateDTO {
         @NotBlank(message = "워크스페이스 이름은 필수 입력 항목입니다.")
         @Length(min = 2, max = 20, message = "워크스페이스 이름은 2자 이상 20자 이하로 입력해주세요.")
