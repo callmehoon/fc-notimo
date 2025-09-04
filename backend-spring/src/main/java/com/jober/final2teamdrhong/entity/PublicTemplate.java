@@ -10,38 +10,39 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-@Entity
+@Entity(name = "public_template")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SQLDelete(sql = "UPDATE public_template SET is_deleted = true, deleted_at = NOW() WHERE public_template_id = ?")
 public class PublicTemplate {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "public_template_id")
     private Integer publicTemplateId;
 
-    @Column(nullable = false, length = 255)
+    @Column(name = "public_template_title", nullable = false, length = 255)
     private String publicTemplateTitle;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(name = "public_template_content", nullable = false, columnDefinition = "TEXT")
     private String publicTemplateContent;
 
-    @Column(length = 50)
+    @Column(name = "button_title", length = 50)
     private String buttonTitle;
 
-    @Column(nullable = false)
+    @Column(name = "share_count", nullable = false)
     private Integer shareCount;
 
-    @Column(nullable = false)
+    @Column(name = "view_count", nullable = false)
     private Integer viewCount;
 
-    @Column(nullable = false)
+    @Column(name = "is_deleted", nullable = false)
     private Boolean isDeleted;
 
     @CreationTimestamp
-    @Column(columnDefinition = "DATETIME", nullable = false, updatable = false)
+    @Column(name = "created_at", columnDefinition = "DATETIME", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(columnDefinition = "DATETIME")
+    @Column(name = "deleted_at", columnDefinition = "DATETIME")
     private LocalDateTime deletedAt;
 
     /**
