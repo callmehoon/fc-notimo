@@ -16,7 +16,7 @@ import java.util.List;
 @Table(name = "workspace")
 @Getter
 @Setter
-@ToString
+@ToString(exclude = {"phoneBooks", "recipients", "user"})
 @NoArgsConstructor
 @SQLDelete(sql = "UPDATE workspace SET is_deleted = true, deleted_at = NOW() WHERE workspace_id = ?")
 @SQLRestriction("is_deleted = false")
