@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "user_auth")
+@Table(name = "users_auth")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserAuth {
@@ -19,7 +19,7 @@ public class UserAuth {
     private Integer authId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "users_id", nullable = false)
     private User user;
 
     // 양방향 관계 설정을 위한 편의 메서드
