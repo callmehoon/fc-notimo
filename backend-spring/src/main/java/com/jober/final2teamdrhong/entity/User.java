@@ -51,7 +51,7 @@ public class User  {
     }
 
 
-    @OneToMany(mappedBy = "users", cascade = CascadeType.ALL, orphanRemoval = true) // ✅ Cascade 옵션 추가
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true) // ✅ Cascade 옵션 추가
     private List<UserAuth> userAuths = new ArrayList<>();
 
     // 생성자 (package-private)
