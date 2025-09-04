@@ -1,22 +1,22 @@
 package com.jober.final2teamdrhong.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import jakarta.persistence.Table;
-import jakarta.persistence.Column;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.EnumType;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "user")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class User extends BaseEntity {
+public class User  {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
@@ -31,6 +31,16 @@ public class User extends BaseEntity {
     @Column(unique = true, nullable = false, name = "user_email")
     private String userEmail;
 
+    // BaseTimeEntity 제거  시간필드 직접 추가
+    @CreationTimestamp
+    @Column(name = "created_at", columnDefinition = "DATETIME")
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", columnDefinition = "DATETIME")
+    private LocalDateTime updatedAt;
+
+
     @Column(name = "user_role")
     @Enumerated(EnumType.STRING)
     private UserRole userRole;
@@ -40,65 +50,36 @@ public class User extends BaseEntity {
         ADMIN
     }
 
-    // 생성자 (package-private)
-    User(String userName, String userEmail, String userNumber) {
-        this.userName = userName;
-        this.userEmail = userEmail;
-        this.userNumber = userNumber;
-        this.userRole = UserRole.USER;
-    }
 
-    // 관리자용 생성자 (package-private)
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true) // ✅ Cascade 옵션 추가
+    private List<UserAuth> userAuths = new ArrayList<>();
+
+    // 생성자 (package-private)
+    @Builder
     User(String userName, String userEmail, String userNumber, UserRole userRole) {
         this.userName = userName;
         this.userEmail = userEmail;
         this.userNumber = userNumber;
-        this.userRole = userRole;
+        this.userRole = ( userRole != null ) ? userRole : UserRole.USER;
     }
 
-    // 정적 팩토리 메서드
-    public static User of(String userName, String userEmail, String userNumber) {
-        return new User(userName, userEmail, userNumber);
+    // --- 관계 편의 메서드 ---
+    public void addUserAuth(UserAuth userAuth) {
+        this.userAuths.add(userAuth);
+        userAuth.setUser(this); // UserAuth에도 User를 설정 (양방향)
     }
 
-    public static User ofAdmin(String userName, String userEmail, String userNumber) {
-        return new User(userName, userEmail, userNumber, UserRole.ADMIN);
-    }
-
-    // 비즈니스 메서드 (상태 조회)
     public boolean isAdmin() {
         return this.userRole == UserRole.ADMIN;
-    }
-
-    public boolean isUser() {
-        return this.userRole == UserRole.USER;
-    }
-
-    // 비즈니스 메서드 (상태 변경 - void 메서드)
-    public void promoteToAdmin() {
-        this.userRole = UserRole.ADMIN;
-    }
-
-    public void demoteToUser() {
-        this.userRole = UserRole.USER;
     }
 
     public void updateInfo(String userName, String userEmail, String userNumber) {
         if (userName != null && !userName.trim().isEmpty()) {
             this.userName = userName;
         }
-        if (userEmail != null && !userEmail.trim().isEmpty()) {
-            this.userEmail = userEmail;
-        }
+
         if (userNumber != null && !userNumber.trim().isEmpty()) {
             this.userNumber = userNumber;
-        }
-    }
-
-    // 엔티티 검증 메서드
-    public void validateForPromotion() {
-        if (this.isAdmin()) {
-            throw new IllegalStateException("이미 관리자입니다.");
         }
     }
 }
