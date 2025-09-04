@@ -12,8 +12,6 @@ import java.util.List;
 @Table(name = "individual_template")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED) // 기본 생성자를 생성
-@AllArgsConstructor // 모든 필드를 매개 변수로 받는 생성자를 자동 생성
-@Builder
 
 public class IndividualTemplate {
     @Id
@@ -30,7 +28,7 @@ public class IndividualTemplate {
     @Column(name = "button_title", length = 50)
     private String buttonTitle;
 
-    @Column(name = "is_deleted")
+    @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted;
 
     @CreationTimestamp
@@ -51,7 +49,17 @@ public class IndividualTemplate {
     @OneToMany(mappedBy = "individualTemplate")
     private List<TemplateModifiedHistory> histories;
 
-    @OneToMany(mappedBy = "individualTemplate")
-    private List<Favorite> favorites;
-}
+    @OneToOne(mappedBy = "individualTemplate")
+    private Favorite favorite;
 
+    @Builder
+    public IndividualTemplate(Workspace workspaceId,
+                              String individualTemplateTitle,
+                              String individualTemplateContent,
+                              String buttonTitle){
+        this.workspaceId = workspaceId;
+        this.individualTemplateTitle = individualTemplateTitle;
+        this.individualTemplateContent = individualTemplateContent;
+        this.buttonTitle = buttonTitle;
+    }
+}
