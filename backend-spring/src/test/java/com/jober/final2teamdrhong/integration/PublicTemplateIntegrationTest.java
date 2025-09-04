@@ -34,37 +34,71 @@ class PublicTemplateIntegrationTest {
         repository.deleteAll();
 
         // 정렬 테스트를 위한 다양한 데이터 생성
-        PublicTemplate t1 = new PublicTemplate("가나다", "Content1", false);
-        t1.setShareCount(5);
-        t1.setViewCount(20);
-        t1.setCreatedAt(LocalDateTime.now().minusDays(3));
+        PublicTemplate t1 = PublicTemplate.builder()
+                .publicTemplateTitle("가나다")
+                .publicTemplateContent("Content1")
+                .buttonTitle("버튼1")
+                .build();
+        setFieldValue(t1, "shareCount", 5);
+        setFieldValue(t1, "viewCount", 20);
+        setFieldValue(t1, "createdAt", LocalDateTime.now().minusDays(3));
 
-        PublicTemplate t2 = new PublicTemplate("나다라", "Content2", false);
-        t2.setShareCount(15);
-        t2.setViewCount(10);
-        t2.setCreatedAt(LocalDateTime.now().minusDays(2));
+        PublicTemplate t2 = PublicTemplate.builder()
+                .publicTemplateTitle("나다라")
+                .publicTemplateContent("Content2")
+                .buttonTitle("버튼2")
+                .build();
+        setFieldValue(t2, "shareCount", 15);
+        setFieldValue(t2, "viewCount", 10);
+        setFieldValue(t2, "createdAt", LocalDateTime.now().minusDays(2));
 
-        PublicTemplate t3 = new PublicTemplate("다라마", "Content3", false);
-        t3.setShareCount(8);
-        t3.setViewCount(30);
-        t3.setCreatedAt(LocalDateTime.now().minusDays(1));
+        PublicTemplate t3 = PublicTemplate.builder()
+                .publicTemplateTitle("다라마")
+                .publicTemplateContent("Content3")
+                .buttonTitle("버튼3")
+                .build();
+        setFieldValue(t3, "shareCount", 8);
+        setFieldValue(t3, "viewCount", 30);
+        setFieldValue(t3, "createdAt", LocalDateTime.now().minusDays(1));
 
-        PublicTemplate t4 = new PublicTemplate("라마바", "Content4", false);
-        t4.setShareCount(12);
-        t4.setViewCount(25);
-        t4.setCreatedAt(LocalDateTime.now());
+        PublicTemplate t4 = PublicTemplate.builder()
+                .publicTemplateTitle("라마바")
+                .publicTemplateContent("Content4")
+                .buttonTitle("버튼4")
+                .build();
+        setFieldValue(t4, "shareCount", 12);
+        setFieldValue(t4, "viewCount", 25);
+        setFieldValue(t4, "createdAt", LocalDateTime.now());
 
         // 삭제된 템플릿
-        PublicTemplate deletedTemplate = new PublicTemplate("삭제된템플릿", "Deleted Content", true);
-        deletedTemplate.setShareCount(100);
-        deletedTemplate.setViewCount(100);
-        deletedTemplate.setCreatedAt(LocalDateTime.now());
+        PublicTemplate deletedTemplate = PublicTemplate.builder()
+                .publicTemplateTitle("삭제된템플릿")
+                .publicTemplateContent("Deleted Content")
+                .buttonTitle("삭제된버튼")
+                .build();
+        setFieldValue(deletedTemplate, "shareCount", 100);
+        setFieldValue(deletedTemplate, "viewCount", 100);
+        setFieldValue(deletedTemplate, "createdAt", LocalDateTime.now());
+        setFieldValue(deletedTemplate, "isDeleted", true);
 
         repository.save(t1);
         repository.save(t2);
         repository.save(t3);
         repository.save(t4);
         repository.save(deletedTemplate);
+    }
+
+    /**
+     * 리플렉션을 사용하여 private 필드에 값을 설정하는 헬퍼 메소드
+     */
+    private void setFieldValue(Object obj, String fieldName, Object value) {
+        try {
+            java.lang.reflect.Field field = obj.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(obj, value);
+        } catch (Exception e) {
+            throw new RuntimeException("필드 설정 실패: " + fieldName, e);
+        }
     }
 
     @Test
@@ -82,39 +116,39 @@ class PublicTemplateIntegrationTest {
     @DisplayName("공유순 정렬 API 테스트")
     void testGetTemplatesByShareCount() throws Exception {
         mockMvc.perform(get("/public-templates")
-                        .param("sortBy", "share")
+                        .param("sort", "shareCount,desc")
                         .param("page", "0")
                         .param("size", "10")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(4))
-                .andExpect(jsonPath("$.content[0].shareCount").value(15))  // 가장 높은 공유수
-                .andExpect(jsonPath("$.content[1].shareCount").value(12))
-                .andExpect(jsonPath("$.content[2].shareCount").value(8))
-                .andExpect(jsonPath("$.content[3].shareCount").value(5));  // 가장 낮은 공유수
+                .andExpect(jsonPath("$.content[0].publicTemplateTitle").value("나다라"))  // 가장 높은 공유수(15)
+                .andExpect(jsonPath("$.content[1].publicTemplateTitle").value("라마바"))  // 공유수(12)
+                .andExpect(jsonPath("$.content[2].publicTemplateTitle").value("다라마"))  // 공유수(8)
+                .andExpect(jsonPath("$.content[3].publicTemplateTitle").value("가나다")); // 가장 낮은 공유수(5)
     }
 
     @Test
     @DisplayName("조회순 정렬 API 테스트")
     void testGetTemplatesByViewCount() throws Exception {
         mockMvc.perform(get("/public-templates")
-                        .param("sortBy", "view")
+                        .param("sort", "viewCount,desc")
                         .param("page", "0")
                         .param("size", "10")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(4))
-                .andExpect(jsonPath("$.content[0].viewCount").value(30))  // 가장 높은 조회수
-                .andExpect(jsonPath("$.content[1].viewCount").value(25))
-                .andExpect(jsonPath("$.content[2].viewCount").value(20))
-                .andExpect(jsonPath("$.content[3].viewCount").value(10));  // 가장 낮은 조회수
+                .andExpect(jsonPath("$.content[0].publicTemplateTitle").value("다라마"))  // 가장 높은 조회수(30)
+                .andExpect(jsonPath("$.content[1].publicTemplateTitle").value("라마바"))  // 조회수(25)
+                .andExpect(jsonPath("$.content[2].publicTemplateTitle").value("가나다"))  // 조회수(20)
+                .andExpect(jsonPath("$.content[3].publicTemplateTitle").value("나다라")); // 가장 낮은 조회수(10)
     }
 
     @Test
     @DisplayName("최신순 정렬 API 테스트")
     void testGetTemplatesByRecent() throws Exception {
         mockMvc.perform(get("/public-templates")
-                        .param("sortBy", "recent")
+                        .param("sort", "createdAt,desc")
                         .param("page", "0")
                         .param("size", "10")
                         .accept(MediaType.APPLICATION_JSON))
@@ -130,7 +164,7 @@ class PublicTemplateIntegrationTest {
     @DisplayName("제목 가나다순 정렬 API 테스트")
     void testGetTemplatesByTitle() throws Exception {
         mockMvc.perform(get("/public-templates")
-                        .param("sortBy", "title")
+                        .param("sort", "publicTemplateTitle,asc")
                         .param("page", "0")
                         .param("size", "10")
                         .accept(MediaType.APPLICATION_JSON))
@@ -158,7 +192,7 @@ class PublicTemplateIntegrationTest {
     @DisplayName("잘못된 정렬 옵션 API 테스트 - 기본값(최신순)으로 정렬되어야 함")
     void testGetTemplatesByInvalidSort() throws Exception {
         mockMvc.perform(get("/public-templates")
-                        .param("sortBy", "invalid")
+                        .param("sort", "invalid,desc")
                         .param("page", "0")
                         .param("size", "10")
                         .accept(MediaType.APPLICATION_JSON))
@@ -171,7 +205,7 @@ class PublicTemplateIntegrationTest {
     @DisplayName("페이징 API 테스트")
     void testGetTemplatesWithPaging() throws Exception {
         mockMvc.perform(get("/public-templates")
-                        .param("sortBy", "share")
+                        .param("sort", "shareCount,desc")
                         .param("page", "0")
                         .param("size", "2")
                         .accept(MediaType.APPLICATION_JSON))
@@ -187,7 +221,7 @@ class PublicTemplateIntegrationTest {
     @DisplayName("두 번째 페이지 API 테스트")
     void testGetTemplatesSecondPage() throws Exception {
         mockMvc.perform(get("/public-templates")
-                        .param("sortBy", "share")
+                        .param("sort", "shareCount,desc")
                         .param("page", "1")
                         .param("size", "2")
                         .accept(MediaType.APPLICATION_JSON))
