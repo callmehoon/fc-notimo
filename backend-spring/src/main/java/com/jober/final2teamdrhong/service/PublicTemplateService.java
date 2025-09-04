@@ -42,9 +42,6 @@ public class PublicTemplateService {
             .publicTemplateTitle(entity.getPublicTemplateTitle())
             .publicTemplateContent(entity.getPublicTemplateContent())
             .buttonTitle(entity.getButtonTitle())
-            .shareCount(entity.getShareCount())
-            .viewCount(entity.getViewCount())
-            .createdAt(entity.getCreatedAt())
             .build();
     }
 } 

@@ -1,7 +1,5 @@
 package com.jober.final2teamdrhong.dto.publicTemplate;
 
-import java.time.LocalDateTime;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,7 +12,4 @@ public class PublicTemplateResponse {
     private String publicTemplateTitle;
     private String publicTemplateContent;
     private String buttonTitle;
-    private Integer shareCount;
-    private Integer viewCount;
-    private LocalDateTime createdAt;
 }
