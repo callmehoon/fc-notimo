@@ -12,27 +12,19 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "template_modified_history")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
 @SQLDelete(sql = "UPDATE template_modified_history SET is_deleted = true, deleted_at = NOW() WHERE history_id = ?")
 @Where(clause = "is_deleted = false")
-@ToString(of = {"historyId", "historyTitle", "status", "createdAt"})
 public class TemplateModifiedHistory {
     public enum Status {
         DRAFT, PENDING, APPROVED, REJECTED
     }
 
+
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "history_id")
     private Integer historyId;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "individual_template_id")
-    private IndividualTemplate individualTemplate;
-
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "chat_message_id")
-    private ChatMessage chatMessage;
 
     @Column(name = "history_title")
     private String historyTitle;
@@ -43,7 +35,7 @@ public class TemplateModifiedHistory {
     @Column(name = "button_title", length = 50)
     private String buttonTitle;
 
-    @Column(name = "status")
+    @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
     private Status status;
 
@@ -56,4 +48,27 @@ public class TemplateModifiedHistory {
 
     @Column(name = "is_deleted")
     private boolean isDeleted = false;
+
+
+
+    // ===== 관계 필드 =====
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "individual_template_id", nullable = false)
+    private IndividualTemplate individualTemplate;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "chat_message_id", nullable = false)
+    private ChatMessage chatMessage;
+
+
+    @Builder
+    public TemplateModifiedHistory(String historyTitle, String historyContent, String buttonTitle,
+                                   Status status, IndividualTemplate individualTemplate, ChatMessage chatMessage) {
+        this.historyTitle = historyTitle;
+        this.historyContent = historyContent;
+        this.buttonTitle = buttonTitle;
+        this.status = status;
+        this.individualTemplate = individualTemplate;
+        this.chatMessage = chatMessage;
+    }
 }

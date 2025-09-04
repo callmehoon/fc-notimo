@@ -11,9 +11,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "chat_message")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
 @Where(clause = "is_deleted = false")
-@ToString(of = {"messageId", "messageContent", "createdAt"})
 public class ChatMessage {
 
     @Id
@@ -21,17 +19,28 @@ public class ChatMessage {
     @Column(name = "message_id")
     private Integer messageId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "session_id")
-    private ChatSession chatSession;
-
-    @Column(name = "message_content", columnDefinition = "TEXT")
+    @Column(name = "message_content", columnDefinition = "TEXT",  nullable = false)
     private String messageContent;
 
     @CreationTimestamp
     @Column(name = "created_at", columnDefinition = "DATETIME", updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "is_deleted")
+    @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
+
+
+
+    // ===== 관계 필드 =====
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "session_id", nullable = false)
+    private ChatSession chatSession;
+
+
+
+    @Builder
+    public ChatMessage(String messageContent, ChatSession chatSession) {
+        this.messageContent = messageContent;
+        this.chatSession = chatSession;
+    }
 }

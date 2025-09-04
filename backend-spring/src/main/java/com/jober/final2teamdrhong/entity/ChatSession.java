@@ -13,10 +13,8 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "chat_session")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
 @SQLDelete(sql = "UPDATE chat_session SET is_deleted = true, deleted_at = NOW() WHERE session_id = ?")
 @Where(clause = "is_deleted = false")
-@ToString(of = {"sessionId", "sessionTitle", "createdAt"})
 public class ChatSession {
 
     @Id
@@ -24,15 +22,11 @@ public class ChatSession {
     @Column(name = "session_id")
     private Integer sessionId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "workspace_id")
-    private Workspace workspace;
-
-    @Column(name = "session_title")
+    @Column(name = "session_title", nullable = false)
     private String sessionTitle;
 
     @CreationTimestamp
-    @Column(name = "created_at", columnDefinition = "DATETIME", updatable = false)
+    @Column(name = "created_at", columnDefinition = "DATETIME", updatable = false, nullable = false)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
@@ -42,6 +36,21 @@ public class ChatSession {
     @Column(name = "deleted_at", columnDefinition = "DATETIME")
     private LocalDateTime deletedAt;
 
-    @Column(name = "is_deleted")
+    @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
+
+
+
+    // ===== 관계 필드 =====
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "workspace_id", nullable = false)
+    private Workspace workspace;
+
+
+
+    @Builder
+    public ChatSession(String sessionTitle, Workspace workspace) {
+        this.sessionTitle = sessionTitle;
+        this.workspace = workspace;
+    }
 }
