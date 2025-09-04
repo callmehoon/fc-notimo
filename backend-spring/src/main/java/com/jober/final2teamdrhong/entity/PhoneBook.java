@@ -3,6 +3,8 @@ package com.jober.final2teamdrhong.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
@@ -13,37 +15,39 @@ import java.util.List;
 @Table(name = "phone_book")
 @Getter
 @Setter
-@ToString
+@ToString(exclude = {"workspace", "groupMappings"})
 @NoArgsConstructor
+@SQLDelete(sql = "UPDATE phone_book SET is_deleted = true, deleted_at = NOW() WHERE phone_book_id = ?")
+@SQLRestriction("is_deleted = false")
 public class PhoneBook {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "phone_book_id") // PK
+    @Column(name = "phone_book_id", nullable = false) // PK
     private Integer phoneBookId;
 
-    @Column(name = "phone_book_name")
+    @Column(name = "phone_book_name", nullable = false)
     private String phoneBookName;
 
     @Column(name = "phone_book_memo", length = 1000)
     private String phoneBookMemo;
 
-    @Column(name = "is_deleted")
-    private boolean isDeleted;
-
     @CreationTimestamp
-    @Column(name = "created_at", columnDefinition = "DATETIME")
+    @Column(name = "created_at", columnDefinition = "DATETIME", nullable = false)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(name = "updated_at", columnDefinition = "DATETIME")
+    @Column(name = "updated_at", columnDefinition = "DATETIME", nullable = false)
     private LocalDateTime updatedAt;
 
     @Column(name = "deleted_at", columnDefinition = "DATETIME")
     private LocalDateTime deletedAt;
 
+    @Column(name = "is_deleted", nullable = false)
+    private boolean isDeleted;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "workspace_id") // FK
+    @JoinColumn(name = "workspace_id", nullable = false) // FK
     private Workspace workspace;
 
     @OneToMany(mappedBy = "phoneBook", fetch = FetchType.LAZY)
