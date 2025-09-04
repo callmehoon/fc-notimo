@@ -4,7 +4,6 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
@@ -38,8 +37,8 @@ class PublicTemplateControllerTest {
     void getPublicTemplates_WithDefaultParams_ReturnsRecentSorted() throws Exception {
         // given
         List<PublicTemplateResponse> mockContent = List.of(
-            createMockResponse(1, "최신템플릿", "Content1", 5, 10, LocalDateTime.now()),
-            createMockResponse(2, "오래된템플릿", "Content2", 3, 7, LocalDateTime.now().minusDays(1))
+            createMockResponse(1, "최신템플릿", "Content1"),
+            createMockResponse(2, "오래된템플릿", "Content2")
         );
         Page<PublicTemplateResponse> mockPage = new PageImpl<>(mockContent, PageRequest.of(0, 10), 2);
         
@@ -63,8 +62,8 @@ class PublicTemplateControllerTest {
     void getPublicTemplates_WithShareSort_ReturnsShareSorted() throws Exception {
         // given
         List<PublicTemplateResponse> mockContent = List.of(
-            createMockResponse(1, "높은공유템플릿", "Content1", 15, 10, LocalDateTime.now()),
-            createMockResponse(2, "낮은공유템플릿", "Content2", 5, 7, LocalDateTime.now().minusDays(1))
+            createMockResponse(1, "높은공유템플릿", "Content1"),
+            createMockResponse(2, "낮은공유템플릿", "Content2")
         );
         Page<PublicTemplateResponse> mockPage = new PageImpl<>(mockContent, PageRequest.of(0, 10), 2);
         
@@ -76,8 +75,8 @@ class PublicTemplateControllerTest {
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(2))
-                .andExpect(jsonPath("$.content[0].shareCount").value(15))
-                .andExpect(jsonPath("$.content[1].shareCount").value(5));
+                .andExpect(jsonPath("$.content[0].publicTemplateTitle").value("높은공유템플릿"))
+                .andExpect(jsonPath("$.content[1].publicTemplateTitle").value("낮은공유템플릿"));
 
         verify(publicTemplateService, times(1)).getTemplates(any(Pageable.class));
     }
@@ -87,8 +86,8 @@ class PublicTemplateControllerTest {
     void getPublicTemplates_WithViewSort_ReturnsViewSorted() throws Exception {
         // given
         List<PublicTemplateResponse> mockContent = List.of(
-            createMockResponse(1, "높은조회템플릿", "Content1", 5, 20, LocalDateTime.now()),
-            createMockResponse(2, "낮은조회템플릿", "Content2", 3, 5, LocalDateTime.now().minusDays(1))
+            createMockResponse(1, "높은조회템플릿", "Content1"),
+            createMockResponse(2, "낮은조회템플릿", "Content2")
         );
         Page<PublicTemplateResponse> mockPage = new PageImpl<>(mockContent, PageRequest.of(0, 10), 2);
         
@@ -100,8 +99,8 @@ class PublicTemplateControllerTest {
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(2))
-                .andExpect(jsonPath("$.content[0].viewCount").value(20))
-                .andExpect(jsonPath("$.content[1].viewCount").value(5));
+                .andExpect(jsonPath("$.content[0].publicTemplateTitle").value("높은조회템플릿"))
+                .andExpect(jsonPath("$.content[1].publicTemplateTitle").value("낮은조회템플릿"));
 
         verify(publicTemplateService, times(1)).getTemplates(any(Pageable.class));
     }
@@ -111,8 +110,8 @@ class PublicTemplateControllerTest {
     void getPublicTemplates_WithTitleSort_ReturnsTitleSorted() throws Exception {
         // given
         List<PublicTemplateResponse> mockContent = List.of(
-            createMockResponse(1, "가나다", "Content1", 5, 10, LocalDateTime.now()),
-            createMockResponse(2, "나다라", "Content2", 3, 7, LocalDateTime.now().minusDays(1))
+            createMockResponse(1, "가나다", "Content1"),
+            createMockResponse(2, "나다라", "Content2")
         );
         Page<PublicTemplateResponse> mockPage = new PageImpl<>(mockContent, PageRequest.of(0, 10), 2);
         
@@ -135,7 +134,7 @@ class PublicTemplateControllerTest {
     void getPublicTemplates_WithPagingParams_ReturnsPagedResult() throws Exception {
         // given
         List<PublicTemplateResponse> mockContent = List.of(
-            createMockResponse(1, "템플릿1", "Content1", 5, 10, LocalDateTime.now())
+            createMockResponse(1, "템플릿1", "Content1")
         );
         Page<PublicTemplateResponse> mockPage = new PageImpl<>(mockContent, PageRequest.of(1, 2), 5);
         
@@ -161,7 +160,7 @@ class PublicTemplateControllerTest {
     void getPublicTemplates_WithInvalidSort_ReturnsDefaultSorted() throws Exception {
         // given
         List<PublicTemplateResponse> mockContent = List.of(
-            createMockResponse(1, "템플릿1", "Content1", 5, 10, LocalDateTime.now())
+            createMockResponse(1, "템플릿1", "Content1")
         );
         Page<PublicTemplateResponse> mockPage = new PageImpl<>(mockContent, PageRequest.of(0, 10), 1);
         
@@ -196,15 +195,11 @@ class PublicTemplateControllerTest {
         verify(publicTemplateService, times(1)).getTemplates(any(Pageable.class));
     }
 
-    private PublicTemplateResponse createMockResponse(Integer id, String title, String content, 
-                                                    int shareCount, int viewCount, LocalDateTime createdAt) {
+    private PublicTemplateResponse createMockResponse(Integer id, String title, String content) {
         return PublicTemplateResponse.builder()
                 .publicTemplateId(id)
                 .publicTemplateTitle(title)
                 .publicTemplateContent(content)
-                .shareCount(shareCount)
-                .viewCount(viewCount)
-                .createdAt(createdAt)
                 .build();
     }
 }
