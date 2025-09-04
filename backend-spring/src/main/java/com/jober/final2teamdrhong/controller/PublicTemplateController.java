@@ -5,6 +5,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.PageRequest;
+
+import java.util.Set;
 
 import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplateResponse;
 import com.jober.final2teamdrhong.service.PublicTemplateService;
@@ -29,6 +32,16 @@ public class PublicTemplateController {
     public Page<PublicTemplateResponse> getPublicTemplates(
         @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC, size = 10) Pageable pageable
     ) {
-        return publicTemplateService.getTemplates(pageable);
+        // 허용된 정렬 필드 화이트리스트
+        Set<String> allowedSortProperties = Set.of("createdAt", "shareCount", "viewCount", "publicTemplateTitle");
+
+        boolean hasOnlyAllowedSorts = pageable.getSort().stream()
+            .allMatch(order -> allowedSortProperties.contains(order.getProperty()));
+
+        Pageable normalized = hasOnlyAllowedSorts
+            ? pageable
+            : PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by("createdAt").descending());
+
+        return publicTemplateService.getTemplates(normalized);
     }
 }
