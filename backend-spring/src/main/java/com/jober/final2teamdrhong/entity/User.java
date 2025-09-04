@@ -13,22 +13,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "user")
+@Table(name = "usersss")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User  {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "user_id")
+    @Column(name = "usersss_id")
     private Integer userId;
 
-    @Column(name = "user_name")
+    @Column(name = "usersss_name")
     private String userName;
 
-    @Column(name = "user_number")
+    @Column(name = "usersss_number")
     private String userNumber;
 
-    @Column(unique = true, nullable = false, name = "user_email")
+    @Column(unique = true, nullable = false, name = "usersss_email")
     private String userEmail;
 
     // BaseTimeEntity 제거  시간필드 직접 추가
@@ -41,7 +41,7 @@ public class User  {
     private LocalDateTime updatedAt;
 
 
-    @Column(name = "user_role")
+    @Column(name = "usersss_role")
     @Enumerated(EnumType.STRING)
     private UserRole userRole;
 
@@ -51,7 +51,7 @@ public class User  {
     }
 
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true) // ✅ Cascade 옵션 추가
+    @OneToMany(mappedBy = "usersss", cascade = CascadeType.ALL, orphanRemoval = true) // ✅ Cascade 옵션 추가
     private List<UserAuth> userAuths = new ArrayList<>();
 
     // 생성자 (package-private)
