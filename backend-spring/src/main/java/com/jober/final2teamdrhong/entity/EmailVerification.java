@@ -5,7 +5,6 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
 import java.time.LocalDateTime;
 
 /**
@@ -29,10 +28,10 @@ public class EmailVerification {
     @Column(name = "verification_code", nullable = false)
     private String verificationCode;
 
-    @Column(name = "expires_at", nullable = false)
+    @Column(name = "expires_at", nullable = false, columnDefinition = "DATETIME")
     private LocalDateTime expiresAt;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false , columnDefinition = "DATETIME")
     private LocalDateTime createdAt;
 
     @Column(name = "attempts", nullable = false)
