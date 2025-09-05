@@ -1,6 +1,6 @@
 package com.jober.final2teamdrhong.service;
 
-import com.jober.final2teamdrhong.dto.IndividualTemplateFavoriteRequest;
+import com.jober.final2teamdrhong.dto.favorite.IndividualTemplateFavoriteRequest;
 import com.jober.final2teamdrhong.entity.Favorite;
 import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import com.jober.final2teamdrhong.entity.Workspace;

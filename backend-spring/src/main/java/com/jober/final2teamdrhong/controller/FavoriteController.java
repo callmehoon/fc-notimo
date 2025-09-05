@@ -1,6 +1,6 @@
 package com.jober.final2teamdrhong.controller;
 
-import com.jober.final2teamdrhong.dto.IndividualTemplateFavoriteRequest;
+import com.jober.final2teamdrhong.dto.favorite.IndividualTemplateFavoriteRequest;
 import com.jober.final2teamdrhong.service.FavoriteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
