@@ -6,4 +6,6 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 public class IndividualTemplateFavoriteRequest {
+    private Integer workspaceId;
+    private Integer individualTemplateId;
 }
