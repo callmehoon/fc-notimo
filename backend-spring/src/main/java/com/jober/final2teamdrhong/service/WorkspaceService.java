@@ -22,10 +22,12 @@ public class WorkspaceService {
     private final UserRepository userRepository;
 
     /**
-     * 새로운 워크스페이스를 생성합니다.
+     * 인증된 사용자를 위해 새로운 워크스페이스를 생성합니다.
+     * <p>
+     * userId 매개변수를 통해 워크스페이스의 소유자를 지정하며, 이는 생성 권한에 대한 인가(Authorization) 역할을 합니다.
      *
      * @param createDTO 워크스페이스 생성을 위한 요청 데이터
-     * @param userId    워크스페이스를 생성하는 사용자의 ID
+     * @param userId    워크스페이스를 생성할 사용자의 ID (현재 인증된 사용자)
      * @return 생성된 워크스페이스의 간략 정보(SimpleDTO)
      * @throws IllegalArgumentException 해당 ID의 사용자가 존재하지 않거나, 요청된 URL이 이미 사용 중일 경우 발생
      */
