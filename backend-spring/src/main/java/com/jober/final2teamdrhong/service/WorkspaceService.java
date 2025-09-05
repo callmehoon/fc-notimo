@@ -34,7 +34,8 @@ public class WorkspaceService {
     @Transactional
     public WorkspaceResponse.SimpleDTO createWorkspace(WorkspaceRequest.CreateDTO createDTO, Integer userId) {
         // User 조회 및 예외 처리 로직
-        User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("해당 사용자를 찾을 수 없습니다. ID: " + userId));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 사용자를 찾을 수 없습니다. ID: " + userId));
 
         // workspaceUrl unique 조건 확인 로직
         if (workspaceRepository.existsByWorkspaceUrl(createDTO.getWorkspaceUrl())) {
