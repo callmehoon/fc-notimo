@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -32,10 +33,11 @@ public class WorkspaceController {
 
     /**
      * 새로운 워크스페이스를 생성하는 API
-     * 요청 본문에 담긴 워크스페이스 정보의 유효성을 검사한 후 서비스를 호출합니다.
+     * <p>
+     * 요청 본문(RequestBody)으로 받은 데이터를 사용하여 워크스페이스를 생성하며, 이 API를 호출하기 위해서는 인증이 필요합니다.
      *
-     * @param createDTO 클라이언트로부터 받은 워크스페이스 생성 정보 (JSON, @Valid로 검증됨)
-     * @return 생성된 워크스페이스의 간략한 정보와 HTTP 상태 코드 201 (Created)
+     * @param createDTO 클라이언트로부터 받은 워크스페이스 생성을 위한 데이터 전송 객체 (DTO) (JSON, @Valid로 검증됨)
+     * @return 상태 코드 201 (Created)와 함께 생성된 워크스페이스의 간략 정보를 담은 ResponseEntity
      */
     @Operation(summary = "워크스페이스 생성", description = "새로운 워크스페이스를 생성합니다.")
     @ApiResponses(value = {
@@ -52,6 +54,7 @@ public class WorkspaceController {
                     content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = ErrorResponse.class)))
     })
+    @SecurityRequirement(name = "bearerAuth")
     @PostMapping
     public ResponseEntity<WorkspaceResponse.SimpleDTO> createWorkspace(@Valid @RequestBody WorkspaceRequest.CreateDTO createDTO) {
         // TODO: Spring Security 도입 후, @AuthenticationPrincipal 등을 통해 실제 사용자 정보 획득 필요
