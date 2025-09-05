@@ -19,7 +19,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
-@ActiveProfiles("test")  // application-test.properties 사용
 @AutoConfigureMockMvc(addFilters = false)
 class PublicTemplateIntegrationTest {
     @Autowired
