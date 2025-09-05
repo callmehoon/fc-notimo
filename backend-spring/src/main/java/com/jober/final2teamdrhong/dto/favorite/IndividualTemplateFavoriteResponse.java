@@ -1,4 +1,4 @@
-package com.jober.final2teamdrhong.dto;
+package com.jober.final2teamdrhong.dto.favorite;
 
 import com.jober.final2teamdrhong.entity.Favorite;
 import lombok.Getter;
