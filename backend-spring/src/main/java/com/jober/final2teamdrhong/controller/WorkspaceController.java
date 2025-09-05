@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "워크스페이스 관리 API", description = "워크스페이스 생성, 조회, 수정, 삭제 등 워크스페이스와 관련된 API를 제공합니다.")
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api")
+@RequestMapping("/workspaces")
 public class WorkspaceController {
 
     private final WorkspaceService workspaceService;
@@ -53,7 +53,7 @@ public class WorkspaceController {
                     content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = ErrorResponse.class)))
     })
-    @PostMapping("/workspaces")
+    @PostMapping
     public ResponseEntity<WorkspaceResponse.SimpleDTO> createWorkspace(@Valid @RequestBody WorkspaceRequest.CreateDTO createDTO) {
         // TODO: Spring Security 도입 후, @AuthenticationPrincipal 등을 통해 실제 사용자 정보 획득 필요
         Integer currentUserId = 1;
