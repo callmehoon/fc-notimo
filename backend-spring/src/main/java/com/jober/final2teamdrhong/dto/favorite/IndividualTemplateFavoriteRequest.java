@@ -8,4 +8,9 @@ import lombok.NoArgsConstructor;
 public class IndividualTemplateFavoriteRequest {
     private Integer workspaceId;
     private Integer individualTemplateId;
+
+    public IndividualTemplateFavoriteRequest(Integer workspaceId, Integer individualTemplateId) {
+        this.workspaceId = workspaceId;
+        this.individualTemplateId = individualTemplateId;
+    }
 }
