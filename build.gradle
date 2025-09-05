@@ -17,6 +17,9 @@ sourceSets {
         java {
             srcDirs = ['backend-spring/src/test/java']
         }
+        resources {
+            srcDirs = ['backend-spring/src/test/resources']
+        }
     }
 }
 
