@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api")
+@RequestMapping
 public class FavoriteController {
 
     private final FavoriteService favoriteService;
@@ -21,7 +21,7 @@ public class FavoriteController {
      * @param request workspaceId와 templateId를 포함한 DTO
      * @return 성공 시 HTTP 200 OK
      */
-    @PostMapping("/fav")
+    @PostMapping("/individual/fav")
     public ResponseEntity<Void> createTemplateFavorite(@RequestBody IndividualTemplateFavoriteRequest request) {
         favoriteService.createIndividualTemplateFavorite(request);
         return ResponseEntity.ok().build();
