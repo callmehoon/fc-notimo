@@ -36,7 +36,6 @@ public class WorkspaceController {
      *
      * @param createDTO 클라이언트로부터 받은 워크스페이스 생성 정보 (JSON, @Valid로 검증됨)
      * @return 생성된 워크스페이스의 간략한 정보와 HTTP 상태 코드 201 (Created)
-     *
      */
     @Operation(summary = "워크스페이스 생성", description = "새로운 워크스페이스를 생성합니다.")
     @ApiResponses(value = {
