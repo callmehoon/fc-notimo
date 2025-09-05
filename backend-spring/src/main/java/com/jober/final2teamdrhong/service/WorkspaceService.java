@@ -25,7 +25,9 @@ public class WorkspaceService {
      * 새로운 워크스페이스를 생성합니다.
      *
      * @param createDTO 워크스페이스 생성을 위한 요청 데이터
-     * @return 생성된 워크스페이스의 간략 정보
+     * @param userId    워크스페이스를 생성하는 사용자의 ID
+     * @return 생성된 워크스페이스의 간략 정보(SimpleDTO)
+     * @throws IllegalArgumentException 해당 ID의 사용자가 존재하지 않거나, 요청된 URL이 이미 사용 중일 경우 발생
      */
     @Transactional
     public WorkspaceResponse.SimpleDTO createWorkspace(WorkspaceRequest.CreateDTO createDTO, Integer userId) {
