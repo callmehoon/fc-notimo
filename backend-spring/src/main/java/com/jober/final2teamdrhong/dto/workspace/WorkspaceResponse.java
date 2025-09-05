@@ -22,6 +22,7 @@ public class WorkspaceResponse {
 
         /**
          * Workspace 엔티티를 SimpleDTO로 변환하는 생성자입니다.
+         *
          * @param workspace 변환할 Workspace 엔티티 객체
          */
         public SimpleDTO(Workspace workspace) {
