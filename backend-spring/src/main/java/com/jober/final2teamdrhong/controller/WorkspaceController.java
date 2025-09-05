@@ -44,13 +44,10 @@ public class WorkspaceController {
             @ApiResponse(responseCode = "201", description = "워크스페이스 생성 성공",
                     content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = WorkspaceResponse.SimpleDTO.class))),
-            @ApiResponse(responseCode = "400", description = "요청 데이터 유효성 검사 실패 (예: 필수 필드 누락)",
+            @ApiResponse(responseCode = "400", description = "잘못된 요청: 요청 데이터 유효성 검사에 실패했거나, 비즈니스 규칙에 위배됩니다. (예: 존재하지 않는 사용자, 중복된 URL)",
                     content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "401", description = "인증 실패 (로그인 필요)",
-                    content = @Content(mediaType = "application/json",
-                    schema = @Schema(implementation = ErrorResponse.class))),
-            @ApiResponse(responseCode = "409", description = "이미 사용 중인 URL일 경우 (Conflict)",
                     content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = ErrorResponse.class)))
     })
