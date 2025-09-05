@@ -78,7 +78,7 @@ public class Workspace {
     private List<Recipient> recipients = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false) // FK
+    @JoinColumn(name = "users_id", nullable = false) // FK
     private User user;
 
     /**
