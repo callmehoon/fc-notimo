@@ -51,7 +51,7 @@ public class User  {
     }
 
 
-    @OneToMany(mappedBy = "users", cascade = CascadeType.ALL, orphanRemoval = true) // ✅ Cascade 옵션 추가
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UserAuth> userAuths = new ArrayList<>();
 
     // 생성자 (package-private)
@@ -73,7 +73,17 @@ public class User  {
         return this.userRole == UserRole.ADMIN;
     }
 
-    public void updateInfo(String userName, String userEmail, String userNumber) {
+    // 정적 팩토리 메서드
+    public static User create(String userName, String userEmail, String userNumber) {
+        return User.builder()
+                .userName(userName)
+                .userEmail(userEmail)
+                .userNumber(userNumber)
+                .build();
+    }
+
+    // 비즈니스 메서드: 정보 업데이트
+    public void updateInfo(String userName, String userNumber) {
         if (userName != null && !userName.trim().isEmpty()) {
             this.userName = userName;
         }
