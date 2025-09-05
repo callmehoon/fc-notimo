@@ -71,7 +71,7 @@ class WorkspaceControllerTest {
         // when (테스트 실행)
         // POST /api/workspaces 로 JSON 데이터를 담아 요청을 보냄
         ResultActions resultActions = mockMvc.perform(
-                post("/api/workspaces") // 실제 API 엔드포인트 경로
+                post("/workspaces") // 실제 API 엔드포인트 경로
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody)
                         .with(csrf())
@@ -105,7 +105,7 @@ class WorkspaceControllerTest {
 
         // when (테스트 실행)
         ResultActions resultActions = mockMvc.perform(
-                post("/api/workspaces")
+                post("/workspaces")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody)
                         .with(csrf())
