@@ -21,8 +21,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -257,6 +256,143 @@ class WorkspaceControllerTest {
 
         // then
         // 서비스 계층에서 소유자가 달라 조회가 거부되고, 최종적으로 400 Bad Request를 반환하는지 확인합니다.
+        resultActions.andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("워크스페이스 수정 성공 테스트")
+    void updateWorkspace_Success() throws Exception {
+        // given
+        // 1. 수정 대상이 될 원본 워크스페이스를 DB에 미리 저장합니다.
+        //    이 워크스페이스의 소유자는 @BeforeEach에서 생성된 testUser (ID=1) 입니다.
+        Workspace originalWorkspace = Workspace.builder()
+                .workspaceName("원본 워크스페이스")
+                .workspaceUrl("original-url-for-update")
+                .representerName("원본 대표")
+                .representerPhoneNumber("010-1111-1111")
+                .companyName("원본 회사")
+                .build();
+        originalWorkspace.setUser(testUser);
+        workspaceRepository.save(originalWorkspace);
+
+        // 2. API 요청 본문(Body)에 담아 보낼 수정 데이터를 DTO 객체로 준비합니다.
+        WorkspaceRequest.UpdateDTO updateDTO = WorkspaceRequest.UpdateDTO.builder()
+                .newWorkspaceName("수정된 워크스페이스")
+                .newWorkspaceSubname("수정된 부이름")
+                .newWorkspaceAddress("수정된 주소")
+                .newWorkspaceDetailAddress("수정된 상세주소")
+                .newWorkspaceUrl("updated-unique-url")
+                .newRepresenterName("수정된 대표")
+                .newRepresenterPhoneNumber("010-9999-8888")
+                .newRepresenterEmail("updated@example.com")
+                .newCompanyName("수정된 회사")
+                .newCompanyRegisterNumber("999-88-77777")
+                .build();
+
+        // 3. DTO 객체를 JSON 문자열로 변환합니다.
+        String requestBody = objectMapper.writeValueAsString(updateDTO);
+
+        // when
+        // 1. MockMvc를 사용하여 PUT /workspaces/{workspaceId} 엔드포인트로 API 요청을 보냅니다.
+        //    - contentType을 application/json으로 설정합니다.
+        //    - content에 위에서 만든 JSON 문자열을 담습니다.
+        //    - with(csrf())를 통해 CSRF 보호를 통과시킵니다.
+        ResultActions resultActions = mockMvc.perform(
+                put("/workspaces/" + originalWorkspace.getWorkspaceId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody)
+                        .with(csrf())
+        );
+
+        // then
+        // 1. API 호출 결과를 검증합니다.
+        //    - HTTP 상태 코드가 200 OK 인지 확인합니다.
+        //    - 응답으로 받은 JSON 본문의 필드 값들이 우리가 요청한 수정 데이터와 일치하는지 확인합니다.
+        resultActions
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.workspaceName").value("수정된 워크스페이스"))
+                .andExpect(jsonPath("$.workspaceUrl").value("updated-unique-url"))
+                .andExpect(jsonPath("$.companyName").value("수정된 회사"));
+    }
+
+    @Test
+    @DisplayName("워크스페이스 수정 실패 테스트 - 권한 없음")
+    void updateWorkspace_Fail_Unauthorized() throws Exception {
+        // given
+        // 1. 다른 사용자(anotherUser) 소유의 워크스페이스를 DB에 저장합니다.
+        //    현재 요청을 보내는 사용자는 testUser(ID=1)이므로, 이 워크스페이스에 대한 수정 권한이 없습니다.
+        Workspace othersWorkspace = Workspace.builder()
+                .workspaceName("남의 워크스페이스")
+                .workspaceUrl("another-users-workspace")
+                .representerName("김대표")
+                .representerPhoneNumber("010-1111-1111")
+                .companyName("남의 회사")
+                .build();
+        othersWorkspace.setUser(anotherUser);
+        workspaceRepository.save(othersWorkspace);
+
+        // 2. 요청 본문에 담길 DTO를 준비합니다. 유효성 검사를 통과할 최소한의 데이터만 넣습니다.
+        WorkspaceRequest.UpdateDTO updateDTO = WorkspaceRequest.UpdateDTO.builder()
+                .newWorkspaceName("수정 시도")
+                .newWorkspaceUrl("attempt-update-url")
+                .newRepresenterName("대표")
+                .newRepresenterPhoneNumber("010-1234-5678")
+                .newCompanyName("회사")
+                .build();
+        String requestBody = objectMapper.writeValueAsString(updateDTO);
+
+        // when
+        // 현재 사용자(testUser)가 다른 사람(anotherUser)의 워크스페이스 수정을 시도합니다.
+        ResultActions resultActions = mockMvc.perform(
+                put("/workspaces/" + othersWorkspace.getWorkspaceId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody)
+                        .with(csrf())
+        );
+
+        // then
+        // 1. 서비스 계층에서 소유권이 없다고 판단하여 예외를 던지고,
+        //    GlobalExceptionHandler에 의해 최종적으로 400 Bad Request가 반환되는지 확인합니다.
+        resultActions.andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("워크스페이스 수정 실패 테스트 - 필수 필드 누락")
+    void updateWorkspace_Fail_Validation() throws Exception {
+        // given
+        // 1. 수정 대상 워크스페이스를 하나 생성합니다. 이 테스트에서는 ID만 필요합니다.
+        Workspace targetWorkspace = Workspace.builder()
+                .workspaceName("유효성 검사 대상")
+                .workspaceUrl("validation-target-url")
+                .representerName("대표")
+                .representerPhoneNumber("010-1111-1111")
+                .companyName("회사")
+                .build();
+        targetWorkspace.setUser(testUser);
+        workspaceRepository.save(targetWorkspace);
+
+        // 2. @NotBlank 제약조건을 위반하는, 비어있는 workspaceName을 가진 DTO를 준비합니다.
+        WorkspaceRequest.UpdateDTO invalidUpdateDTO = WorkspaceRequest.UpdateDTO.builder()
+                .newWorkspaceName("") // @NotBlank 위반
+                .newWorkspaceUrl("valid-url")
+                .newRepresenterName("대표")
+                .newRepresenterPhoneNumber("010-1234-5678")
+                .newCompanyName("회사")
+                .build();
+        String requestBody = objectMapper.writeValueAsString(invalidUpdateDTO);
+
+        // when
+        // 유효하지 않은 데이터로 수정 API를 호출합니다.
+        ResultActions resultActions = mockMvc.perform(
+                put("/workspaces/" + targetWorkspace.getWorkspaceId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody)
+                        .with(csrf())
+        );
+
+        // then (결과 검증)
+        // 1. 컨트롤러의 @Valid 어노테이션에 의해 요청이 서비스 계층으로 전달되기 전에 차단되고,
+        //    400 Bad Request가 반환되는지 확인합니다.
         resultActions.andExpect(status().isBadRequest());
     }
 }
