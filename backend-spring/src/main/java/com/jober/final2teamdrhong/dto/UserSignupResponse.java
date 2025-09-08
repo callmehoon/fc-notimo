@@ -8,7 +8,7 @@ import lombok.Getter;
 @Schema(description = "회원가입 및 이메일 인증 응답 DTO")
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class UserSignupResponseDto {
+public class UserSignupResponse {
     
     @Schema(description = "성공 여부", example = "true")
     private final boolean success;
@@ -20,16 +20,16 @@ public class UserSignupResponseDto {
     private final Object data;
     
     // 성공 응답
-    public static UserSignupResponseDto success(String message) {
-        return new UserSignupResponseDto(true, message, null);
+    public static UserSignupResponse success(String message) {
+        return new UserSignupResponse(true, message, null);
     }
     
-    public static UserSignupResponseDto success(String message, Object data) {
-        return new UserSignupResponseDto(true, message, data);
+    public static UserSignupResponse success(String message, Object data) {
+        return new UserSignupResponse(true, message, data);
     }
     
     // 실패 응답
-    public static UserSignupResponseDto failure(String message) {
-        return new UserSignupResponseDto(false, message, null);
+    public static UserSignupResponse failure(String message) {
+        return new UserSignupResponse(false, message, null);
     }
 }

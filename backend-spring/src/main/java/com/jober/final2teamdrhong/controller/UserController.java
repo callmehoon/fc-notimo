@@ -1,8 +1,8 @@
 package com.jober.final2teamdrhong.controller;
 
-import com.jober.final2teamdrhong.dto.EmailRequestDto;
-import com.jober.final2teamdrhong.dto.UserSignupRequestDto;
-import com.jober.final2teamdrhong.dto.UserSignupResponseDto;
+import com.jober.final2teamdrhong.dto.EmailRequest;
+import com.jober.final2teamdrhong.dto.UserSignupRequest;
+import com.jober.final2teamdrhong.dto.UserSignupResponse;
 import com.jober.final2teamdrhong.service.EmailService;
 import com.jober.final2teamdrhong.service.UserService;
 import com.jober.final2teamdrhong.util.ClientIpUtil;
@@ -62,7 +62,7 @@ public class UserController {
             responseCode = "200", 
             description = "✅ 인증 코드 발송 성공",
             content = @Content(
-                schema = @Schema(implementation = UserSignupResponseDto.class),
+                schema = @Schema(implementation = UserSignupResponse.class),
                 examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
                     name = "성공 응답",
                     value = """
@@ -79,7 +79,7 @@ public class UserController {
             responseCode = "400", 
             description = "❌ 잘못된 요청 (이메일 형식 오류 등)",
             content = @Content(
-                schema = @Schema(implementation = UserSignupResponseDto.class),
+                schema = @Schema(implementation = UserSignupResponse.class),
                 examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
                     name = "이메일 형식 오류",
                     value = """
@@ -96,7 +96,7 @@ public class UserController {
             responseCode = "429", 
             description = "🚫 Rate Limit 초과",
             content = @Content(
-                schema = @Schema(implementation = UserSignupResponseDto.class),
+                schema = @Schema(implementation = UserSignupResponse.class),
                 examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
                     name = "속도 제한 초과",
                     value = """
@@ -116,19 +116,19 @@ public class UserController {
         )
     })
     @PostMapping("/send-verification-code")
-    public ResponseEntity<UserSignupResponseDto> sendVerificationCode(
+    public ResponseEntity<UserSignupResponse> sendVerificationCode(
             @Parameter(description = "인증 코드를 받을 이메일 주소", required = true)
-            @Valid @RequestBody EmailRequestDto emailRequestDto,
+            @Valid @RequestBody EmailRequest emailRequest,
             HttpServletRequest request) {
         
         String clientIp = ClientIpUtil.getClientIpAddress(request, isDevelopment);
         
         // Rate limiting 로직을 서비스로 위임
-        emailService.sendVerificationCodeWithRateLimit(emailRequestDto.getEmail(), clientIp);
+        emailService.sendVerificationCodeWithRateLimit(emailRequest.getEmail(), clientIp);
         
-        log.info("인증 코드 발송 성공: ip={}, email={}", clientIp, emailRequestDto.getEmail());
+        log.info("인증 코드 발송 성공: ip={}, email={}", clientIp, emailRequest.getEmail());
         return ResponseEntity.ok(
-            UserSignupResponseDto.success("인증 코드가 발송되었습니다.")
+            UserSignupResponse.success("인증 코드가 발송되었습니다.")
         );
     }
 
@@ -168,7 +168,7 @@ public class UserController {
             responseCode = "200", 
             description = "✅ 회원가입 성공",
             content = @Content(
-                schema = @Schema(implementation = UserSignupResponseDto.class),
+                schema = @Schema(implementation = UserSignupResponse.class),
                 examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
                     name = "회원가입 성공",
                     value = """
@@ -185,7 +185,7 @@ public class UserController {
             responseCode = "400", 
             description = "❌ 잘못된 요청",
             content = @Content(
-                schema = @Schema(implementation = UserSignupResponseDto.class),
+                schema = @Schema(implementation = UserSignupResponse.class),
                 examples = {
                     @io.swagger.v3.oas.annotations.media.ExampleObject(
                         name = "중복 이메일",
@@ -224,7 +224,7 @@ public class UserController {
             responseCode = "429", 
             description = "🚫 Rate Limit 초과",
             content = @Content(
-                schema = @Schema(implementation = UserSignupResponseDto.class),
+                schema = @Schema(implementation = UserSignupResponse.class),
                 examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
                     name = "회원가입 속도 제한",
                     value = """
@@ -244,19 +244,19 @@ public class UserController {
         )
     })
     @PostMapping("/signup")
-    public ResponseEntity<UserSignupResponseDto> signup(
+    public ResponseEntity<UserSignupResponse> signup(
             @Parameter(description = "회원가입 요청 정보 (사용자명, 이메일, 비밀번호, 인증코드 포함)", required = true)
-            @Valid @RequestBody UserSignupRequestDto userSignupRequestDto,
+            @Valid @RequestBody UserSignupRequest userSignupRequest,
             HttpServletRequest request) {
         
         String clientIp = ClientIpUtil.getClientIpAddress(request, isDevelopment);
         
         // Rate limiting과 회원가입 로직을 서비스로 위임
-        userService.signupWithRateLimit(userSignupRequestDto, clientIp);
+        userService.signupWithRateLimit(userSignupRequest, clientIp);
         
-        log.info("회원가입 성공: ip={}, email={}", clientIp, userSignupRequestDto.getEmail());
+        log.info("회원가입 성공: ip={}, email={}", clientIp, userSignupRequest.getEmail());
         return ResponseEntity.ok(
-            UserSignupResponseDto.success("회원가입이 성공적으로 완료되었습니다.")
+            UserSignupResponse.success("회원가입이 성공적으로 완료되었습니다.")
         );
     }
 }
