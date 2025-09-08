@@ -14,7 +14,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -113,10 +112,10 @@ class PublicTemplateServiceTest {
         
         // 정렬이 올바르게 되었는지 확인 (공유수가 높은 순서대로)
         // 나다라(15) -> 라마바(12) -> 다라마(8) -> 가나다(5)
-        assertThat(templates.get(0).getPublicTemplateTitle()).isEqualTo("나다라");
-        assertThat(templates.get(1).getPublicTemplateTitle()).isEqualTo("라마바");
-        assertThat(templates.get(2).getPublicTemplateTitle()).isEqualTo("다라마");
-        assertThat(templates.get(3).getPublicTemplateTitle()).isEqualTo("가나다");
+        assertThat(templates.get(0).publicTemplateTitle()).isEqualTo("나다라");
+        assertThat(templates.get(1).publicTemplateTitle()).isEqualTo("라마바");
+        assertThat(templates.get(2).publicTemplateTitle()).isEqualTo("다라마");
+        assertThat(templates.get(3).publicTemplateTitle()).isEqualTo("가나다");
     }
 
     @Test
@@ -132,10 +131,10 @@ class PublicTemplateServiceTest {
         
         // 정렬이 올바르게 되었는지 확인 (조회수가 높은 순서대로)
         // 다라마(30) -> 라마바(25) -> 가나다(20) -> 나다라(10)
-        assertThat(templates.get(0).getPublicTemplateTitle()).isEqualTo("다라마");
-        assertThat(templates.get(1).getPublicTemplateTitle()).isEqualTo("라마바");
-        assertThat(templates.get(2).getPublicTemplateTitle()).isEqualTo("가나다");
-        assertThat(templates.get(3).getPublicTemplateTitle()).isEqualTo("나다라");
+        assertThat(templates.get(0).publicTemplateTitle()).isEqualTo("다라마");
+        assertThat(templates.get(1).publicTemplateTitle()).isEqualTo("라마바");
+        assertThat(templates.get(2).publicTemplateTitle()).isEqualTo("가나다");
+        assertThat(templates.get(3).publicTemplateTitle()).isEqualTo("나다라");
     }
 
     @Test
@@ -151,10 +150,10 @@ class PublicTemplateServiceTest {
         
         // 정렬이 올바르게 되었는지 확인 (최신순으로)
         // 라마바(최신) -> 다라마 -> 나다라 -> 가나다(최구)
-        assertThat(templates.get(0).getPublicTemplateTitle()).isEqualTo("라마바");
-        assertThat(templates.get(1).getPublicTemplateTitle()).isEqualTo("다라마");
-        assertThat(templates.get(2).getPublicTemplateTitle()).isEqualTo("나다라");
-        assertThat(templates.get(3).getPublicTemplateTitle()).isEqualTo("가나다");
+        assertThat(templates.get(0).publicTemplateTitle()).isEqualTo("라마바");
+        assertThat(templates.get(1).publicTemplateTitle()).isEqualTo("다라마");
+        assertThat(templates.get(2).publicTemplateTitle()).isEqualTo("나다라");
+        assertThat(templates.get(3).publicTemplateTitle()).isEqualTo("가나다");
     }
 
     @Test
@@ -167,15 +166,15 @@ class PublicTemplateServiceTest {
 
         // then
         assertThat(templates).hasSize(4); // 삭제되지 않은 템플릿만 조회
-        assertThat(templates.get(0).getPublicTemplateTitle()).isEqualTo("가나다");
-        assertThat(templates.get(1).getPublicTemplateTitle()).isEqualTo("나다라");
-        assertThat(templates.get(2).getPublicTemplateTitle()).isEqualTo("다라마");
-        assertThat(templates.get(3).getPublicTemplateTitle()).isEqualTo("라마바");
+        assertThat(templates.get(0).publicTemplateTitle()).isEqualTo("가나다");
+        assertThat(templates.get(1).publicTemplateTitle()).isEqualTo("나다라");
+        assertThat(templates.get(2).publicTemplateTitle()).isEqualTo("다라마");
+        assertThat(templates.get(3).publicTemplateTitle()).isEqualTo("라마바");
         
         // 오름차순 검증
         for (int i = 0; i < templates.size() - 1; i++) {
-            assertThat(templates.get(i).getPublicTemplateTitle())
-                .isLessThanOrEqualTo(templates.get(i + 1).getPublicTemplateTitle());
+            assertThat(templates.get(i).publicTemplateTitle())
+                .isLessThanOrEqualTo(templates.get(i + 1).publicTemplateTitle());
         }
     }
 
@@ -194,8 +193,8 @@ class PublicTemplateServiceTest {
         assertThat(templates2).hasSize(4);
         
         // 둘 다 최신순으로 정렬되어야 함 (라마바가 가장 최신)
-        assertThat(templates1.get(0).getPublicTemplateTitle()).isEqualTo("라마바");
-        assertThat(templates2.get(0).getPublicTemplateTitle()).isEqualTo("라마바");
+        assertThat(templates1.get(0).publicTemplateTitle()).isEqualTo("라마바");
+        assertThat(templates2.get(0).publicTemplateTitle()).isEqualTo("라마바");
     }
 
     @Test
@@ -225,6 +224,6 @@ class PublicTemplateServiceTest {
         // then
         assertThat(templates).hasSize(4);
         assertThat(templates).noneMatch(template -> 
-            template.getPublicTemplateTitle().equals("삭제된템플릿"));
+            template.publicTemplateTitle().equals("삭제된템플릿"));
     }
 }
