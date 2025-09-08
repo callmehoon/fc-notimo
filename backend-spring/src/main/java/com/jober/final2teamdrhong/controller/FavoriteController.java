@@ -64,4 +64,15 @@ public class FavoriteController {
         }
     }
 
+    /**
+     * 공용 템플릿을 즐겨찾기에 추가(create)
+     * @param request workspaceId와 templateId를 포함한 DTO
+     * @return 성공 시 HTTP 200 OK
+     */
+    @PostMapping("/public/fav")
+    public ResponseEntity<Void> createPublicTemplateFavorite(@RequestBody PublicTemplateFavoriteRequest request) {
+        favoriteService.createPublicTemplateFavorite(request);
+        return ResponseEntity.ok().build();
+    }
+
 }
