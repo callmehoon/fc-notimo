@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 @Slf4j
 @Tag(name = "인증", description = "사용자 인증 관련 API (회원가입, 이메일 인증)")
 public class UserController {
@@ -34,86 +34,17 @@ public class UserController {
     @Value("${app.environment.development:true}")
     private boolean isDevelopment;
 
-    @Operation(
-        summary = "이메일 인증 코드 발송",
-        description = """
-            ## 📧 이메일 인증 코드 발송
-            
-            회원가입을 위한 6자리 인증 코드를 이메일로 발송합니다.
-            
-            ### ⚡ Rate Limiting
-            - **제한**: IP당 5분간 3회
-            - **초과 시**: HTTP 429 상태코드와 Retry-After 헤더 반환
-            
-            ### 🔧 개발환경 정보
-            - 실제 이메일 발송 비활성화
-            - 인증 코드는 로그에서 확인 가능
-            - Redis 대신 인메모리 저장소 사용
-            
-            ### 📝 사용법
-            1. 유효한 이메일 주소 입력
-            2. 발송된 인증 코드 확인 (개발환경: 로그 확인)
-            3. 회원가입 API에서 인증 코드 사용
-            """,
-        tags = {"인증"}
-    )
+    @Operation(summary = "이메일 인증 코드 발송", description = "회원가입을 위한 6자리 인증 코드를 이메일로 발송합니다.")
     @ApiResponses(value = {
-        @ApiResponse(
-            responseCode = "200", 
-            description = "✅ 인증 코드 발송 성공",
-            content = @Content(
-                schema = @Schema(implementation = UserSignupResponse.class),
-                examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                    name = "성공 응답",
-                    value = """
-                    {
-                        "success": true,
-                        "message": "인증 코드가 발송되었습니다.",
-                        "data": null
-                    }
-                    """
-                )
-            )
-        ),
-        @ApiResponse(
-            responseCode = "400", 
-            description = "❌ 잘못된 요청 (이메일 형식 오류 등)",
-            content = @Content(
-                schema = @Schema(implementation = UserSignupResponse.class),
-                examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                    name = "이메일 형식 오류",
-                    value = """
-                    {
-                        "success": false,
-                        "message": "올바른 이메일 형식이 아닙니다.",
-                        "data": null
-                    }
-                    """
-                )
-            )
-        ),
-        @ApiResponse(
-            responseCode = "429", 
-            description = "🚫 Rate Limit 초과",
-            content = @Content(
-                schema = @Schema(implementation = UserSignupResponse.class),
-                examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                    name = "속도 제한 초과",
-                    value = """
-                    {
-                        "success": false,
-                        "message": "이메일 발송 속도 제한을 초과했습니다. 180초 후 다시 시도해주세요.",
-                        "data": null
-                    }
-                    """
-                )
-            ),
-            headers = @io.swagger.v3.oas.annotations.headers.Header(
-                name = "Retry-After",
-                description = "다시 시도 가능한 시간(초)",
-                schema = @Schema(type = "integer", example = "180")
-            )
-        )
+            @ApiResponse(responseCode = "200", description = "인증 코드 발송 성공",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = UserSignupResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청: 이메일 형식 오류 등",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = UserSignupResponse.class))),
+            @ApiResponse(responseCode = "429", description = "Rate Limit 초과",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = UserSignupResponse.class)))
     })
     @PostMapping("/send-verification-code")
     public ResponseEntity<UserSignupResponse> sendVerificationCode(

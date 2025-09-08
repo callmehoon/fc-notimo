@@ -97,6 +97,6 @@ public class GlobalExceptionHandler {
      */
     private boolean isAuthApi(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path != null && path.startsWith("/api/auth/");
+        return path != null && path.startsWith("/auth/");
     }
 }
