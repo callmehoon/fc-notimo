@@ -32,4 +32,43 @@ public class WorkspaceResponse {
             this.createdAt = workspace.getCreatedAt();
         }
     }
+
+    /**
+     * 워크스페이스 상세 정보 응답을 위한 DTO
+     */
+    @Getter
+    public static class DetailDTO {
+        private Integer workspaceId;
+        private String workspaceName;
+        private String workspaceSubname;
+        private String workspaceAddress;
+        private String workspaceDetailAddress;
+        private String workspaceUrl;
+        private String representerName;
+        private String representerPhoneNumber;
+        private String representerEmail;
+        private String companyName;
+        private String companyRegisterNumber;
+        private LocalDateTime createdAt;
+
+        /**
+         * Workspace 엔티티를 DetailDTO로 변환하는 생성자입니다.
+         *
+         * @param workspace 변환할 Workspace 엔티티 객체
+         */
+        public DetailDTO(Workspace workspace) {
+            this.workspaceId = workspace.getWorkspaceId();
+            this.workspaceName = workspace.getWorkspaceName();
+            this.workspaceSubname = workspace.getWorkspaceSubname();
+            this.workspaceAddress = workspace.getWorkspaceAddress();
+            this.workspaceDetailAddress = workspace.getWorkspaceDetailAddress();
+            this.workspaceUrl = workspace.getWorkspaceUrl();
+            this.representerName = workspace.getRepresenterName();
+            this.representerPhoneNumber = workspace.getRepresenterPhoneNumber();
+            this.representerEmail = workspace.getRepresenterEmail();
+            this.companyName = workspace.getCompanyName();
+            this.companyRegisterNumber = workspace.getCompanyRegisterNumber();
+            this.createdAt = workspace.getCreatedAt();
+        }
+    }
 }
