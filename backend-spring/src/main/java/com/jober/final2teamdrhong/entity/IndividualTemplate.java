@@ -44,7 +44,7 @@ public class IndividualTemplate {
 
     @ManyToOne
     @JoinColumn(name = "workspace_id")
-    private Workspace workspaceId;
+    private Workspace workspace;
 
     @OneToMany(mappedBy = "individualTemplate")
     private List<TemplateModifiedHistory> histories;
@@ -57,7 +57,7 @@ public class IndividualTemplate {
                               String individualTemplateTitle,
                               String individualTemplateContent,
                               String buttonTitle){
-        this.workspaceId = workspaceId;
+        this.workspace = workspaceId;
         this.individualTemplateTitle = individualTemplateTitle;
         this.individualTemplateContent = individualTemplateContent;
         this.buttonTitle = buttonTitle;
