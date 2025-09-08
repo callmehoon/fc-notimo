@@ -35,10 +35,10 @@ public class FavoriteService {
                 .orElseThrow(() -> new IllegalArgumentException("해당 워크스페이스를 찾을 수 없습니다."));
 
         IndividualTemplate individualTemplate = individualTemplateRepository.findById(request.getIndividualTemplateId())
-                .orElseThrow(() -> new IllegalArgumentException("해당 템플릿을 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("해당 개인 템플릿을 찾을 수 없습니다."));
 
         favoriteRepository.findByWorkspaceAndIndividualTemplate(workspace, individualTemplate)
-                .ifPresent(f -> {throw new IllegalArgumentException("이미 즐겨찾기된 템플릿입니다.");});
+                .ifPresent(f -> {throw new IllegalArgumentException("이미 즐겨찾기된 개인 템플릿입니다.");});
 
         Favorite favorite = new Favorite(workspace, null, individualTemplate);
         favoriteRepository.save(favorite);
@@ -55,10 +55,10 @@ public class FavoriteService {
                 .orElseThrow(() -> new IllegalArgumentException("해당 워크스페이스를 찾을 수 없습니다."));
 
         PublicTemplate publicTemplate = publicTemplateRepository.findById(request.getPublicTemplateId())
-                .orElseThrow(() -> new IllegalArgumentException("해당 템플릿을 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("해당 공용 템플릿을 찾을 수 없습니다."));
 
         favoriteRepository.findByWorkspaceAndPublicTemplate(workspace, publicTemplate)
-                .ifPresent(f -> {throw new IllegalArgumentException("이미 즐겨찾기된 템플릿입니다.");});
+                .ifPresent(f -> {throw new IllegalArgumentException("이미 즐겨찾기된 공용 템플릿입니다.");});
 
         Favorite favorite = new Favorite(workspace, publicTemplate, null);
         favoriteRepository.save(favorite);
