@@ -48,6 +48,7 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Integer>, Jp
     }
 
 
+
     /**
      * 특정 워크스페이스에 속한 즐겨찾기 목록을 동적 조건에 따라 페이징하여 조회합니다.
      * @param workspace 조회할 워크스페이스 엔티티
