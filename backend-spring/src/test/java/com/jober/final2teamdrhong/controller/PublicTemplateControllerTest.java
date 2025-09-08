@@ -196,10 +196,11 @@ class PublicTemplateControllerTest {
     }
 
     private PublicTemplateResponse createMockResponse(Integer id, String title, String content) {
-        return PublicTemplateResponse.builder()
-                .publicTemplateId(id)
-                .publicTemplateTitle(title)
-                .publicTemplateContent(content)
-                .build();
+        return new PublicTemplateResponse(
+                id,
+                title,
+                content,
+                null
+        );
     }
 }
