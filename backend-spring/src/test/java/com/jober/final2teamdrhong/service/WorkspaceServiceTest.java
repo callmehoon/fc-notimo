@@ -89,9 +89,8 @@ class WorkspaceServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
         // when & then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            workspaceService.createWorkspace(createDTO, userId);
-        });
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+                workspaceService.createWorkspace(createDTO, userId));
 
         assertEquals("해당 사용자를 찾을 수 없습니다. ID: " + userId, exception.getMessage());
         verify(workspaceRepository, never()).save(any(Workspace.class)); // save는 절대 호출되면 안 됨
@@ -116,9 +115,8 @@ class WorkspaceServiceTest {
         when(workspaceRepository.existsByWorkspaceUrl(createDTO.getWorkspaceUrl())).thenReturn(true); // URL이 이미 존재한다고 설정
 
         // when & then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            workspaceService.createWorkspace(createDTO, userId);
-        });
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+                workspaceService.createWorkspace(createDTO, userId));
 
         assertEquals("이미 사용 중인 URL입니다. 다른 URL을 입력해주세요.", exception.getMessage());
         verify(workspaceRepository, never()).save(any(Workspace.class)); // save는 절대 호출되면 안 됨
