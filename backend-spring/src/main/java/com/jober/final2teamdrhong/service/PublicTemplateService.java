@@ -37,11 +37,11 @@ public class PublicTemplateService {
      * @return 변환된 PublicTemplateResponse DTO
      */
     private PublicTemplateResponse toResponse(PublicTemplate entity) {
-        return PublicTemplateResponse.builder()
-            .publicTemplateId(entity.getPublicTemplateId())
-            .publicTemplateTitle(entity.getPublicTemplateTitle())
-            .publicTemplateContent(entity.getPublicTemplateContent())
-            .buttonTitle(entity.getButtonTitle())
-            .build();
+        return new PublicTemplateResponse(
+            entity.getPublicTemplateId(),
+            entity.getPublicTemplateTitle(),
+            entity.getPublicTemplateContent(),
+            entity.getButtonTitle()
+        );
     }
 } 
