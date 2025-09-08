@@ -1,6 +1,6 @@
 package com.jober.final2teamdrhong.exception;
 
-import com.jober.final2teamdrhong.dto.UserSignupResponseDto;
+import com.jober.final2teamdrhong.dto.UserSignupResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -37,7 +37,7 @@ public class GlobalExceptionHandler {
         if (isAuthApi(request)) {
             log.warn("Auth API 검증 실패: path={}, error={}", request.getRequestURI(), errorMessage);
             return ResponseEntity.badRequest().body(
-                UserSignupResponseDto.failure(errorMessage)
+                UserSignupResponse.failure(errorMessage)
             );
         }
 
@@ -52,7 +52,7 @@ public class GlobalExceptionHandler {
         if (isAuthApi(request)) {
             log.warn("Auth API 비즈니스 로직 오류: path={}, error={}", request.getRequestURI(), ex.getMessage());
             return ResponseEntity.badRequest().body(
-                UserSignupResponseDto.failure(ex.getMessage())
+                UserSignupResponse.failure(ex.getMessage())
             );
         }
 
@@ -70,7 +70,7 @@ public class GlobalExceptionHandler {
         if (isAuthApi(request)) {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                     .header("Retry-After", String.valueOf(ex.getRetryAfterSeconds()))
-                    .body(UserSignupResponseDto.failure(ex.getMessage()));
+                    .body(UserSignupResponse.failure(ex.getMessage()));
         }
 
         // 다른 API는 기존 ErrorResponse 사용

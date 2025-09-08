@@ -1,8 +1,7 @@
 package com.jober.final2teamdrhong.exception;
 
-import com.jober.final2teamdrhong.dto.UserSignupResponseDto;
+import com.jober.final2teamdrhong.dto.UserSignupResponse;
 import jakarta.servlet.http.HttpServletRequest;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -50,9 +49,9 @@ class GlobalExceptionHandlerTest {
 
         // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody()).isInstanceOf(UserSignupResponseDto.class);
+        assertThat(response.getBody()).isInstanceOf(UserSignupResponse.class);
         
-        UserSignupResponseDto responseDto = (UserSignupResponseDto) response.getBody();
+        UserSignupResponse responseDto = (UserSignupResponse) response.getBody();
         assertThat(responseDto.isSuccess()).isFalse();
         assertThat(responseDto.getMessage()).isEqualTo("올바른 이메일 형식이 아닙니다.");
     }
@@ -90,9 +89,9 @@ class GlobalExceptionHandlerTest {
 
         // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody()).isInstanceOf(UserSignupResponseDto.class);
+        assertThat(response.getBody()).isInstanceOf(UserSignupResponse.class);
         
-        UserSignupResponseDto responseDto = (UserSignupResponseDto) response.getBody();
+        UserSignupResponse responseDto = (UserSignupResponse) response.getBody();
         assertThat(responseDto.isSuccess()).isFalse();
         assertThat(responseDto.getMessage()).isEqualTo("이메일을 입력해주세요.");
     }
@@ -111,9 +110,9 @@ class GlobalExceptionHandlerTest {
         // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
         assertThat(response.getHeaders().get("Retry-After")).contains("300");
-        assertThat(response.getBody()).isInstanceOf(UserSignupResponseDto.class);
+        assertThat(response.getBody()).isInstanceOf(UserSignupResponse.class);
         
-        UserSignupResponseDto responseDto = (UserSignupResponseDto) response.getBody();
+        UserSignupResponse responseDto = (UserSignupResponse) response.getBody();
         assertThat(responseDto.isSuccess()).isFalse();
         assertThat(responseDto.getMessage()).contains("300초 후 다시 시도해주세요");
     }

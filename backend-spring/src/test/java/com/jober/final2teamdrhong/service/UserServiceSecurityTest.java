@@ -1,6 +1,6 @@
 package com.jober.final2teamdrhong.service;
 
-import com.jober.final2teamdrhong.dto.UserSignupRequestDto;
+import com.jober.final2teamdrhong.dto.UserSignupRequest;
 import com.jober.final2teamdrhong.entity.User;
 import com.jober.final2teamdrhong.repository.UserRepository;
 import com.jober.final2teamdrhong.service.storage.VerificationStorage;
@@ -98,7 +98,7 @@ class UserServiceSecurityTest {
         String correctCode = "123456";
         String wrongCode = "000000";
         
-        UserSignupRequestDto requestDto = UserSignupRequestDto.builder()
+        UserSignupRequest requestDto = UserSignupRequest.builder()
                 .userName("홍길동")
                 .email(email)
                 .password("Test123!")

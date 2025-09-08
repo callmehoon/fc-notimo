@@ -1,7 +1,7 @@
 package com.jober.final2teamdrhong.signup;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jober.final2teamdrhong.dto.UserSignupRequestDto;
+import com.jober.final2teamdrhong.dto.UserSignupRequest;
 import com.jober.final2teamdrhong.entity.User;
 import com.jober.final2teamdrhong.entity.UserAuth;
 import com.jober.final2teamdrhong.repository.UserRepository;
@@ -54,7 +54,7 @@ class UserServiceSignupIntegrationTest {
         // 1. (가장 중요) 테스트를 위해 미리 인증 코드를 저장소에 저장해 둔다.
         verificationStorage.save(userEmail, validCode);
 
-        UserSignupRequestDto requestDto = UserSignupRequestDto.builder()
+        UserSignupRequest requestDto = UserSignupRequest.builder()
                 .userName("홍길동")
                 .email(userEmail)
                 .password("Password123!")
@@ -86,7 +86,7 @@ class UserServiceSignupIntegrationTest {
         String userEmail = "test@test.com";
         verificationStorage.save(userEmail, "123456"); // 저장된 코드는 "123456"
 
-        UserSignupRequestDto requestDto = UserSignupRequestDto.builder()
+        UserSignupRequest requestDto = UserSignupRequest.builder()
                 .userName("홍길동")
                 .email(userEmail)
                 .password("Password123!")
@@ -124,7 +124,7 @@ class UserServiceSignupIntegrationTest {
         String validCode = "123456";
         verificationStorage.save(userEmail, validCode);
 
-        UserSignupRequestDto requestDto = UserSignupRequestDto.builder()
+        UserSignupRequest requestDto = UserSignupRequest.builder()
                 .userName("새로운유저")
                 .email(userEmail) // 중복된 이메일
                 .password("Password123!")

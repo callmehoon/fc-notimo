@@ -1,9 +1,8 @@
 package com.jober.final2teamdrhong.service;
 
-import com.jober.final2teamdrhong.dto.UserSignupRequestDto;
+import com.jober.final2teamdrhong.dto.UserSignupRequest;
 import com.jober.final2teamdrhong.entity.User;
 import com.jober.final2teamdrhong.entity.UserAuth;
-import com.jober.final2teamdrhong.exception.RateLimitExceededException;
 import com.jober.final2teamdrhong.repository.UserRepository;
 import com.jober.final2teamdrhong.service.storage.VerificationStorage;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +25,7 @@ public class UserService {
     /**
      * Rate limiting과 함께 회원가입 처리
      */
-    public void signupWithRateLimit(UserSignupRequestDto requestDto, String clientIp) {
+    public void signupWithRateLimit(UserSignupRequest requestDto, String clientIp) {
         // Rate limiting 체크
         rateLimitService.checkSignupRateLimit(clientIp, requestDto.getEmail());
         
@@ -34,7 +33,7 @@ public class UserService {
         signup(requestDto);
     }
 
-    public void signup(UserSignupRequestDto requestDto) {
+    public void signup(UserSignupRequest requestDto) {
         log.info("회원가입 시작: email={}", requestDto.getEmail());
         
         // 1. 비즈니스 규칙 검증 (기본 유효성 검증은 @Valid에서 처리됨)
@@ -89,7 +88,7 @@ public class UserService {
         }
     }
     
-    private void validateBusinessRules(UserSignupRequestDto requestDto) {
+    private void validateBusinessRules(UserSignupRequest requestDto) {
         // 이메일 중복 확인 (비즈니스 규칙)
         if (userRepository.findByUserEmail(requestDto.getEmail()).isPresent()) {
             throw new IllegalArgumentException("이미 가입된 이메일입니다.");

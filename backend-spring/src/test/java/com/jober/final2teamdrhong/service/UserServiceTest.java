@@ -1,6 +1,6 @@
 package com.jober.final2teamdrhong.service;
 
-import com.jober.final2teamdrhong.dto.UserSignupRequestDto;
+import com.jober.final2teamdrhong.dto.UserSignupRequest;
 import com.jober.final2teamdrhong.entity.User;
 import com.jober.final2teamdrhong.exception.RateLimitExceededException;
 import com.jober.final2teamdrhong.repository.UserRepository;
@@ -41,7 +41,7 @@ class UserServiceTest {
     @DisplayName("성공: 유효한 데이터로 회원가입")
     void signup_success() {
         // given
-        UserSignupRequestDto requestDto = UserSignupRequestDto.builder()
+        UserSignupRequest requestDto = UserSignupRequest.builder()
                 .userName("홍길동")
                 .email("test@example.com")
                 .userNumber("010-1234-5678")
@@ -69,7 +69,7 @@ class UserServiceTest {
     @DisplayName("실패: 중복된 이메일이면 예외 발생")
     void signup_fail_duplicateEmail() {
         // given
-        UserSignupRequestDto requestDto = UserSignupRequestDto.builder()
+        UserSignupRequest requestDto = UserSignupRequest.builder()
                 .userName("홍길동")
                 .email("test@example.com")
                 .userNumber("010-1234-5678")
@@ -95,7 +95,7 @@ class UserServiceTest {
     @DisplayName("실패: 인증 코드가 일치하지 않으면 예외 발생")
     void signup_fail_invalidVerificationCode() {
         // given
-        UserSignupRequestDto requestDto = UserSignupRequestDto.builder()
+        UserSignupRequest requestDto = UserSignupRequest.builder()
                 .userName("홍길동")
                 .email("test@example.com")
                 .userNumber("010-1234-5678")
@@ -122,7 +122,7 @@ class UserServiceTest {
     @DisplayName("실패: 인증 코드가 만료되었으면 예외 발생")
     void signup_fail_expiredVerificationCode() {
         // given
-        UserSignupRequestDto requestDto = UserSignupRequestDto.builder()
+        UserSignupRequest requestDto = UserSignupRequest.builder()
                 .userName("홍길동")
                 .email("test@example.com")
                 .userNumber("010-1234-5678")
@@ -149,7 +149,7 @@ class UserServiceTest {
     @DisplayName("성공: Rate limiting 통과 시 회원가입")
     void signupWithRateLimit_success() {
         // given
-        UserSignupRequestDto requestDto = UserSignupRequestDto.builder()
+        UserSignupRequest requestDto = UserSignupRequest.builder()
                 .userName("홍길동")
                 .email("test@example.com")
                 .userNumber("010-1234-5678")
@@ -176,7 +176,7 @@ class UserServiceTest {
     @DisplayName("실패: Rate limiting 초과 시 예외 발생")
     void signupWithRateLimit_fail_rateLimitExceeded() {
         // given
-        UserSignupRequestDto requestDto = UserSignupRequestDto.builder()
+        UserSignupRequest requestDto = UserSignupRequest.builder()
                 .userName("홍길동")
                 .email("test@example.com")
                 .userNumber("010-1234-5678")

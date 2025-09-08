@@ -20,16 +20,14 @@ import lombok.*;
     """
 )
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserSignupRequestDto {
+public class UserSignupRequest {
 
     @Schema(
         description = "사용자 이름", 
         example = "홍길동", 
-        required = true,
         minLength = 2,
         maxLength = 50
     )
@@ -40,7 +38,6 @@ public class UserSignupRequestDto {
     @Schema(
         description = "이메일 주소", 
         example = "user@example.com", 
-        required = true,
         format = "email"
     )
     @NotBlank(message = "이메일은 필수입니다.")
@@ -48,22 +45,18 @@ public class UserSignupRequestDto {
     private String email;
 
     @Schema(
-        description = "핸드폰 번호", 
+        description = "핸드폰 번호 (010 번호만 가능)", 
         example = "010-1234-5678",
-        required = true,
-        pattern = "^(010|011|016|017|018|019)-[0-9]{3,4}-[0-9]{4}$",
-        minLength = 13,
-        maxLength = 13
+        pattern = "^010-[0-9]{4}-[0-9]{4}$"
     )
     @NotBlank(message = "핸드폰 번호는 필수입니다.")
-    @Pattern(regexp = "^(010|011|016|017|018|019)-[0-9]{3,4}-[0-9]{4}$", 
-             message = "핸드폰 번호는 010-1234-5678 형식이어야 합니다.")
+    @Pattern(regexp = "^010-[0-9]{4}-[0-9]{4}$", 
+             message = "핸드폰 번호는 010-XXXX-XXXX 형식이어야 합니다.")
     private String userNumber;
 
     @Schema(
         description = "비밀번호 - 보안 요구사항을 만족해야 함", 
         example = "Password123!", 
-        required = true,
         minLength = 6,
         maxLength = 20,
         pattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{6,20}$"
@@ -76,7 +69,6 @@ public class UserSignupRequestDto {
     @Schema(
         description = "이메일로 받은 6자리 인증 코드", 
         example = "123456", 
-        required = true,
         pattern = "^[0-9]{6}$",
         minLength = 6,
         maxLength = 6
