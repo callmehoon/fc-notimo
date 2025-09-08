@@ -120,4 +120,38 @@ public class WorkspaceController {
 
         return ResponseEntity.ok(workspaceDetail);
     }
+
+    /**
+     * 특정 워크스페이스의 정보를 수정하는 API
+     * <p>
+     * 경로 변수(PathVariable)로 받은 워크스페이스 ID와 요청 본문(RequestBody)의 수정 데이터를 사용하여
+     * 특정 워크스페이스의 정보를 업데이트합니다.
+     * 요청한 사용자가 해당 워크스페이스에 접근 권한이 있는지 확인하는 인가 과정이 포함됩니다.
+     *
+     * @param updateDTO   워크스페이스 수정을 위한 요청 데이터 (JSON, @Valid로 검증됨)
+     * @param workspaceId 수정할 워크스페이스의 ID
+     * @return 상태 코드 200 (OK)와 함께 수정된 워크스페이스 상세 정보(DetailDTO)를 담은 ResponseEntity
+     */
+    @Operation(summary = "워크스페이스 정보 수정", description = "특정 워크스페이스의 상세 정보를 수정합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "워크스페이스 정보 수정 성공",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = WorkspaceResponse.DetailDTO.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청: 요청 데이터 유효성 검사에 실패했거나, 비즈니스 규칙에 위배됩니다. (예: 워크스페이스를 찾을 수 없음, 접근 권한 없음, 중복된 URL)",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "인증 실패 (로그인 필요)",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @PutMapping("/{workspaceId}")
+    public ResponseEntity<WorkspaceResponse.DetailDTO> updateWorkspace(@Valid @RequestBody WorkspaceRequest.UpdateDTO updateDTO,
+                                                                       @PathVariable Integer workspaceId) {
+        // TODO: Spring Security 도입 후, @AuthenticationPrincipal 등을 통해 실제 사용자 정보 획득 필요
+        Integer currentUserId = 1;
+        WorkspaceResponse.DetailDTO updatedWorkspace = workspaceService.updateWorkspace(updateDTO, workspaceId, currentUserId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(updatedWorkspace);
+    }
 }
