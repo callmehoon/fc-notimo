@@ -3,6 +3,7 @@ package com.jober.final2teamdrhong.controller;
 import com.jober.final2teamdrhong.dto.favorite.IndividualTemplateFavoriteRequest;
 import com.jober.final2teamdrhong.dto.favorite.PublicTemplateFavoriteRequest;
 import com.jober.final2teamdrhong.service.FavoriteService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,7 +24,7 @@ public class FavoriteController {
      * @return 성공 시 HTTP 200 OK
      */
     @PostMapping("/individual/fav")
-    public ResponseEntity<Void> createTemplateFavorite(@RequestBody IndividualTemplateFavoriteRequest request) {
+    public ResponseEntity<Void> createTemplateFavorite(@Valid @RequestBody IndividualTemplateFavoriteRequest request) {
         favoriteService.createIndividualTemplateFavorite(request);
         return ResponseEntity.ok().build();
     }
@@ -34,7 +35,7 @@ public class FavoriteController {
      * @return 성공 시 HTTP 200 OK
      */
     @PostMapping("/public/fav")
-    public ResponseEntity<Void> createPublicTemplateFavorite(@RequestBody PublicTemplateFavoriteRequest request) {
+    public ResponseEntity<Void> createPublicTemplateFavorite(@Valid @RequestBody PublicTemplateFavoriteRequest request) {
         favoriteService.createPublicTemplateFavorite(request);
         return ResponseEntity.ok().build();
     }
