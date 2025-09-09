@@ -437,4 +437,58 @@ class WorkspaceServiceTest {
         // 발생한 예외의 메시지가 "URL 중복" 관련 메시지와 일치하는지 확인합니다.
         assertEquals("이미 사용 중인 URL입니다. 다른 URL을 입력해주세요.", thrown.getMessage());
     }
+
+    @Test
+    @DisplayName("워크스페이스 삭제 성공 테스트")
+    void deleteWorkspace_Success() {
+        // given
+        // 1. 테스트에 사용할 userId와 workspaceId를 준비합니다.
+        Integer userId = 1;
+        Integer workspaceId = 1;
+
+        // 2. Mock Workspace 객체 생성 (실제 객체 대신 가짜 객체 사용)
+        Workspace mockWorkspace = mock(Workspace.class);
+
+        // 3. Mock 설정: findByWorkspaceIdAndUser_UserId가 성공적으로 객체 반환하도록 설정
+        when(workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId))
+                .thenReturn(Optional.of(mockWorkspace));
+
+        // when
+        // 실제 테스트할 메소드 호출
+        workspaceService.deleteWorkspace(workspaceId, userId);
+
+        // then
+        // 1. mockWorkspace의 setDeleted(true)가 호출되었는지 검증
+        verify(mockWorkspace, times(1)).setDeleted(true);
+        // 2. mockWorkspace의 setDeletedAt이 호출되었는지 검증
+        verify(mockWorkspace, times(1)).setDeletedAt(any(LocalDateTime.class));
+        // 3. repository.save가 정확히 1번 호출되었는지 검증
+        verify(workspaceRepository, times(1)).save(mockWorkspace);
+    }
+
+    @Test
+    @DisplayName("워크스페이스 삭제 실패 테스트 - 존재하지 않거나 권한이 없는 워크스페이스")
+    void deleteWorkspace_Fail_NotFoundOrUnauthorized() {
+        // given
+        // 1. 테스트에 사용할 ID들을 준비합니다.
+        Integer userId = 1;
+        Integer nonExistingWorkspaceId = 999; // 존재하지 않는 워크스페이스 ID
+
+        // 2. Mock 설정: 워크스페이스 조회 시 "결과 없음"을 의미하는 빈 Optional 반환
+        when(workspaceRepository.findByWorkspaceIdAndUser_UserId(nonExistingWorkspaceId, userId))
+                .thenReturn(Optional.empty());
+
+        // when
+        // 실제 테스트할 메소드 호출 (예외 발생 예상)
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+                workspaceService.deleteWorkspace(nonExistingWorkspaceId, userId));
+
+        // then
+        // 1. 예외 메시지 확인
+        assertEquals("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + nonExistingWorkspaceId,
+                exception.getMessage());
+
+        // 2. save 메소드가 호출되지 않았는지 확인 (실패 시 저장하면 안 됨)
+        verify(workspaceRepository, never()).save(any(Workspace.class));
+    }
 }
