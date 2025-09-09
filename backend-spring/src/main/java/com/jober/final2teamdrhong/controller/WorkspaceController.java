@@ -162,11 +162,13 @@ public class WorkspaceController {
      * 실제 데이터는 삭제되지 않고 삭제 플래그(is_deleted)만 변경됩니다.
      *
      * @param workspaceId 삭제할 워크스페이스의 ID
-     * @return 상태 코드 200 (OK)와 함께 빈 응답 본문을 담은 ResponseEntity
+     * @return 상태 코드 200 (OK)와 함께 삭제된 워크스페이스의 간략 정보를 담은 ResponseEntity
      */
     @Operation(summary = "워크스페이스 삭제", description = "특정 워크스페이스를 삭제합니다.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "워크스페이스 삭제 성공"),
+            @ApiResponse(responseCode = "200", description = "워크스페이스 삭제 성공",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = WorkspaceResponse.SimpleDTO.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 요청: 워크스페이스를 찾을 수 없거나 접근 권한이 없습니다.",
                     content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = ErrorResponse.class))),
@@ -176,11 +178,11 @@ public class WorkspaceController {
     })
     @SecurityRequirement(name = "bearerAuth")
     @DeleteMapping("/{workspaceId}")
-    public ResponseEntity<Void> deleteWorkspace(@PathVariable Integer workspaceId) {
+    public ResponseEntity<WorkspaceResponse.SimpleDTO> deleteWorkspace(@PathVariable Integer workspaceId) {
         // TODO: Spring Security 도입 후, @AuthenticationPrincipal 등을 통해 실제 사용자 정보 획득 필요
         Integer currentUserId = 1;
-        workspaceService.deleteWorkspace(workspaceId, currentUserId);
+        WorkspaceResponse.SimpleDTO deletedWorkspace = workspaceService.deleteWorkspace(workspaceId, currentUserId);
 
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(deletedWorkspace);
     }
 }
