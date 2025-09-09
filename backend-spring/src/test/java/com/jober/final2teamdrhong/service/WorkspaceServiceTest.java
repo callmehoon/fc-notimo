@@ -64,6 +64,8 @@ class WorkspaceServiceTest {
         when(mockWorkspace.getWorkspaceName()).thenReturn(createDTO.getWorkspaceName());
         when(mockWorkspace.getWorkspaceSubname()).thenReturn(createDTO.getWorkspaceSubname());
         when(mockWorkspace.getCreatedAt()).thenReturn(LocalDateTime.now());
+        when(mockWorkspace.getUpdatedAt()).thenReturn(LocalDateTime.now());
+        when(mockWorkspace.getDeletedAt()).thenReturn(null);
 
         // when
         WorkspaceResponse.SimpleDTO result = workspaceService.createWorkspace(createDTO, userId);
@@ -75,8 +77,12 @@ class WorkspaceServiceTest {
         assertEquals(1, result.getWorkspaceId());
         // 3. 이름 일치 확인
         assertEquals("테스트 워크스페이스", result.getWorkspaceName());
+        // 4. 시간 필드 검증
+        assertNotNull(result.getCreatedAt());
+        assertNotNull(result.getUpdatedAt());
+        assertNull(result.getDeletedAt());
 
-        // 4. 메소드 호출 횟수 검증 - save가 정확히 1번 호출되었는지 확인
+        // 5. 메소드 호출 횟수 검증 - save가 정확히 1번 호출되었는지 확인
         verify(workspaceRepository, times(1)).save(any(Workspace.class));
     }
 
@@ -175,6 +181,15 @@ class WorkspaceServiceTest {
                 .companyName("테스트회사2")
                 .user(mockUser)
                 .build();
+
+        testWorkspace1.setCreatedAt(LocalDateTime.now());
+        testWorkspace1.setUpdatedAt(LocalDateTime.now());
+        testWorkspace1.setDeletedAt(null);
+
+        testWorkspace2.setCreatedAt(LocalDateTime.now());
+        testWorkspace2.setUpdatedAt(LocalDateTime.now());
+        testWorkspace2.setDeletedAt(null);
+
         List<Workspace> mockWorkspaceList = List.of(testWorkspace1, testWorkspace2);
 
         // 4. Mockito 행동 정의: Repository 메소드가 호출될 때 어떤 값을 반환할지 설정
@@ -189,7 +204,12 @@ class WorkspaceServiceTest {
         // 1. 결과 검증
         assertNotNull(result);
         assertEquals(2, result.size()); // DTO 리스트의 크기가 2인지 확인
-        assertEquals("테스트 워크스페이스1", result.getFirst().getWorkspaceName()); // DTO의 내용이 올바른지 확인
+
+        WorkspaceResponse.SimpleDTO firstWorkspace = result.getFirst();
+        assertEquals("테스트 워크스페이스1", firstWorkspace.getWorkspaceName());
+        assertNotNull(firstWorkspace.getCreatedAt());
+        assertNotNull(firstWorkspace.getUpdatedAt());
+        assertNull(firstWorkspace.getDeletedAt());
 
         // 2. 특정 메소드가 정확히 1번씩 호출되었는지 검증
         verify(userRepository, times(1)).findById(userId);
@@ -457,25 +477,45 @@ class WorkspaceServiceTest {
         // 1. 테스트에 사용할 userId와 workspaceId를 준비합니다.
         Integer userId = 1;
         Integer workspaceId = 1;
+        User mockUser = mock(User.class);
 
-        // 2. Mock Workspace 객체 생성 (실제 객체 대신 가짜 객체 사용)
-        Workspace mockWorkspace = mock(Workspace.class);
+        // 2. '실제' Workspace 객체를 생성합니다. ID는 아직 null이므로 Spy 객체를 사용합니다.
+        Workspace realWorkspace = Workspace.builder()
+                .workspaceName("삭제될 워크스페이스")
+                .workspaceUrl("delete-url") // @NonNull 필드 추가
+                .representerName("삭제 대표") // @NonNull 필드 추가
+                .representerPhoneNumber("010-1111-1111") // @NonNull 필드 추가
+                .companyName("삭제 회사") // @NonNull 필드 추가
+                .user(mockUser)
+                .build();
 
-        // 3. Mock 설정: findByWorkspaceIdAndUser_UserId가 성공적으로 객체 반환하도록 설정
+        // 3. 실제 객체를 기반으로 Spy 객체를 생성합니다.
+        Workspace workspaceToDeleteSpy = spy(realWorkspace);
+
+        // 4. DB에서 조회된 것처럼 ID 값을 반환하도록 getWorkspaceId() 메소드의 동작만 가짜로 정의합니다.
+        when(workspaceToDeleteSpy.getWorkspaceId()).thenReturn(workspaceId);
+
+        // 5. Repository가 조회 시 이 Spy 객체를 반환하도록 설정합니다.
         when(workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId))
-                .thenReturn(Optional.of(mockWorkspace));
+                .thenReturn(Optional.of(workspaceToDeleteSpy));
 
         // when
         // 실제 테스트할 메소드 호출
-        workspaceService.deleteWorkspace(workspaceId, userId);
+        WorkspaceResponse.SimpleDTO result = workspaceService.deleteWorkspace(workspaceId, userId);
 
         // then
-        // 1. mockWorkspace의 setDeleted(true)가 호출되었는지 검증
-        verify(mockWorkspace, times(1)).setDeleted(true);
-        // 2. mockWorkspace의 setDeletedAt이 호출되었는지 검증
-        verify(mockWorkspace, times(1)).setDeletedAt(any(LocalDateTime.class));
-        // 3. repository.save가 정확히 1번 호출되었는지 검증
-        verify(workspaceRepository, times(1)).save(mockWorkspace);
+        // 1. 반환된 DTO 검증
+        assertNotNull(result);
+        assertEquals(workspaceId, result.getWorkspaceId());
+        assertEquals("삭제될 워크스페이스", result.getWorkspaceName());
+        assertNotNull(result.getDeletedAt());
+
+        // 2. Spy 객체의 상태가 실제로 변경되었는지 검증 (verify는 spy 객체에도 동일하게 사용 가능)
+        verify(workspaceToDeleteSpy, times(1)).setDeleted(true);
+        verify(workspaceToDeleteSpy, times(1)).setDeletedAt(any(LocalDateTime.class));
+
+        // 3. Repository의 save 메소드가 호출되었는지 검증
+        verify(workspaceRepository, times(1)).save(workspaceToDeleteSpy);
     }
 
     @Test
