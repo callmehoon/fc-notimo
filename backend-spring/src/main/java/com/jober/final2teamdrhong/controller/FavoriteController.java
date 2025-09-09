@@ -5,15 +5,16 @@ import com.jober.final2teamdrhong.dto.favorite.PublicTemplateFavoriteRequest;
 import com.jober.final2teamdrhong.service.FavoriteService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping
 public class FavoriteController {
 
     private final FavoriteService favoriteService;
@@ -24,9 +25,13 @@ public class FavoriteController {
      * @return 성공 시 HTTP 200 OK
      */
     @PostMapping("/individual/fav")
-    public ResponseEntity<Void> createTemplateFavorite(@Valid @RequestBody IndividualTemplateFavoriteRequest request) {
-        favoriteService.createIndividualTemplateFavorite(request);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<?> createIndividualTemplateFavorite(@Valid @RequestBody IndividualTemplateFavoriteRequest request) {
+        try {
+            favoriteService.createIndividualTemplateFavorite(request);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(Map.of("message", e.getMessage()),HttpStatus.CONFLICT);
+        }
     }
 
     /**
@@ -35,9 +40,13 @@ public class FavoriteController {
      * @return 성공 시 HTTP 200 OK
      */
     @PostMapping("/public/fav")
-    public ResponseEntity<Void> createPublicTemplateFavorite(@Valid @RequestBody PublicTemplateFavoriteRequest request) {
-        favoriteService.createPublicTemplateFavorite(request);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<?> createPublicTemplateFavorite(@Valid @RequestBody PublicTemplateFavoriteRequest request) {
+        try {
+            favoriteService.createPublicTemplateFavorite(request);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(Map.of("message", e.getMessage()),HttpStatus.CONFLICT);
+        }
     }
 
 }
