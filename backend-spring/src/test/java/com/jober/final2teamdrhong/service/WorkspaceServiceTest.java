@@ -165,6 +165,7 @@ class WorkspaceServiceTest {
                 .representerName("테스트대표1")
                 .representerPhoneNumber("010-1111-1111")
                 .companyName("테스트회사1")
+                .user(mockUser)
                 .build();
         Workspace testWorkspace2 = Workspace.builder()
                 .workspaceName("테스트 워크스페이스2")
@@ -172,6 +173,7 @@ class WorkspaceServiceTest {
                 .representerName("테스트대표1")
                 .representerPhoneNumber("010-1111-1111")
                 .companyName("테스트회사2")
+                .user(mockUser)
                 .build();
         List<Workspace> mockWorkspaceList = List.of(testWorkspace1, testWorkspace2);
 
