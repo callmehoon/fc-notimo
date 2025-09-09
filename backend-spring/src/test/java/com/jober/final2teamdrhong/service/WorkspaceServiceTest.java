@@ -314,6 +314,9 @@ class WorkspaceServiceTest {
         Integer userId = 1;
         Integer workspaceId = 1;
 
+        // Mock User 객체 생성 추가
+        User mockUser = mock(User.class);
+
         WorkspaceRequest.UpdateDTO updateDTO = WorkspaceRequest.UpdateDTO.builder()
                 .newWorkspaceName("수정된 워크스페이스")
                 .newWorkspaceUrl("updated-unique-url")
@@ -329,6 +332,7 @@ class WorkspaceServiceTest {
                 .representerName("원본 대표")
                 .representerPhoneNumber("010-1111-2222")
                 .companyName("원본 회사")
+                .user(mockUser)
                 .build();
 
         // Mockito 행동 정의
@@ -394,6 +398,10 @@ class WorkspaceServiceTest {
         // 1. 테스트에 사용할 ID와 요청 DTO를 준비합니다.
         Integer userId = 1;
         Integer workspaceId = 1;
+
+        // Mock User 객체 생성 추가
+        User mockUser = mock(User.class);
+
         WorkspaceRequest.UpdateDTO updateDTO = WorkspaceRequest.UpdateDTO.builder()
                 .newWorkspaceName("수정된 워크스페이스")
                 .newWorkspaceUrl("duplicate-url")
@@ -409,6 +417,7 @@ class WorkspaceServiceTest {
                 .representerName("원본 대표")
                 .representerPhoneNumber("010-1111-2222")
                 .companyName("원본 회사")
+                .user(mockUser)
                 .build();
 
         // Mockito 행동 정의 (2단계로 이루어짐)
