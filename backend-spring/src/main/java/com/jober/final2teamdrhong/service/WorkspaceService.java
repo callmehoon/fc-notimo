@@ -157,10 +157,11 @@ public class WorkspaceService {
      *
      * @param workspaceId 삭제할 워크스페이스의 ID
      * @param userId      삭제를 요청한 사용자의 ID (현재 인증된 사용자)
+     * @return 삭제 처리된 워크스페이스의 간략 정보 (SimpleDTO)
      * @throws IllegalArgumentException 해당 워크스페이스가 존재하지 않거나, 사용자가 소유자가 아닐 경우 발생
      */
     @Transactional
-    public void deleteWorkspace(Integer workspaceId, Integer userId) {
+    public WorkspaceResponse.SimpleDTO deleteWorkspace(Integer workspaceId, Integer userId) {
         // 1. 기존 워크스페이스 조회 (소유권 검증 포함)
         Workspace existingWorkspace = workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + workspaceId));
@@ -171,5 +172,8 @@ public class WorkspaceService {
 
         // 3. 변경사항 저장 (Dirty Checking으로 자동 UPDATE)
         workspaceRepository.save(existingWorkspace);
+
+        // 4. 삭제된 정보를 DTO에 담아 반환
+        return new WorkspaceResponse.SimpleDTO(existingWorkspace);
     }
 }
