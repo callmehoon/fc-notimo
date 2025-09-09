@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -144,5 +145,31 @@ public class WorkspaceService {
         existingWorkspace.setCompanyRegisterNumber(updateDTO.getNewCompanyRegisterNumber());
 
         return new WorkspaceResponse.DetailDTO(existingWorkspace);
+    }
+
+    /**
+     * 특정 워크스페이스를 삭제합니다 (소프트 딜리트).
+     * <p>
+     * 요청한 사용자가 해당 워크스페이스의 소유자인지 확인하는 인가 과정이 포함되며,
+     * 실제 데이터베이스에서 삭제되지 않고 is_deleted 플래그를 true로 변경하고 deleted_at에 현재 시간을 설정합니다.
+     * <p>
+     * JPA의 Dirty Checking 기능을 통해 변경사항이 자동으로 데이터베이스에 UPDATE됩니다.
+     *
+     * @param workspaceId 삭제할 워크스페이스의 ID
+     * @param userId      삭제를 요청한 사용자의 ID (현재 인증된 사용자)
+     * @throws IllegalArgumentException 해당 워크스페이스가 존재하지 않거나, 사용자가 소유자가 아닐 경우 발생
+     */
+    @Transactional
+    public void deleteWorkspace(Integer workspaceId, Integer userId) {
+        // 1. 기존 워크스페이스 조회 (소유권 검증 포함)
+        Workspace existingWorkspace = workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId)
+                .orElseThrow(() -> new IllegalArgumentException("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + workspaceId));
+
+        // 2. 소프트 딜리트 처리
+        existingWorkspace.setDeleted(true);
+        existingWorkspace.setDeletedAt(LocalDateTime.now());
+
+        // 3. 변경사항 저장 (Dirty Checking으로 자동 UPDATE)
+        workspaceRepository.save(existingWorkspace);
     }
 }
