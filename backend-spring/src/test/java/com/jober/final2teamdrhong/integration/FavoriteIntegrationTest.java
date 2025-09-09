@@ -27,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
 @Transactional
-class FavoriteIntegrationTest {
+class FavoriteCreationIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
