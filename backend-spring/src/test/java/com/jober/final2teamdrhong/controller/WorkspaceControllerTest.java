@@ -395,4 +395,63 @@ class WorkspaceControllerTest {
         //    400 Bad Request가 반환되는지 확인합니다.
         resultActions.andExpect(status().isBadRequest());
     }
+
+    @Test
+    @DisplayName("워크스페이스 삭제 성공 테스트")
+    void deleteWorkspace_Success() throws Exception {
+        // given
+        // 1. 삭제 대상이 될 워크스페이스를 DB에 미리 저장합니다.
+        //    이 워크스페이스의 소유자는 @BeforeEach에서 생성된 testUser (ID=1) 입니다.
+        Workspace targetWorkspace = Workspace.builder()
+                .workspaceName("삭제될 워크스페이스")
+                .workspaceUrl("delete-target-url")
+                .representerName("삭제 대표")
+                .representerPhoneNumber("010-1111-1111")
+                .companyName("삭제 회사")
+                .user(testUser)
+                .build();
+        workspaceRepository.save(targetWorkspace);
+
+        // when
+        // MockMvc를 사용하여 DELETE /workspaces/{workspaceId} 엔드포인트로 API 요청을 보냅니다.
+        ResultActions resultActions = mockMvc.perform(
+                delete("/workspaces/" + targetWorkspace.getWorkspaceId())
+                        .with(csrf()) // CSRF 보호 통과
+        );
+
+        // then
+        // 1. API 호출 결과를 검증합니다.
+        //    - HTTP 상태 코드가 200 OK 인지 확인합니다.
+        //    - 삭제 API는 빈 응답을 반환하므로 JSON 검증은 하지 않습니다.
+        resultActions.andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("워크스페이스 삭제 실패 테스트 - 권한 없음")
+    void deleteWorkspace_Fail_Unauthorized() throws Exception {
+        // given
+        // 1. 다른 사용자(anotherUser) 소유의 워크스페이스를 DB에 저장합니다.
+        //    현재 요청을 보내는 사용자는 testUser(ID=1)이므로, 이 워크스페이스에 대한 삭제 권한이 없습니다.
+        Workspace othersWorkspace = Workspace.builder()
+                .workspaceName("남의 워크스페이스")
+                .workspaceUrl("another-users-workspace")
+                .representerName("김대표")
+                .representerPhoneNumber("010-1111-1111")
+                .companyName("남의 회사")
+                .user(anotherUser)
+                .build();
+        workspaceRepository.save(othersWorkspace);
+
+        // when
+        // 현재 사용자(testUser)가 다른 사람(anotherUser)의 워크스페이스 삭제를 시도합니다.
+        ResultActions resultActions = mockMvc.perform(
+                delete("/workspaces/" + othersWorkspace.getWorkspaceId())
+                        .with(csrf()) // CSRF 보호 통과
+        );
+
+        // then
+        // 1. 서비스 계층에서 소유권이 없다고 판단하여 예외를 던지고,
+        //    GlobalExceptionHandler에 의해 최종적으로 400 Bad Request가 반환되는지 확인합니다.
+        resultActions.andExpect(status().isBadRequest());
+    }
 }
