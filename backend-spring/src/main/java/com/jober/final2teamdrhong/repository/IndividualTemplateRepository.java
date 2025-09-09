@@ -1,9 +1,19 @@
 package com.jober.final2teamdrhong.repository;
 
 import com.jober.final2teamdrhong.entity.IndividualTemplate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 public interface IndividualTemplateRepository extends JpaRepository<IndividualTemplate, Integer> {
+
+    // 개인 템플릿 목록 조회 SoftDelete 조건
+    Page<IndividualTemplate> findByWorkspace_WorkspaceIdAndIsDeletedFalse(Integer workspaceId, Pageable pageable);
+
+    // 개인 템플릿 단일 조회
+    Optional<IndividualTemplate> findByIndividualTemplateIdAndWorkspace_WorkspaceIdAndIsDeletedFalse(Integer individualTemplateId, Integer workspaceId);
 }

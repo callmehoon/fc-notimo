@@ -15,4 +15,5 @@ public class IndividualTemplateResponse {
     private Integer workspaceId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private boolean isDeleted;
 }
