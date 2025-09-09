@@ -2,10 +2,12 @@ package com.jober.final2teamdrhong.dto.individualtemplate;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Getter
+@NoArgsConstructor
 @AllArgsConstructor
 public class IndividualTemplateResponse {
     private Integer individualTemplateId;

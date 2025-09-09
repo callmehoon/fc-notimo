@@ -6,17 +6,12 @@ plugins {
 
 sourceSets {
     main {
-        java {
-            srcDirs = ['backend-spring/src/main/java']
-        }
-        resources {
-            srcDirs = ['backend-spring/src/main/resources']
-        }
+        java { srcDirs = ['backend-spring/src/main/java'] }
+        resources { srcDirs = ['backend-spring/src/main/resources'] }
     }
     test {
-        java {
-            srcDirs = ['backend-spring/src/test/java']
-        }
+        java { srcDirs = ['backend-spring/src/test/java'] }
+        resources { srcDirs = ['backend-spring/src/test/resources'] }
     }
 }
 
@@ -60,6 +55,7 @@ dependencies {
     testImplementation 'io.projectreactor:reactor-test'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'com.h2database:h2'
     runtimeOnly 'com.mysql:mysql-connector-j'
     runtimeOnly 'com.h2database:h2'
     runtimeOnly 'org.springframework.boot:spring-boot-docker-compose'
@@ -70,4 +66,12 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+
+    // 테스트용 최소 JVM 설정 (Java 21 + Mockito 호환성)
+    jvmArgs = [
+            '--add-opens=java.base/java.lang=ALL-UNNAMED',
+            '-Djdk.attach.allowAttachSelf=true'
+    ]
+
+    systemProperty 'spring.profiles.active', 'test'
 }
