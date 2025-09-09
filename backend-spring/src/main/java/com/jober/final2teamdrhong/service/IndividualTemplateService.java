@@ -7,10 +7,15 @@ import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.WorkspaceRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class IndividualTemplateService {
 
     private final IndividualTemplateRepository individualTemplateRepo;
@@ -34,12 +39,25 @@ public class IndividualTemplateService {
 
         IndividualTemplate saved = individualTemplateRepo.save(entity);
 
+        // save() 직후 createdAt, updatedAt은 Hibernate가 채워주기 때문에 사용 가능
         return new IndividualTemplateResponse(
                 saved.getIndividualTemplateId(),
                 saved.getIndividualTemplateTitle(),
                 saved.getIndividualTemplateContent(),
                 saved.getButtonTitle(),
-                saved.getWorkspace() != null ? saved.getWorkspace().getWorkspaceId() : null
+                saved.getWorkspace().getWorkspaceId(),
+                saved.getCreatedAt(),
+                saved.getUpdatedAt()
         );
+    }
+
+    @Async
+    @Transactional
+    public CompletableFuture<IndividualTemplateResponse> createTemplateAsync(Integer workspaceId) {
+        boolean isVirtual = Thread.currentThread().isVirtual();
+        log.info("[@Async] thread={}, isVirtual={}", Thread.currentThread().getName(), isVirtual);
+
+        IndividualTemplateResponse individualTemplateResponse = createTemplate(workspaceId);
+        return CompletableFuture.completedFuture(individualTemplateResponse);
     }
 }

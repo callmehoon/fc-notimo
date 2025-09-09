@@ -13,4 +13,6 @@ public class IndividualTemplateResponse {
     private String individualTemplateContent;   // null 가능
     private String buttonTitle;                 // null 가능
     private Integer workspaceId;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }
