@@ -55,9 +55,9 @@ public class WorkspaceService {
                 .representerEmail(createDTO.getRepresenterEmail())
                 .companyName(createDTO.getCompanyName())
                 .companyRegisterNumber(createDTO.getCompanyRegisterNumber())
+                .user(user)
                 .build();
 
-        workspace.setUser(user);
         Workspace savedWorkspace = workspaceRepository.save(workspace);
 
         return new WorkspaceResponse.SimpleDTO(savedWorkspace);

@@ -110,7 +110,8 @@ public class Workspace {
                      @NonNull String representerPhoneNumber,
                      String representerEmail,
                      @NonNull String companyName,
-                     String companyRegisterNumber) {
+                     String companyRegisterNumber,
+                     @NonNull User user) {
         this.workspaceName = workspaceName;
         this.workspaceSubname = workspaceSubname;
         this.representerName = representerName;
@@ -121,5 +122,6 @@ public class Workspace {
         this.workspaceUrl = workspaceUrl;
         this.companyName = companyName;
         this.companyRegisterNumber = companyRegisterNumber;
+        this.user = user;
     }
 }

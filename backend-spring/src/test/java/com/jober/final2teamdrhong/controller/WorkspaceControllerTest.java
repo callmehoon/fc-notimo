@@ -150,8 +150,8 @@ class WorkspaceControllerTest {
                 .representerName("테스트대표1")
                 .representerPhoneNumber("010-1111-1111")
                 .companyName("테스트회사1")
+                .user(testUser)
                 .build();
-        testWorkspace1.setUser(testUser); // setUser()를 사용해서 연관관계 설정
         workspaceRepository.save(testWorkspace1);
 
         Workspace testWorkspace2 = Workspace.builder()
@@ -160,8 +160,8 @@ class WorkspaceControllerTest {
                 .representerName("테스트대표1")
                 .representerPhoneNumber("010-1111-1111")
                 .companyName("테스트회사2")
+                .user(testUser)
                 .build();
-        testWorkspace2.setUser(testUser); // setUser()를 사용해서 연관관계 설정
         workspaceRepository.save(testWorkspace2);
 
         // when
@@ -215,8 +215,8 @@ class WorkspaceControllerTest {
                 .representerName("테스트대표1")
                 .representerPhoneNumber("010-1111-1111")
                 .companyName("테스트회사1")
+                .user(testUser)
                 .build();
-        testWorkspace1.setUser(testUser); // setUser()를 사용해서 연관관계 설정
         workspaceRepository.save(testWorkspace1);
 
         // when
@@ -244,8 +244,8 @@ class WorkspaceControllerTest {
                 .representerName("김대표")
                 .representerPhoneNumber("010-1111-1111")
                 .companyName("남의 회사")
+                .user(anotherUser)
                 .build();
-        othersWorkspace.setUser(anotherUser);
         workspaceRepository.save(othersWorkspace);
 
         // when

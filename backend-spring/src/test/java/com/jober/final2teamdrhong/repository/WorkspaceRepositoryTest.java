@@ -55,23 +55,21 @@ class WorkspaceRepositoryTest {
                 .representerName("테스트대표")
                 .representerPhoneNumber("010-0000-0000")
                 .companyName("테스트회사")
+                .user(testUser)
                 .build();
 
-        // 2. 생성된 객체에 setUser() 메소드를 사용해 User를 연결합니다.
-        newWorkspace.setUser(testUser);
-
-        // 3. 생성한 엔티티를 DB에 저장합니다.
+        // 2. 생성한 엔티티를 DB에 저장합니다.
         workspaceRepository.save(newWorkspace);
 
         // when
-        // 4. 테스트할 메소드를 호출합니다.
+        // 1. 테스트할 메소드를 호출합니다.
         //    - DB에 방금 저장한 URL로 호출해봅니다.
         boolean shouldBeTrue = workspaceRepository.existsByWorkspaceUrl("test-url");
         //    - DB에 절대 없을 법한 임의의 URL로 호출해봅니다.
         boolean shouldBeFalse = workspaceRepository.existsByWorkspaceUrl("non-existing-url");
 
         // then
-        // 5. 결과를 검증합니다.
+        // 1. 결과를 검증합니다.
         //    - existingUrl로 조회한 결과는 반드시 true여야 합니다.
         assertThat(shouldBeTrue).isTrue();
         //    - non-existing-url로 조회한 결과는 반드시 false여야 합니다.
@@ -89,6 +87,7 @@ class WorkspaceRepositoryTest {
                 .representerName("테스트대표1")
                 .representerPhoneNumber("010-1111-1111")
                 .companyName("테스트회사1")
+                .user(testUser)
                 .build();
         Workspace testWorkspace2 = Workspace.builder()
                 .workspaceName("테스트 워크스페이스2")
@@ -96,6 +95,7 @@ class WorkspaceRepositoryTest {
                 .representerName("테스트대표1")
                 .representerPhoneNumber("010-1111-1111")
                 .companyName("테스트회사2")
+                .user(testUser)
                 .build();
         // anotherUser 소유의 워크스페이스 1개 생성
         Workspace testWorkspace3 = Workspace.builder()
@@ -104,20 +104,16 @@ class WorkspaceRepositoryTest {
                 .representerName("테스트대표2")
                 .representerPhoneNumber("010-2222-2222")
                 .companyName("테스트회사3")
+                .user(anotherUser)
                 .build();
 
-        // 2. persist 하기 전에 setUser로 연관관계 설정
-        testWorkspace1.setUser(testUser);
-        testWorkspace2.setUser(testUser);
-        testWorkspace3.setUser(anotherUser);
-
-        // 3. 연관관계 설정이 완료된 객체를 persist
+        // 2. 연관관계 설정이 완료된 객체를 persist
         // TestEntityManager를 사용해 Workspace를 DB에 저장
         entityManager.persist(testWorkspace1);
         entityManager.persist(testWorkspace2);
         entityManager.persist(testWorkspace3);
 
-        // 4. when 단계에서 SELECT 하기 전, DB에 변경사항을 강제 동기화
+        // 3. when 단계에서 SELECT 하기 전, DB에 변경사항을 강제 동기화
         entityManager.flush();
 
         // when
@@ -141,8 +137,8 @@ class WorkspaceRepositoryTest {
                 .representerName("테스트대표1")
                 .representerPhoneNumber("010-1111-1111")
                 .companyName("테스트회사1")
+                .user(testUser)
                 .build();
-        testWorkspace1.setUser(testUser);
         entityManager.persist(testWorkspace1);
 
         // 2. anotherUser 소유의 워크스페이스 1개 생성
@@ -152,8 +148,8 @@ class WorkspaceRepositoryTest {
                 .representerName("테스트대표2")
                 .representerPhoneNumber("010-2222-2222")
                 .companyName("테스트회사2")
+                .user(anotherUser)
                 .build();
-        testWorkspace2.setUser(anotherUser);
         entityManager.persist(testWorkspace2);
 
         // 3. when 단계에서 SELECT 하기 전, DB에 변경사항을 강제 동기화
