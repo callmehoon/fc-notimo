@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.http.MediaType;
 
@@ -115,7 +114,8 @@ class PublicTemplateIntegrationTest {
     @DisplayName("공유순 정렬 API 테스트")
     void testGetTemplatesByShareCount() throws Exception {
         mockMvc.perform(get("/public-templates")
-                        .param("sort", "shareCount,desc")
+                        .param("sort", "shareCount")
+                        .param("direction", "DESC")
                         .param("page", "0")
                         .param("size", "10")
                         .accept(MediaType.APPLICATION_JSON))
@@ -131,7 +131,8 @@ class PublicTemplateIntegrationTest {
     @DisplayName("조회순 정렬 API 테스트")
     void testGetTemplatesByViewCount() throws Exception {
         mockMvc.perform(get("/public-templates")
-                        .param("sort", "viewCount,desc")
+                        .param("sort", "viewCount")
+                        .param("direction", "DESC")
                         .param("page", "0")
                         .param("size", "10")
                         .accept(MediaType.APPLICATION_JSON))
@@ -147,7 +148,8 @@ class PublicTemplateIntegrationTest {
     @DisplayName("최신순 정렬 API 테스트")
     void testGetTemplatesByRecent() throws Exception {
         mockMvc.perform(get("/public-templates")
-                        .param("sort", "createdAt,desc")
+                        .param("sort", "createdAt")
+                        .param("direction", "DESC")
                         .param("page", "0")
                         .param("size", "10")
                         .accept(MediaType.APPLICATION_JSON))
@@ -163,7 +165,8 @@ class PublicTemplateIntegrationTest {
     @DisplayName("제목 가나다순 정렬 API 테스트")
     void testGetTemplatesByTitle() throws Exception {
         mockMvc.perform(get("/public-templates")
-                        .param("sort", "publicTemplateTitle,asc")
+                        .param("sort", "publicTemplateTitle")
+                        .param("direction", "ASC")
                         .param("page", "0")
                         .param("size", "10")
                         .accept(MediaType.APPLICATION_JSON))
@@ -188,23 +191,65 @@ class PublicTemplateIntegrationTest {
     }
 
     @Test
-    @DisplayName("잘못된 정렬 옵션 API 테스트 - 기본값(최신순)으로 정렬되어야 함")
+    @DisplayName("잘못된 정렬 옵션 API 테스트 - 400 에러 반환")
     void testGetTemplatesByInvalidSort() throws Exception {
         mockMvc.perform(get("/public-templates")
-                        .param("sort", "invalid,desc")
+                        .param("sort", "invalid")
+                        .param("direction", "DESC")
                         .param("page", "0")
                         .param("size", "10")
                         .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content.length()").value(4))
-                .andExpect(jsonPath("$.content[0].publicTemplateTitle").value("라마바")); // 최신순이므로 가장 최근 생성된 것이 첫 번째
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("잘못된 정렬 방향 API 테스트 - 400 에러 반환")
+    void testGetTemplatesByInvalidDirection() throws Exception {
+        mockMvc.perform(get("/public-templates")
+                        .param("sort", "createdAt")
+                        .param("direction", "INVALID")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("잘못된 페이지 번호 API 테스트 - 400 에러 반환")
+    void testGetTemplatesByInvalidPage() throws Exception {
+        mockMvc.perform(get("/public-templates")
+                        .param("page", "-1")
+                        .param("size", "10")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("잘못된 페이지 크기 API 테스트 - 400 에러 반환")
+    void testGetTemplatesByInvalidSize() throws Exception {
+        mockMvc.perform(get("/public-templates")
+                        .param("page", "0")
+                        .param("size", "0")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("너무 큰 페이지 크기 API 테스트 - 400 에러 반환")
+    void testGetTemplatesByTooLargeSize() throws Exception {
+        mockMvc.perform(get("/public-templates")
+                        .param("page", "0")
+                        .param("size", "200")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
     @DisplayName("페이징 API 테스트")
     void testGetTemplatesWithPaging() throws Exception {
         mockMvc.perform(get("/public-templates")
-                        .param("sort", "shareCount,desc")
+                        .param("sort", "shareCount")
+                        .param("direction", "DESC")
                         .param("page", "0")
                         .param("size", "2")
                         .accept(MediaType.APPLICATION_JSON))
@@ -220,7 +265,8 @@ class PublicTemplateIntegrationTest {
     @DisplayName("두 번째 페이지 API 테스트")
     void testGetTemplatesSecondPage() throws Exception {
         mockMvc.perform(get("/public-templates")
-                        .param("sort", "shareCount,desc")
+                        .param("sort", "shareCount")
+                        .param("direction", "DESC")
                         .param("page", "1")
                         .param("size", "2")
                         .accept(MediaType.APPLICATION_JSON))
