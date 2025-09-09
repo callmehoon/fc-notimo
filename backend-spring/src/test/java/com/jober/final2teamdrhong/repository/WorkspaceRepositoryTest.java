@@ -44,23 +44,21 @@ class WorkspaceRepositoryTest {
                 .representerName("테스트대표")
                 .representerPhoneNumber("010-0000-0000")
                 .companyName("테스트회사")
+                .user(testUser)
                 .build();
 
-        // 2. 생성된 객체에 setUser() 메소드를 사용해 User를 연결합니다.
-        newWorkspace.setUser(testUser);
-
-        // 3. 생성한 엔티티를 DB에 저장합니다.
+        // 2. 생성한 엔티티를 DB에 저장합니다.
         workspaceRepository.save(newWorkspace);
 
         // when
-        // 4. 테스트할 메소드를 호출합니다.
+        // 1. 테스트할 메소드를 호출합니다.
         //    - DB에 방금 저장한 URL로 호출해봅니다.
         boolean shouldBeTrue = workspaceRepository.existsByWorkspaceUrl("test-url");
         //    - DB에 절대 없을 법한 임의의 URL로 호출해봅니다.
         boolean shouldBeFalse = workspaceRepository.existsByWorkspaceUrl("non-existing-url");
 
         // then
-        // 5. 결과를 검증합니다.
+        // 1. 결과를 검증합니다.
         //    - existingUrl로 조회한 결과는 반드시 true여야 합니다.
         assertThat(shouldBeTrue).isTrue();
         //    - non-existing-url로 조회한 결과는 반드시 false여야 합니다.
