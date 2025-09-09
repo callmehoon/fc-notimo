@@ -50,6 +50,8 @@ public class WorkspaceResponse {
         private String companyName;
         private String companyRegisterNumber;
         private LocalDateTime createdAt;
+        private LocalDateTime updatedAt; // update 동작시 반환되는 DetailDTO에서 수정된 시각을 알 수 없기 때문에 수정시간 추가
+        private LocalDateTime deletedAt;
 
         /**
          * Workspace 엔티티를 DetailDTO로 변환하는 생성자입니다.
@@ -69,6 +71,8 @@ public class WorkspaceResponse {
             this.companyName = workspace.getCompanyName();
             this.companyRegisterNumber = workspace.getCompanyRegisterNumber();
             this.createdAt = workspace.getCreatedAt();
+            this.updatedAt = workspace.getUpdatedAt();
+            this.deletedAt = workspace.getDeletedAt();
         }
     }
 }
