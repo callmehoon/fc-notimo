@@ -71,7 +71,8 @@ class PublicTemplateControllerTest {
 
         // when & then
         mockMvc.perform(get("/public-templates")
-                        .param("sort", "shareCount,desc")
+                        .param("sort", "shareCount")
+                        .param("direction", "DESC")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(2))
@@ -95,7 +96,8 @@ class PublicTemplateControllerTest {
 
         // when & then
         mockMvc.perform(get("/public-templates")
-                        .param("sort", "viewCount,desc")
+                        .param("sort", "viewCount")
+                        .param("direction", "DESC")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(2))
@@ -119,7 +121,8 @@ class PublicTemplateControllerTest {
 
         // when & then
         mockMvc.perform(get("/public-templates")
-                        .param("sort", "publicTemplateTitle,asc")
+                        .param("sort", "publicTemplateTitle")
+                        .param("direction", "ASC")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(2))
@@ -156,24 +159,53 @@ class PublicTemplateControllerTest {
     }
 
     @Test
-    @DisplayName("잘못된 정렬 옵션으로 템플릿 조회 - 기본값 사용")
-    void getPublicTemplates_WithInvalidSort_ReturnsDefaultSorted() throws Exception {
-        // given
-        List<PublicTemplateResponse> mockContent = List.of(
-            createMockResponse(1, "템플릿1", "Content1")
-        );
-        Page<PublicTemplateResponse> mockPage = new PageImpl<>(mockContent, PageRequest.of(0, 10), 1);
-        
-        when(publicTemplateService.getTemplates(any(Pageable.class))).thenReturn(mockPage);
-
+    @DisplayName("잘못된 정렬 옵션으로 템플릿 조회 - 400 에러 반환")
+    void getPublicTemplates_WithInvalidSort_ReturnsBadRequest() throws Exception {
         // when & then
         mockMvc.perform(get("/public-templates")
-                        .param("sort", "invalid,desc")
+                        .param("sort", "invalid")
+                        .param("direction", "DESC")
                         .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content.length()").value(1));
+                .andExpect(status().isBadRequest());
 
-        verify(publicTemplateService, times(1)).getTemplates(any(Pageable.class));
+        verify(publicTemplateService, never()).getTemplates(any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("잘못된 정렬 방향으로 템플릿 조회 - 400 에러 반환")
+    void getPublicTemplates_WithInvalidDirection_ReturnsBadRequest() throws Exception {
+        // when & then
+        mockMvc.perform(get("/public-templates")
+                        .param("sort", "createdAt")
+                        .param("direction", "INVALID")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+
+        verify(publicTemplateService, never()).getTemplates(any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("잘못된 페이지 번호로 템플릿 조회 - 400 에러 반환")
+    void getPublicTemplates_WithInvalidPage_ReturnsBadRequest() throws Exception {
+        // when & then
+        mockMvc.perform(get("/public-templates")
+                        .param("page", "-1")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+
+        verify(publicTemplateService, never()).getTemplates(any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("잘못된 페이지 크기로 템플릿 조회 - 400 에러 반환")
+    void getPublicTemplates_WithInvalidSize_ReturnsBadRequest() throws Exception {
+        // when & then
+        mockMvc.perform(get("/public-templates")
+                        .param("size", "0")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+
+        verify(publicTemplateService, never()).getTemplates(any(Pageable.class));
     }
 
     @Test
