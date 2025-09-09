@@ -1,11 +1,12 @@
 package com.jober.final2teamdrhong.dto.individualtemplate;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-@Getter @Setter
+@Getter
 @NoArgsConstructor
+@AllArgsConstructor
 public class IndividualTemplateRequest {
     private String individualTemplateTitle;
     private String individualTemplateContent;
