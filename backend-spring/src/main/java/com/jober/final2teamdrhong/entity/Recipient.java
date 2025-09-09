@@ -3,7 +3,6 @@ package com.jober.final2teamdrhong.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -17,7 +16,6 @@ import java.util.List;
 @Setter
 @ToString(exclude = {"workspace", "groupMappings"})
 @NoArgsConstructor
-@SQLDelete(sql = "UPDATE recipient SET is_deleted = true, deleted_at = NOW() WHERE recipient_id = ?")
 @SQLRestriction("is_deleted = false")
 public class Recipient {
 
@@ -63,5 +61,16 @@ public class Recipient {
     public void addGroupMapping(GroupMapping groupMapping) {
         this.groupMappings.add(groupMapping);
         groupMapping.setRecipient(this);
+    }
+
+    @Builder
+    public Recipient(@NonNull String recipientName,
+                     @NonNull String recipientPhoneNumber,
+                     String recipientMemo,
+                     @NonNull Workspace workspace) {
+        this.recipientName = recipientName;
+        this.recipientPhoneNumber = recipientPhoneNumber;
+        this.recipientMemo = recipientMemo;
+        this.workspace = workspace;
     }
 }
