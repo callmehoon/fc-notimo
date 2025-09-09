@@ -271,8 +271,8 @@ class WorkspaceControllerTest {
                 .representerName("원본 대표")
                 .representerPhoneNumber("010-1111-1111")
                 .companyName("원본 회사")
+                .user(testUser)
                 .build();
-        originalWorkspace.setUser(testUser);
         workspaceRepository.save(originalWorkspace);
 
         // 2. API 요청 본문(Body)에 담아 보낼 수정 데이터를 DTO 객체로 준비합니다.
@@ -327,8 +327,8 @@ class WorkspaceControllerTest {
                 .representerName("김대표")
                 .representerPhoneNumber("010-1111-1111")
                 .companyName("남의 회사")
+                .user(anotherUser)
                 .build();
-        othersWorkspace.setUser(anotherUser);
         workspaceRepository.save(othersWorkspace);
 
         // 2. 요청 본문에 담길 DTO를 준비합니다. 유효성 검사를 통과할 최소한의 데이터만 넣습니다.
@@ -367,8 +367,8 @@ class WorkspaceControllerTest {
                 .representerName("대표")
                 .representerPhoneNumber("010-1111-1111")
                 .companyName("회사")
+                .user(testUser)
                 .build();
-        targetWorkspace.setUser(testUser);
         workspaceRepository.save(targetWorkspace);
 
         // 2. @NotBlank 제약조건을 위반하는, 비어있는 workspaceName을 가진 DTO를 준비합니다.
