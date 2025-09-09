@@ -87,6 +87,7 @@ class WorkspaceRepositoryTest {
                 .representerName("테스트대표1")
                 .representerPhoneNumber("010-1111-1111")
                 .companyName("테스트회사1")
+                .user(testUser)
                 .build();
         Workspace testWorkspace2 = Workspace.builder()
                 .workspaceName("테스트 워크스페이스2")
@@ -94,6 +95,7 @@ class WorkspaceRepositoryTest {
                 .representerName("테스트대표1")
                 .representerPhoneNumber("010-1111-1111")
                 .companyName("테스트회사2")
+                .user(testUser)
                 .build();
         // anotherUser 소유의 워크스페이스 1개 생성
         Workspace testWorkspace3 = Workspace.builder()
@@ -102,20 +104,16 @@ class WorkspaceRepositoryTest {
                 .representerName("테스트대표2")
                 .representerPhoneNumber("010-2222-2222")
                 .companyName("테스트회사3")
+                .user(anotherUser)
                 .build();
 
-        // 2. persist 하기 전에 setUser로 연관관계 설정
-        testWorkspace1.setUser(testUser);
-        testWorkspace2.setUser(testUser);
-        testWorkspace3.setUser(anotherUser);
-
-        // 3. 연관관계 설정이 완료된 객체를 persist
+        // 2. 연관관계 설정이 완료된 객체를 persist
         // TestEntityManager를 사용해 Workspace를 DB에 저장
         entityManager.persist(testWorkspace1);
         entityManager.persist(testWorkspace2);
         entityManager.persist(testWorkspace3);
 
-        // 4. when 단계에서 SELECT 하기 전, DB에 변경사항을 강제 동기화
+        // 3. when 단계에서 SELECT 하기 전, DB에 변경사항을 강제 동기화
         entityManager.flush();
 
         // when
@@ -139,8 +137,8 @@ class WorkspaceRepositoryTest {
                 .representerName("테스트대표1")
                 .representerPhoneNumber("010-1111-1111")
                 .companyName("테스트회사1")
+                .user(testUser)
                 .build();
-        testWorkspace1.setUser(testUser);
         entityManager.persist(testWorkspace1);
 
         // 2. anotherUser 소유의 워크스페이스 1개 생성
@@ -150,8 +148,8 @@ class WorkspaceRepositoryTest {
                 .representerName("테스트대표2")
                 .representerPhoneNumber("010-2222-2222")
                 .companyName("테스트회사2")
+                .user(anotherUser)
                 .build();
-        testWorkspace2.setUser(anotherUser);
         entityManager.persist(testWorkspace2);
 
         // 3. when 단계에서 SELECT 하기 전, DB에 변경사항을 강제 동기화
