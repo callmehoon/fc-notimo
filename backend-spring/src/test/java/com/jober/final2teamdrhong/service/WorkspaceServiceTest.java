@@ -251,6 +251,8 @@ class WorkspaceServiceTest {
         when(mockWorkspace.getCompanyName()).thenReturn("회사이름");
         when(mockWorkspace.getCompanyRegisterNumber()).thenReturn("123-45-67890");
         when(mockWorkspace.getCreatedAt()).thenReturn(now);
+        when(mockWorkspace.getUpdatedAt()).thenReturn(now);
+        when(mockWorkspace.getDeletedAt()).thenReturn(null);
 
         // when
         // 실제 테스트 대상인 서비스 메소드를 호출합니다.
@@ -272,6 +274,8 @@ class WorkspaceServiceTest {
         assertEquals("회사이름", result.getCompanyName());
         assertEquals("123-45-67890", result.getCompanyRegisterNumber());
         assertEquals(now, result.getCreatedAt());
+        assertEquals(now, result.getUpdatedAt());
+        assertNull(result.getDeletedAt());
 
         // 2. Repository의 findBy.. 메소드가 정확히 1번 호출되었는지 검증합니다.
         verify(workspaceRepository, times(1))
@@ -326,6 +330,8 @@ class WorkspaceServiceTest {
                 .build();
 
         // 원본 Workspace 객체 생성 (Setter가 있으므로 Mock 객체 대신 실제 객체 사용)
+        LocalDateTime now = LocalDateTime.now();
+
         Workspace existingWorkspace = Workspace.builder()
                 .workspaceName("원본 워크스페이스")
                 .workspaceUrl("original-url")
@@ -334,6 +340,10 @@ class WorkspaceServiceTest {
                 .companyName("원본 회사")
                 .user(mockUser)
                 .build();
+
+        existingWorkspace.setCreatedAt(now);
+        existingWorkspace.setUpdatedAt(now);
+        existingWorkspace.setDeletedAt(null);
 
         // Mockito 행동 정의
         // 1. findByWorkspaceIdAndUser_UserId 가 호출되면 위에서 만든 원본 객체를 반환하도록 설정
@@ -351,6 +361,8 @@ class WorkspaceServiceTest {
         // 1. DTO의 값이 updateDTO의 값으로 잘 변경되었는지 확인
         assertEquals("수정된 워크스페이스", result.getWorkspaceName());
         assertEquals("updated-unique-url", result.getWorkspaceUrl());
+        assertNotNull(result.getUpdatedAt());
+        assertNull(result.getDeletedAt());
 
         // 2. 실제 엔티티의 값이 잘 변경되었는지도 확인 (Dirty Checking 검증)
         assertEquals("수정된 워크스페이스", existingWorkspace.getWorkspaceName());

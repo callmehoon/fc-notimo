@@ -312,7 +312,9 @@ class WorkspaceControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.workspaceName").value("수정된 워크스페이스"))
                 .andExpect(jsonPath("$.workspaceUrl").value("updated-unique-url"))
-                .andExpect(jsonPath("$.companyName").value("수정된 회사"));
+                .andExpect(jsonPath("$.companyName").value("수정된 회사"))
+                .andExpect(jsonPath("$.updatedAt").exists())
+                .andExpect(jsonPath("$.deletedAt").isEmpty());
     }
 
     @Test
