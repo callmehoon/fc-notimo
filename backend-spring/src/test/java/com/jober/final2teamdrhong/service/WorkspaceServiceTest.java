@@ -362,7 +362,7 @@ class WorkspaceServiceTest {
     }
 
     @Test
-    @DisplayName("워크스페이스 수정 실패 테스트 - 존재하지 않거나 권한 없는 워크스페이스")
+    @DisplayName("워크스페이스 수정 실패 테스트 - 존재하지 않거나 권한이 없는 워크스페이스")
     void updateWorkspace_Fail_NotFoundOrUnauthorized() {
         // given
         // 1. 테스트에 사용할 ID와 요청 DTO를 준비합니다. DTO의 내용은 중요하지 않습니다.
