@@ -3,7 +3,6 @@ package com.jober.final2teamdrhong.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -17,7 +16,6 @@ import java.util.List;
 @Setter
 @ToString(exclude = {"phoneBooks", "recipients", "user"})
 @NoArgsConstructor
-@SQLDelete(sql = "UPDATE workspace SET is_deleted = true, deleted_at = NOW() WHERE workspace_id = ?")
 @SQLRestriction("is_deleted = false")
 public class Workspace {
 
