@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -43,6 +44,26 @@ public class GlobalExceptionHandler {
         ErrorResponse response = new ErrorResponse("접근 권한이 없습니다.");
 
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    }
+
+    /**
+     * @Valid 검증 실패 시 발생하는 예외를 처리한다.
+     *
+     * @param ex 검증 실패 예외
+     * @return 400 Bad Request와 함께 검증 오류 메시지를 담은 {@link ErrorResponse}
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
+        log.warn("요청 파라미터 검증 실패: {}", ex.getMessage());
+        
+        // 첫 번째 검증 오류 메시지를 사용
+        String errorMessage = ex.getBindingResult().getFieldErrors().stream()
+                .findFirst()
+                .map(error -> error.getDefaultMessage())
+                .orElse("요청 파라미터가 올바르지 않습니다.");
+        
+        ErrorResponse response = new ErrorResponse(errorMessage);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
     /**
