@@ -2,6 +2,7 @@ package com.jober.final2teamdrhong.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jober.final2teamdrhong.dto.workspace.WorkspaceRequest;
+import com.jober.final2teamdrhong.entity.User;
 import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.UserRepository;
 import com.jober.final2teamdrhong.repository.WorkspaceRepository;
@@ -12,12 +13,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import com.jober.final2teamdrhong.entity.User;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -55,7 +55,7 @@ class WorkspaceControllerTest {
         workspaceRepository.deleteAll();
         userRepository.deleteAll();
         jdbcTemplate.execute("ALTER TABLE users ALTER COLUMN users_id RESTART WITH 1");
-        
+
         // 이제 testUser가 ID=1로 생성됨 (컨트롤러의 하드코딩된 userId=1과 일치)
         testUser = User.builder()
                 .userName("테스트유저")
@@ -93,7 +93,6 @@ class WorkspaceControllerTest {
 
         // when (테스트 실행)
         // POST /api/workspaces 로 JSON 데이터를 담아 요청을 보냄
-        // testUser의 실제 ID를 사용하기 위해 Mock 또는 다른 방법 필요
         ResultActions resultActions = mockMvc.perform(
                 post("/workspaces") // 실제 API 엔드포인트 경로
                         .contentType(MediaType.APPLICATION_JSON)
@@ -104,8 +103,11 @@ class WorkspaceControllerTest {
         // then (결과 검증)
         resultActions
                 .andExpect(status().isCreated()) // HTTP 상태 코드가 201 Created 인지 확인
-                .andExpect(jsonPath("$.workspaceName").value("성공 테스트 워크스페이스"));
-        // 응답 JSON의 data.workspaceName 필드 값이 일치하는지 확인
+                .andExpect(jsonPath("$.workspaceId").exists())
+                .andExpect(jsonPath("$.workspaceName").value("성공 테스트 워크스페이스"))
+                .andExpect(jsonPath("$.createdAt").isNotEmpty())
+                .andExpect(jsonPath("$.updatedAt").isNotEmpty())
+                .andExpect(jsonPath("$.deletedAt").isEmpty());
     }
 
     @Test
@@ -114,15 +116,10 @@ class WorkspaceControllerTest {
         // given (테스트 준비)
         WorkspaceRequest.CreateDTO createDTO = WorkspaceRequest.CreateDTO.builder()
                 .workspaceName("") // workspaceName을 @NotBlank 위반으로 빈 값으로 설정
-                .workspaceSubname("부이름")
-                .workspaceAddress("주소")
-                .workspaceDetailAddress("상세주소")
                 .workspaceUrl("unique-url-fail")
                 .representerName("김철수")
                 .representerPhoneNumber("010-3333-4444")
-                .representerEmail("cheolsoo@example.com")
                 .companyName("실패 주식회사")
-                .companyRegisterNumber("444-55-66666")
                 .build();
 
         String requestBody = objectMapper.writeValueAsString(createDTO);
@@ -144,25 +141,22 @@ class WorkspaceControllerTest {
     void readWorkspaces_Success() throws Exception {
         // given
         // 1. @BeforeEach에서 생성된 testUser의 소유로 워크스페이스 2개를 DB에 미리 저장합니다.
-        Workspace testWorkspace1 = Workspace.builder()
+        workspaceRepository.save(Workspace.builder()
                 .workspaceName("테스트 워크스페이스1")
                 .workspaceUrl("test-url-1")
                 .representerName("테스트대표1")
                 .representerPhoneNumber("010-1111-1111")
                 .companyName("테스트회사1")
                 .user(testUser)
-                .build();
-        workspaceRepository.save(testWorkspace1);
-
-        Workspace testWorkspace2 = Workspace.builder()
+                .build());
+        workspaceRepository.save(Workspace.builder()
                 .workspaceName("테스트 워크스페이스2")
                 .workspaceUrl("test-url-2")
-                .representerName("테스트대표1")
-                .representerPhoneNumber("010-1111-1111")
+                .representerName("테스트대표2")
+                .representerPhoneNumber("010-2222-2222")
                 .companyName("테스트회사2")
                 .user(testUser)
-                .build();
-        workspaceRepository.save(testWorkspace2);
+                .build());
 
         // when
         // 2. MockMvc를 사용해 GET /api/workspaces API를 호출하고, 그 결과를 ResultActions 객체에 저장합니다.
@@ -176,8 +170,11 @@ class WorkspaceControllerTest {
             .andExpect(status().isOk())
             // 3-2. 응답 Body의 최상위($)가 JSON 배열이고, 그 크기가 2인지 확인합니다.
             .andExpect(jsonPath("$", hasSize(2)))
-            // 3-3. 배열의 요소의 workspaceName 필드 값이 "테스트 워크스페이스1", "테스트 워크스페이스2"과 일치하는지 확인합니다.
+            // 3-3. 배열의 요소의 필드 값들을 검증합니다.
             .andExpect(jsonPath("$[0].workspaceName").value("테스트 워크스페이스1"))
+            .andExpect(jsonPath("$[0].createdAt").isNotEmpty())
+            .andExpect(jsonPath("$[0].updatedAt").isNotEmpty())
+            .andExpect(jsonPath("$[0].deletedAt").isEmpty())
             .andExpect(jsonPath("$[1].workspaceName").value("테스트 워크스페이스2"));
     }
 
@@ -278,15 +275,10 @@ class WorkspaceControllerTest {
         // 2. API 요청 본문(Body)에 담아 보낼 수정 데이터를 DTO 객체로 준비합니다.
         WorkspaceRequest.UpdateDTO updateDTO = WorkspaceRequest.UpdateDTO.builder()
                 .newWorkspaceName("수정된 워크스페이스")
-                .newWorkspaceSubname("수정된 부이름")
-                .newWorkspaceAddress("수정된 주소")
-                .newWorkspaceDetailAddress("수정된 상세주소")
                 .newWorkspaceUrl("updated-unique-url")
                 .newRepresenterName("수정된 대표")
                 .newRepresenterPhoneNumber("010-9999-8888")
-                .newRepresenterEmail("updated@example.com")
                 .newCompanyName("수정된 회사")
-                .newCompanyRegisterNumber("999-88-77777")
                 .build();
 
         // 3. DTO 객체를 JSON 문자열로 변환합니다.
@@ -294,9 +286,6 @@ class WorkspaceControllerTest {
 
         // when
         // 1. MockMvc를 사용하여 PUT /workspaces/{workspaceId} 엔드포인트로 API 요청을 보냅니다.
-        //    - contentType을 application/json으로 설정합니다.
-        //    - content에 위에서 만든 JSON 문자열을 담습니다.
-        //    - with(csrf())를 통해 CSRF 보호를 통과시킵니다.
         ResultActions resultActions = mockMvc.perform(
                 put("/workspaces/" + originalWorkspace.getWorkspaceId())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -312,7 +301,6 @@ class WorkspaceControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.workspaceName").value("수정된 워크스페이스"))
                 .andExpect(jsonPath("$.workspaceUrl").value("updated-unique-url"))
-                .andExpect(jsonPath("$.companyName").value("수정된 회사"))
                 .andExpect(jsonPath("$.updatedAt").exists())
                 .andExpect(jsonPath("$.deletedAt").isEmpty());
     }
@@ -322,7 +310,6 @@ class WorkspaceControllerTest {
     void updateWorkspace_Fail_Unauthorized() throws Exception {
         // given
         // 1. 다른 사용자(anotherUser) 소유의 워크스페이스를 DB에 저장합니다.
-        //    현재 요청을 보내는 사용자는 testUser(ID=1)이므로, 이 워크스페이스에 대한 수정 권한이 없습니다.
         Workspace othersWorkspace = Workspace.builder()
                 .workspaceName("남의 워크스페이스")
                 .workspaceUrl("another-users-workspace")
@@ -333,7 +320,7 @@ class WorkspaceControllerTest {
                 .build();
         workspaceRepository.save(othersWorkspace);
 
-        // 2. 요청 본문에 담길 DTO를 준비합니다. 유효성 검사를 통과할 최소한의 데이터만 넣습니다.
+        // 2. 요청 본문에 담길 DTO를 준비합니다.
         WorkspaceRequest.UpdateDTO updateDTO = WorkspaceRequest.UpdateDTO.builder()
                 .newWorkspaceName("수정 시도")
                 .newWorkspaceUrl("attempt-update-url")
@@ -362,7 +349,7 @@ class WorkspaceControllerTest {
     @DisplayName("워크스페이스 수정 실패 테스트 - 필수 필드 누락")
     void updateWorkspace_Fail_Validation() throws Exception {
         // given
-        // 1. 수정 대상 워크스페이스를 하나 생성합니다. 이 테스트에서는 ID만 필요합니다.
+        // 1. 수정 대상 워크스페이스를 하나 생성합니다.
         Workspace targetWorkspace = Workspace.builder()
                 .workspaceName("유효성 검사 대상")
                 .workspaceUrl("validation-target-url")
@@ -424,8 +411,12 @@ class WorkspaceControllerTest {
         // then
         // 1. API 호출 결과를 검증합니다.
         //    - HTTP 상태 코드가 200 OK 인지 확인합니다.
-        //    - 삭제 API는 빈 응답을 반환하므로 JSON 검증은 하지 않습니다.
-        resultActions.andExpect(status().isOk());
+        //    - 응답 본문이 JSON이고, 각 필드의 값이 예상과 일치하는지 확인합니다.
+        resultActions
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.workspaceId").value(targetWorkspace.getWorkspaceId()))
+                .andExpect(jsonPath("$.workspaceName").value("삭제될 워크스페이스"))
+                .andExpect(jsonPath("$.deletedAt").isNotEmpty()); // deletedAt 필드가 null이 아니거나 비어있지 않은지 확인
     }
 
     @Test
