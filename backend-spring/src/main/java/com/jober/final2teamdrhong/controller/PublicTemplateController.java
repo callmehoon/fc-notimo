@@ -3,13 +3,9 @@ package com.jober.final2teamdrhong.controller;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.data.domain.PageRequest;
 
-import java.util.Set;
-
+import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplatePageableRequest;
 import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplateResponse;
 import com.jober.final2teamdrhong.exception.ErrorResponse;
 import com.jober.final2teamdrhong.service.PublicTemplateService;
@@ -21,7 +17,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -34,9 +30,11 @@ public class PublicTemplateController {
      * 공용 템플릿 목록을 조회합니다.
      * 삭제되지 않은 템플릿만 조회되며, 다양한 정렬 옵션과 페이징을 지원합니다.
      *
-     * @param pageable 스프링이 자동 바인딩하는 페이징/정렬 정보
-     *                 - 기본값: createdAt DESC, size=10
-     *                 - 요청에서 page, size, sort 파라미터 사용 가능 (예: sort=shareCount,desc)
+     * @param request 페이징/정렬 요청 DTO
+     *                - 기본값: page=0, size=10, sort=createdAt, direction=DESC
+     *                - 요청 파라미터: page(페이지번호), size(페이지크기), sort(정렬필드), direction(정렬방향)
+     *                - 허용 정렬필드: createdAt, shareCount, viewCount, publicTemplateTitle
+     *                - 허용 정렬방향: ASC, DESC
      * @return 페이징된 공용 템플릿 응답 객체
      */
     @GetMapping("/public-templates")
@@ -44,7 +42,8 @@ public class PublicTemplateController {
         summary = "공용 템플릿 목록 조회",
         description = "삭제되지 않은 공용 템플릿 목록을 페이징하여 조회합니다. " +
                      "생성일시, 공유수, 조회수, 제목으로 정렬 가능하며 기본값은 생성일시 내림차순입니다. " +
-                     "쿼리 파라미터: page(페이지번호, 기본값:0), size(페이지크기, 기본값:10), sort(정렬기준, 기본값:createdAt,desc)",
+                     "쿼리 파라미터: page(페이지번호, 기본값:0), size(페이지크기, 기본값:10), " +
+                     "sort(정렬필드, 기본값:createdAt), direction(정렬방향, 기본값:DESC)",
         security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
@@ -62,6 +61,14 @@ public class PublicTemplateController {
         ),
         @ApiResponse(
             responseCode = "400",
+            description = "잘못된 요청 파라미터 - 유효하지 않은 페이징/정렬 파라미터",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "401",
             description = "인증 실패 - 유효하지 않은 JWT 토큰",
             content = @Content(
                 mediaType = "application/json",
@@ -78,19 +85,9 @@ public class PublicTemplateController {
         )
     })
     public Page<PublicTemplateResponse> getPublicTemplates(
-        @ParameterObject
-        @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC, size = 10) Pageable pageable
+        @ParameterObject @Valid PublicTemplatePageableRequest request
     ) {
-        // 허용된 정렬 필드 화이트리스트
-        Set<String> allowedSortProperties = Set.of("createdAt", "shareCount", "viewCount", "publicTemplateTitle");
-
-        boolean hasOnlyAllowedSorts = pageable.getSort().stream()
-            .allMatch(order -> allowedSortProperties.contains(order.getProperty()));
-
-        Pageable normalized = hasOnlyAllowedSorts
-            ? pageable
-            : PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by("createdAt").descending());
-
-        return publicTemplateService.getTemplates(normalized);
+        Pageable pageable = request.toPageable();
+        return publicTemplateService.getTemplates(pageable);
     }
 }
