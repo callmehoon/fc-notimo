@@ -19,6 +19,8 @@ public class WorkspaceResponse {
         private String workspaceName;
         private String workspaceSubname;
         private LocalDateTime createdAt;
+        private LocalDateTime updatedAt;
+        private LocalDateTime deletedAt; // delete 동작시 반환되는 SimpleDTO에서 삭제된 시각을 알 수 없기 때문에 삭제시간 추가
 
         /**
          * Workspace 엔티티를 SimpleDTO로 변환하는 생성자입니다.
@@ -30,6 +32,8 @@ public class WorkspaceResponse {
             this.workspaceName = workspace.getWorkspaceName();
             this.workspaceSubname = workspace.getWorkspaceSubname();
             this.createdAt = workspace.getCreatedAt();
+            this.updatedAt = workspace.getUpdatedAt();
+            this.deletedAt = workspace.getDeletedAt();
         }
     }
 
