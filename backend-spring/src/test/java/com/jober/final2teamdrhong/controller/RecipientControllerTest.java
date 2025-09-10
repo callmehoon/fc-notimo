@@ -2,6 +2,7 @@ package com.jober.final2teamdrhong.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jober.final2teamdrhong.dto.recipient.RecipientRequest;
+import com.jober.final2teamdrhong.entity.Recipient;
 import com.jober.final2teamdrhong.entity.User;
 import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.RecipientRepository;
@@ -21,7 +22,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -172,6 +173,69 @@ class RecipientControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody)
                         .with(csrf())
+        );
+
+        // then
+        // 1. 서비스 계층의 인가 로직에서 예외를 던지고, GlobalExceptionHandler에 의해
+        //    최종적으로 HTTP 상태 코드 400 Bad Request가 반환되는지 확인합니다.
+        resultActions.andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("수신자 목록 페이징 조회 성공 테스트")
+    void readRecipients_Paging_Success_Test() throws Exception {
+        // given (테스트 준비)
+        // 1. setUp()에서 생성된 testWorkspace에 테스트용 수신자 2명을 추가로 저장합니다.
+        recipientRepository.save(Recipient.builder()
+                .recipientName("홍길동")
+                .recipientPhoneNumber("010-1111-1111")
+                .workspace(testWorkspace)
+                .build());
+        recipientRepository.save(Recipient.builder()
+                .recipientName("임꺽정")
+                .recipientPhoneNumber("010-2222-2222")
+                .workspace(testWorkspace)
+                .build());
+
+        // when (테스트 실행)
+        // 1. MockMvc를 사용하여 GET 요청을 보냅니다.
+        //    - URL에 page, size, sort 쿼리 파라미터를 추가하여 페이징을 요청합니다.
+        ResultActions resultActions = mockMvc.perform(
+                get("/workspaces/" + testWorkspace.getWorkspaceId() + "/recipients")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sort", "recipientName,asc") // 이름 오름차순 정렬
+                        .accept(MediaType.APPLICATION_JSON)
+        );
+
+        // then (결과 검증)
+        // 1. API 호출 결과를 검증합니다. 응답 JSON 구조가 Page 객체 형식에 맞는지 확인합니다.
+        resultActions
+                // 1-1. HTTP 상태 코드가 200 OK 인지 확인합니다.
+                .andExpect(status().isOk())
+                // 1-2. Page 객체의 totalElements 필드가 2인지 확인합니다.
+                .andExpect(jsonPath("$.totalElements").value(2))
+                // 1-3. Page 객체의 content 배열의 크기가 2인지 확인합니다.
+                .andExpect(jsonPath("$.content.length()").value(2))
+                // 1-4. 정렬 결과 확인: 이름 오름차순이므로 "임꺽정"이 첫 번째 요소여야 합니다.
+                .andExpect(jsonPath("$.content[0].recipientName").value("임꺽정"))
+                // 1-5. 두 번째 요소의 이름이 "홍길동"인지 확인합니다.
+                .andExpect(jsonPath("$.content[1].recipientName").value("홍길동"));
+    }
+
+    @Test
+    @DisplayName("수신자 목록 페이징 조회 실패 테스트 - 권한 없음")
+    void readRecipients_Paging_Fail_UnauthorizedWorkspace_Test() throws Exception {
+        // given
+        // 1. 존재하지 않거나 내 소유가 아닌 워크스페이스 ID를 임의로 준비합니다.
+        Integer unauthorizedWorkspaceId = 999;
+
+        // when
+        // 1. 다른 사람의 워크스페이스에 속한 수신자 목록 조회를 시도하는 API를 호출합니다.
+        //    (실패 케이스이므로 페이징 파라미터는 중요하지 않습니다.)
+        ResultActions resultActions = mockMvc.perform(
+                get("/workspaces/" + unauthorizedWorkspaceId + "/recipients")
+                        .accept(MediaType.APPLICATION_JSON)
         );
 
         // then
