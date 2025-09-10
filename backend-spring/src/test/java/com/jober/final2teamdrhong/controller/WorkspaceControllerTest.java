@@ -75,7 +75,7 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 생성 성공 테스트")
-    void createWorkspace_Success() throws Exception {
+    void createWorkspace_Success_Test() throws Exception {
         // given (테스트 준비)
         WorkspaceRequest.CreateDTO createDTO = WorkspaceRequest.CreateDTO.builder()
                 .workspaceName("성공 테스트 워크스페이스")
@@ -111,7 +111,7 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 생성 실패 테스트 - 필수 필드 누락")
-    void createWorkspace_Fail_Validation() throws Exception {
+    void createWorkspace_Fail_Validation_Test() throws Exception {
         // given (테스트 준비)
         WorkspaceRequest.CreateDTO createDTO = WorkspaceRequest.CreateDTO.builder()
                 .workspaceName("") // workspaceName을 @NotBlank 위반으로 빈 값으로 설정
