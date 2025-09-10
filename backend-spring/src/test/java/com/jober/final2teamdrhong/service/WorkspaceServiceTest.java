@@ -312,7 +312,7 @@ class WorkspaceServiceTest {
 
     @Test
     @DisplayName("워크스페이스 수정 성공 테스트")
-    void updateWorkspace_Success() {
+    void updateWorkspace_Success_Test() {
         // given
         // 1. 테스트에 사용할 userId와 workspaceId를 준비합니다.
         Integer userId = 1;
@@ -375,7 +375,7 @@ class WorkspaceServiceTest {
 
     @Test
     @DisplayName("워크스페이스 수정 실패 테스트 - 존재하지 않거나 권한이 없는 워크스페이스")
-    void updateWorkspace_Fail_NotFoundOrUnauthorized() {
+    void updateWorkspace_Fail_NotFoundOrUnauthorized_Test() {
         // given
         // 1. 테스트에 사용할 ID와 요청 DTO를 준비합니다. DTO의 내용은 중요하지 않습니다.
         Integer userId = 1;
@@ -405,7 +405,7 @@ class WorkspaceServiceTest {
 
     @Test
     @DisplayName("워크스페이스 수정 실패 테스트 - 중복된 URL")
-    void updateWorkspace_Fail_DuplicateUrl() {
+    void updateWorkspace_Fail_DuplicateUrl_Test() {
         // given
         // 1. 테스트에 사용할 ID와 요청 DTO를 준비합니다.
         Integer userId = 1;

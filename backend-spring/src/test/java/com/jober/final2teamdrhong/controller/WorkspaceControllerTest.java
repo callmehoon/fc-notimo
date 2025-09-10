@@ -261,7 +261,7 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 수정 성공 테스트")
-    void updateWorkspace_Success() throws Exception {
+    void updateWorkspace_Success_Test() throws Exception {
         // given
         // 1. 수정 대상이 될 원본 워크스페이스를 DB에 미리 저장합니다.
         //    이 워크스페이스의 소유자는 @BeforeEach에서 생성된 testUser (ID=1) 입니다.
@@ -319,7 +319,7 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 수정 실패 테스트 - 권한 없음")
-    void updateWorkspace_Fail_Unauthorized() throws Exception {
+    void updateWorkspace_Fail_Unauthorized_Test() throws Exception {
         // given
         // 1. 다른 사용자(anotherUser) 소유의 워크스페이스를 DB에 저장합니다.
         //    현재 요청을 보내는 사용자는 testUser(ID=1)이므로, 이 워크스페이스에 대한 수정 권한이 없습니다.
@@ -360,7 +360,7 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 수정 실패 테스트 - 필수 필드 누락")
-    void updateWorkspace_Fail_Validation() throws Exception {
+    void updateWorkspace_Fail_Validation_Test() throws Exception {
         // given
         // 1. 수정 대상 워크스페이스를 하나 생성합니다. 이 테스트에서는 ID만 필요합니다.
         Workspace targetWorkspace = Workspace.builder()
