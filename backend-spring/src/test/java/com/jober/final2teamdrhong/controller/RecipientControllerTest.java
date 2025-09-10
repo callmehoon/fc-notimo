@@ -84,7 +84,7 @@ class RecipientControllerTest {
 
     @Test
     @DisplayName("수신자 생성 성공 테스트")
-    void createRecipient_Success() throws Exception {
+    void createRecipient_Success_Test() throws Exception {
         // given (테스트 준비)
         // 1. API 요청 본문에 담아 보낼 DTO 객체를 생성합니다.
         RecipientRequest.CreateDTO createDTO = RecipientRequest.CreateDTO.builder()
@@ -125,7 +125,7 @@ class RecipientControllerTest {
 
     @Test
     @DisplayName("수신자 생성 실패 테스트 - 유효성 검사 실패 (이름 누락)")
-    void createRecipient_Fail_Validation() throws Exception {
+    void createRecipient_Fail_Validation_Test() throws Exception {
         // given
         // 1. DTO의 @NotBlank 제약조건을 위반하는, 비어있는 recipientName을 가진 DTO를 준비합니다.
         RecipientRequest.CreateDTO createDTO = RecipientRequest.CreateDTO.builder()
@@ -152,7 +152,7 @@ class RecipientControllerTest {
 
     @Test
     @DisplayName("수신자 생성 실패 테스트 - 권한 없는 워크스페이스")
-    void createRecipient_Fail_UnauthorizedWorkspace() throws Exception {
+    void createRecipient_Fail_UnauthorizedWorkspace_Test() throws Exception {
         // given
         // 1. 존재하지 않거나 내 소유가 아닌 워크스페이스 ID를 임의로 준비합니다.
         Integer unauthorizedWorkspaceId = 999;

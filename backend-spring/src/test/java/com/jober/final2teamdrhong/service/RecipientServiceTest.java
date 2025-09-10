@@ -33,7 +33,7 @@ class RecipientServiceTest {
 
     @Test
     @DisplayName("수신자 생성 성공 테스트")
-    void createRecipient_Success() {
+    void createRecipient_Success_Test() {
         // given
         // 1. 테스트에 사용할 ID와 요청 DTO를 준비합니다.
         Integer userId = 1;
@@ -79,7 +79,7 @@ class RecipientServiceTest {
 
     @Test
     @DisplayName("수신자 생성 실패 테스트 - 존재하지 않거나 권한이 없는 워크스페이스")
-    void createRecipient_Fail_NotFoundOrUnauthorized() {
+    void createRecipient_Fail_NotFoundOrUnauthorized_Test() {
         // given
         // 1. 테스트에 사용할 ID와 요청 DTO를 준비합니다.
         Integer userId = 1;
