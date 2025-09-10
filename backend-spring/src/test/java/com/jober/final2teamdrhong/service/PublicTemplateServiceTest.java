@@ -1,10 +1,14 @@
 package com.jober.final2teamdrhong.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.jober.final2teamdrhong.entity.PublicTemplate;
+import com.jober.final2teamdrhong.entity.IndividualTemplate;
+import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplateCreateRequest;
 import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplateResponse;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
+import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,6 +18,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import jakarta.persistence.EntityNotFoundException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,6 +31,9 @@ class PublicTemplateServiceTest {
 
     @Autowired
     private PublicTemplateRepository publicTemplateRepository;
+
+    @Autowired
+    private IndividualTemplateRepository individualTemplateRepository;
 
     @BeforeEach
     void setUp() {
@@ -225,5 +233,51 @@ class PublicTemplateServiceTest {
         assertThat(templates).hasSize(4);
         assertThat(templates).noneMatch(template -> 
             template.publicTemplateTitle().equals("삭제된템플릿"));
+    }
+
+    @Test
+    @DisplayName("공용 템플릿 생성 - 개인 템플릿 복사 성공")
+    void createPublicTemplate_Success() {
+        // given
+        IndividualTemplate it = IndividualTemplate.builder()
+                .workspaceId(null)
+                .individualTemplateTitle("원본 제목")
+                .individualTemplateContent("원본 내용")
+                .buttonTitle("원본 버튼")
+                .build();
+        it = individualTemplateRepository.save(it);
+
+        long beforeCount = publicTemplateRepository.count();
+
+        // when
+        PublicTemplateResponse response = publicTemplateService.createPublicTemplate(
+                new PublicTemplateCreateRequest(it.getIndividualTemplateId())
+        );
+
+        // then
+        assertThat(response.publicTemplateTitle()).isEqualTo("원본 제목");
+        assertThat(response.publicTemplateContent()).isEqualTo("원본 내용");
+        assertThat(response.buttonTitle()).isEqualTo("원본 버튼");
+
+        assertThat(publicTemplateRepository.count()).isEqualTo(beforeCount + 1);
+
+        // 저장된 엔티티 값 확인
+        PublicTemplate saved = publicTemplateRepository.findAll().stream()
+                .filter(p -> "원본 제목".equals(p.getPublicTemplateTitle()))
+                .findFirst()
+                .orElseThrow();
+        assertThat(saved.getPublicTemplateContent()).isEqualTo("원본 내용");
+        assertThat(saved.getButtonTitle()).isEqualTo("원본 버튼");
+        assertThat(saved.getShareCount()).isZero();
+        assertThat(saved.getViewCount()).isZero();
+        assertThat(saved.getIsDeleted()).isFalse();
+    }
+
+    @Test
+    @DisplayName("공용 템플릿 생성 - 개인 템플릿 없음 예외")
+    void createPublicTemplate_NotFound() {
+        // when & then
+        assertThatThrownBy(() -> publicTemplateService.createPublicTemplate(new PublicTemplateCreateRequest(999999)))
+                .isInstanceOf(EntityNotFoundException.class);
     }
 }
