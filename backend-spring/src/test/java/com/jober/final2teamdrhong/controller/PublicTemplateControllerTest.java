@@ -2,6 +2,7 @@ package com.jober.final2teamdrhong.controller;
 
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import java.util.List;
@@ -20,6 +21,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplateResponse;
+import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplateCreateRequest;
 import com.jober.final2teamdrhong.service.PublicTemplateService;
 
 @WebMvcTest(PublicTemplateController.class)
@@ -234,5 +236,57 @@ class PublicTemplateControllerTest {
                 content,
                 null
         );
+    }
+
+    @Test
+    @DisplayName("공용 템플릿 생성 성공 - 201 반환")
+    void createPublicTemplate_Success_ReturnsCreated() throws Exception {
+        // given
+        Integer individualTemplateId = 10;
+        PublicTemplateCreateRequest request = new PublicTemplateCreateRequest(individualTemplateId);
+        PublicTemplateResponse response = new PublicTemplateResponse(1, "제목", "내용", "버튼");
+
+        when(publicTemplateService.createPublicTemplate(any(PublicTemplateCreateRequest.class)))
+                .thenReturn(response);
+
+        // when & then
+        mockMvc.perform(post("/public-templates")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"individualTemplateId\": " + individualTemplateId + "}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.publicTemplateId").value(1))
+                .andExpect(jsonPath("$.publicTemplateTitle").value("제목"))
+                .andExpect(jsonPath("$.publicTemplateContent").value("내용"))
+                .andExpect(jsonPath("$.buttonTitle").value("버튼"));
+
+        verify(publicTemplateService, times(1)).createPublicTemplate(any(PublicTemplateCreateRequest.class));
+    }
+
+    @Test
+    @DisplayName("공용 템플릿 생성 실패 - 유효성 오류 400")
+    void createPublicTemplate_ValidationError_ReturnsBadRequest() throws Exception {
+        // when & then
+        mockMvc.perform(post("/public-templates")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+
+        verify(publicTemplateService, never()).createPublicTemplate(any(PublicTemplateCreateRequest.class));
+    }
+
+    @Test
+    @DisplayName("공용 템플릿 생성 실패 - 개인 템플릿 없음 404")
+    void createPublicTemplate_NotFound_ReturnsNotFound() throws Exception {
+        // given
+        when(publicTemplateService.createPublicTemplate(any(PublicTemplateCreateRequest.class)))
+                .thenThrow(new jakarta.persistence.EntityNotFoundException("not found"));
+
+        // when & then
+        mockMvc.perform(post("/public-templates")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"individualTemplateId\": 999}"))
+                .andExpect(status().isNotFound());
+
+        verify(publicTemplateService, times(1)).createPublicTemplate(any(PublicTemplateCreateRequest.class));
     }
 }
