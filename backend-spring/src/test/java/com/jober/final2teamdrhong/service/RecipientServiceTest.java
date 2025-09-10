@@ -3,6 +3,7 @@ package com.jober.final2teamdrhong.service;
 import com.jober.final2teamdrhong.dto.recipient.RecipientRequest;
 import com.jober.final2teamdrhong.dto.recipient.RecipientResponse;
 import com.jober.final2teamdrhong.entity.Recipient;
+import com.jober.final2teamdrhong.entity.User;
 import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.RecipientRepository;
 import com.jober.final2teamdrhong.repository.WorkspaceRepository;
@@ -12,9 +13,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
+import java.util.List;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -103,5 +110,92 @@ class RecipientServiceTest {
 
         // 2. (중요) 로직이 초반에 중단되었으므로, 수신자를 저장하는 로직은 절대 호출되면 안됩니다.
         verify(recipientRepository, never()).save(any(Recipient.class));
+    }
+
+    @Test
+    @DisplayName("수신자 목록 페이징 조회 성공 테스트")
+    void readRecipients_Paging_Success_Test() {
+        // given
+        // 1. 서비스 메소드에 넘겨줄 ID와 Pageable 객체를 준비합니다.
+        Integer workspaceId = 1;
+        Integer userId = 1;
+        Pageable pageable = PageRequest.of(0, 10); // 0번째 페이지, 10개씩
+
+        // 2. Repository가 반환할 가짜 데이터(Mock)를 생성합니다.
+        User mockUser = User.builder()
+                .userName("테스트유저")
+                .userEmail("test@example.com")
+                .userNumber("010-1234-5678")
+                .build();
+        Workspace mockWorkspace = Workspace.builder()
+                .workspaceName("테스트 워크스페이스")
+                .workspaceUrl("test-url")
+                .representerName("테스트대표")
+                .representerPhoneNumber("010-0000-0000")
+                .companyName("테스트회사")
+                .user(mockUser)
+                .build();
+
+        // 3. Mockito는 Page 인터페이스를 직접 만들 수 없으므로, 실제 구현체인 PageImpl을 사용해 Page 객체를 만듭니다.
+        //    이때, content로 사용될 List는 변수에 담지 않고 직접 생성자에 넣어줍니다.
+        Page<Recipient> recipientPage = new PageImpl<>(
+                List.of(
+                        Recipient.builder().recipientName("홍길동").recipientPhoneNumber("010-1111-1111").workspace(mockWorkspace).build(),
+                        Recipient.builder().recipientName("임꺽정").recipientPhoneNumber("010-1111-1111").workspace(mockWorkspace).build()
+                ),
+                pageable,
+                2
+        );
+
+        // 4. Mockito 행동 정의
+        when(workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId))
+                .thenReturn(Optional.of(mockWorkspace));
+        when(recipientRepository.findAllByWorkspace_WorkspaceId(workspaceId, pageable))
+                .thenReturn(recipientPage);
+
+        // when
+        // 실제 테스트 대상인 서비스 메소드를 호출합니다.
+        Page<RecipientResponse.SimpleDTO> resultPage = recipientService.readRecipients(workspaceId, userId, pageable);
+
+        // then
+        // 1. 반환된 Page 객체의 주요 정보들을 검증합니다.
+        assertThat(resultPage.getTotalElements()).isEqualTo(2);
+        assertThat(resultPage.getContent().size()).isEqualTo(2);
+        // 2. Page에 담긴 내용(DTO)을 검증합니다.
+        assertThat(resultPage.getContent()).extracting(RecipientResponse.SimpleDTO::getRecipientName)
+                .containsExactly("홍길동", "임꺽정");
+
+        // 3. 각 Repository의 메소드가 정확히 1번씩 호출되었는지 검증합니다.
+        verify(workspaceRepository, times(1)).findByWorkspaceIdAndUser_UserId(workspaceId, userId);
+        verify(recipientRepository, times(1)).findAllByWorkspace_WorkspaceId(workspaceId, pageable);
+    }
+
+    @Test
+    @DisplayName("수신자 목록 페이징 조회 실패 테스트 - 존재하지 않거나 권한이 없는 워크스페이스")
+    void readRecipients_Paging_Fail_Unauthorized_Test() {
+        // given
+        // 1. 존재하지 않거나 권한이 없는 workspaceId와 Pageable 객체를 준비합니다.
+        Integer workspaceId = 999;
+        Integer userId = 1;
+        Pageable pageable = PageRequest.of(0, 10);
+
+        // 2. Mockito 행동 정의: 권한 검증 단계에서 비어있는 Optional을 반환하도록 설정합니다.
+        when(workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId))
+                .thenReturn(Optional.empty());
+
+        // when
+        // 서비스 메소드를 호출했을 때 예외가 발생하는지 검증합니다.
+        Throwable thrown = assertThrows(IllegalArgumentException.class,
+                () -> recipientService.readRecipients(workspaceId, userId, pageable));
+
+        // then
+        // 1. 발생한 예외의 메시지가 예상과 일치하는지 확인합니다.
+        assertEquals("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + workspaceId,
+                thrown.getMessage());
+
+        // 2. (중요) 권한 검증에서 실패했으므로, 수신자 목록을 조회하는 메소드는 절대 호출되면 안됩니다.
+        //    any(Pageable.class)를 사용하여 Pageable 타입의 어떤 객체와도 매칭되도록 합니다.
+        verify(recipientRepository, never()).findAllByWorkspace_WorkspaceId(anyInt(),
+                any(Pageable.class));
     }
 }
