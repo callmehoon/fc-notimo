@@ -5,13 +5,15 @@ import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.WorkspaceRepository;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;   // ✅ springframework transactional 사용
 
 import java.util.concurrent.CompletableFuture;
 
@@ -25,7 +27,6 @@ public class IndividualTemplateService {
 
     /**
      * 비어있는 템플릿 생성 (title/content/button 전부 "")
-     * 요청의 문자열 필드는 무시하고 workspaceId만 사용함.
      */
     @Transactional
     public IndividualTemplateResponse createTemplate(Integer workspaceId) {
@@ -34,14 +35,13 @@ public class IndividualTemplateService {
 
         IndividualTemplate entity = IndividualTemplate.builder()
                 .workspaceId(workspace)
-                .individualTemplateTitle(null)           // null 저장
-                .individualTemplateContent(null)         // null 저장
-                .buttonTitle(null)                       // null 저장
+                .individualTemplateTitle(null)
+                .individualTemplateContent(null)
+                .buttonTitle(null)
                 .build();
 
         IndividualTemplate saved = individualTemplateRepo.save(entity);
 
-        // save() 직후 createdAt, updatedAt은 Hibernate가 채워주기 때문에 사용 가능
         return new IndividualTemplateResponse(
                 saved.getIndividualTemplateId(),
                 saved.getIndividualTemplateTitle(),
@@ -57,19 +57,84 @@ public class IndividualTemplateService {
     @Async
     @Transactional
     public CompletableFuture<IndividualTemplateResponse> createTemplateAsync(Integer workspaceId) {
-        boolean isVirtual = Thread.currentThread().isVirtual();
-        log.info("[@Async] thread={}, isVirtual={}", Thread.currentThread().getName(), isVirtual);
-
-        IndividualTemplateResponse individualTemplateResponse = createTemplate(workspaceId);
-        return CompletableFuture.completedFuture(individualTemplateResponse);
+        log.info("[@Async] thread={}, isVirtual={}", Thread.currentThread().getName(), Thread.currentThread().isVirtual());
+        return CompletableFuture.completedFuture(createTemplate(workspaceId));
     }
 
     /**
      * 개인 템플릿 전체 조회
      */
-    @Transactional
-    public Page<IndividualTemplateResponse> getAllTemplates(Integer workspaceId, Pageable pageable){
-        return individualTemplateRepo.findByWorkspace_WorkspaceIdAndIsDeletedFalse(workspaceId, pageable)
+    @Transactional(readOnly = true)
+    public Page<IndividualTemplateResponse> getAllTemplates(
+            Integer workspaceId,
+            String sortType,
+            Pageable pageable) {
+
+        Sort sort = "title".equalsIgnoreCase(sortType)
+                ? Sort.by("IndividualTemplateTitle").ascending()
+                : Sort.by("createdAt").descending();
+
+        Pageable sortedPageable = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                sort
+        );
+
+        return individualTemplateRepo.findByWorkspace_WorkspaceIdAndIsDeletedFalse(workspaceId, sortedPageable)
+                .map(saved -> new IndividualTemplateResponse(
+                        saved.getIndividualTemplateId(),
+                        saved.getIndividualTemplateTitle(),
+                        saved.getIndividualTemplateContent(),
+                        saved.getButtonTitle(),
+                        saved.getWorkspace().getWorkspaceId(),
+                        saved.getCreatedAt(),
+                        saved.getUpdatedAt(),
+                        saved.isDeleted()
+                ));
+    }
+
+    /**
+     * 정렬 기준 기본값(최신순)을 사용 하는 전체 조회
+     */
+    @Transactional(readOnly = true)
+    public Page<IndividualTemplateResponse> getAllTemplates(
+            Integer workspaceId,
+            Pageable pageable) {
+        return getAllTemplates(workspaceId, "latest", pageable);
+    }
+
+    @Async
+    @Transactional(readOnly = true)
+    public CompletableFuture<Page<IndividualTemplateResponse>> getAllTemplatesAsync(
+            Integer workspaceId,
+            String sortType,
+            Pageable pageable) {
+        log.info("[@Async] thread={}, isVirtual={}", Thread.currentThread().getName(), Thread.currentThread().isVirtual());
+        return CompletableFuture.completedFuture(getAllTemplates(workspaceId, sortType, pageable));
+    }
+
+    /**
+     * 개인 템플릿 상태별 조회
+     */
+    @Transactional(readOnly = true)
+    public Page<IndividualTemplateResponse> getIndividualTemplateByStatus(
+            Integer workspaceId,
+            IndividualTemplate.Status status,
+            String sortType,
+            Pageable pageable) {
+
+        Sort sort = "title".equalsIgnoreCase(sortType)
+                ? Sort.by("individualTemplateTitle").ascending()
+                : Sort.by("createdAt").descending();
+
+        Pageable sortedPageable = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                sort
+        );
+
+        return individualTemplateRepo
+                .findByWorkspace_WorkspaceIdAndIsDeletedFalseAndStatus(workspaceId, status, sortedPageable)
                 .map(saved -> new IndividualTemplateResponse(
                         saved.getIndividualTemplateId(),
                         saved.getIndividualTemplateTitle(),
@@ -83,19 +148,21 @@ public class IndividualTemplateService {
     }
 
     @Async
-    @Transactional
-    public CompletableFuture<Page<IndividualTemplateResponse>> getAllTemplatesAsync(Integer workspaceId, Pageable pageable){
-        boolean isVirtual = Thread.currentThread().isVirtual();
-        log.info("[@Async] thread={}, isVirtual={}", Thread.currentThread().getName(), isVirtual);
+    @Transactional(readOnly = true)
+    public CompletableFuture<Page<IndividualTemplateResponse>> getIndividualTemplateByStatusAsync(
+            Integer workspaceId,
+            IndividualTemplate.Status status,
+            String sortType,
+            Pageable pageable) {
 
-        Page<IndividualTemplateResponse> individualTemplateResponses = getAllTemplates(workspaceId,pageable);
-        return CompletableFuture.completedFuture(individualTemplateResponses);
+        log.info("[@Async] thread={}, isVirtual={}", Thread.currentThread().getName(), Thread.currentThread().isVirtual());
+        return CompletableFuture.completedFuture(getIndividualTemplateByStatus(workspaceId, status, sortType, pageable));
     }
 
     /**
      * 개인 템플릿 단일 조회
      */
-    @Transactional
+    @Transactional(readOnly = true)
     public IndividualTemplateResponse getIndividualTemplate(Integer workspaceId, Integer individualTemplateId) {
         IndividualTemplate saved = individualTemplateRepo
                 .findByIndividualTemplateIdAndWorkspace_WorkspaceIdAndIsDeletedFalse(individualTemplateId, workspaceId)
@@ -114,12 +181,9 @@ public class IndividualTemplateService {
     }
 
     @Async
-    @Transactional
+    @Transactional(readOnly = true)
     public CompletableFuture<IndividualTemplateResponse> getIndividualTemplateAsync(Integer workspaceId, Integer individualTemplateId) {
-        boolean isVirtual = Thread.currentThread().isVirtual();
-        log.info("[@Async] thread={}, isVirtual={}", Thread.currentThread().getName(), isVirtual);
-
-        IndividualTemplateResponse individualTemplateResponse = getIndividualTemplate(workspaceId, individualTemplateId);
-        return CompletableFuture.completedFuture(individualTemplateResponse);
+        log.info("[@Async] thread={}, isVirtual={}", Thread.currentThread().getName(), Thread.currentThread().isVirtual());
+        return CompletableFuture.completedFuture(getIndividualTemplate(workspaceId, individualTemplateId));
     }
 }

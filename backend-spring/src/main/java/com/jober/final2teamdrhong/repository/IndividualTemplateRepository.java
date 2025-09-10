@@ -11,8 +11,15 @@ import java.util.Optional;
 @Repository
 public interface IndividualTemplateRepository extends JpaRepository<IndividualTemplate, Integer> {
 
-    // 개인 템플릿 목록 조회 SoftDelete 조건
+    // 개인 템플릿 목록 전체 조회
     Page<IndividualTemplate> findByWorkspace_WorkspaceIdAndIsDeletedFalse(Integer workspaceId, Pageable pageable);
+
+    // 개인 템플릿 목록 상태별 조회
+    Page<IndividualTemplate> findByWorkspace_WorkspaceIdAndIsDeletedFalseAndStatus(
+            Integer workspaceId,
+            IndividualTemplate.Status status,
+            Pageable pageable
+    );
 
     // 개인 템플릿 단일 조회
     Optional<IndividualTemplate> findByIndividualTemplateIdAndWorkspace_WorkspaceIdAndIsDeletedFalse(Integer individualTemplateId, Integer workspaceId);
