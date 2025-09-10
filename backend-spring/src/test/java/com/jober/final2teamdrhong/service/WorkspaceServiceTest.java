@@ -34,7 +34,7 @@ class WorkspaceServiceTest {
 
     @Test
     @DisplayName("워크스페이스 생성 성공 테스트")
-    void createWorkspace_Success() {
+    void createWorkspace_Success_Test() {
         // given
         Integer userId = 1;
         // 1. 워크스페이스 생성 요청 DTO 생성
@@ -81,7 +81,7 @@ class WorkspaceServiceTest {
 
     @Test
     @DisplayName("워크스페이스 생성 실패 테스트 - 존재하지 않는 사용자")
-    void createWorkspace_Fail_UserNotFound() {
+    void createWorkspace_Fail_UserNotFound_Test() {
         // given
         // 1. 존재하지 않는 사용자 ID 설정
         Integer userId = 999;
@@ -111,7 +111,7 @@ class WorkspaceServiceTest {
 
     @Test
     @DisplayName("워크스페이스 생성 실패 테스트 - 중복된 URL")
-    void createWorkspace_Fail_DuplicateUrl() {
+    void createWorkspace_Fail_DuplicateUrl_Test() {
         // given
         // 1. 유효한 사용자 ID 설정
         Integer userId = 1;
