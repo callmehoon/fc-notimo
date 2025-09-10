@@ -387,7 +387,7 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 삭제 성공 테스트")
-    void deleteWorkspace_Success() throws Exception {
+    void deleteWorkspace_Success_Test() throws Exception {
         // given
         // 1. 삭제 대상이 될 워크스페이스를 DB에 미리 저장합니다.
         //    이 워크스페이스의 소유자는 @BeforeEach에서 생성된 testUser (ID=1) 입니다.
@@ -421,7 +421,7 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 삭제 실패 테스트 - 권한 없음")
-    void deleteWorkspace_Fail_Unauthorized() throws Exception {
+    void deleteWorkspace_Fail_Unauthorized_Test() throws Exception {
         // given
         // 1. 다른 사용자(anotherUser) 소유의 워크스페이스를 DB에 저장합니다.
         //    현재 요청을 보내는 사용자는 testUser(ID=1)이므로, 이 워크스페이스에 대한 삭제 권한이 없습니다.

@@ -472,7 +472,7 @@ class WorkspaceServiceTest {
 
     @Test
     @DisplayName("워크스페이스 삭제 성공 테스트")
-    void deleteWorkspace_Success() {
+    void deleteWorkspace_Success_Test() {
         // given
         // 1. 테스트에 사용할 userId와 workspaceId를 준비합니다.
         Integer userId = 1;
@@ -520,7 +520,7 @@ class WorkspaceServiceTest {
 
     @Test
     @DisplayName("워크스페이스 삭제 실패 테스트 - 존재하지 않거나 권한이 없는 워크스페이스")
-    void deleteWorkspace_Fail_NotFoundOrUnauthorized() {
+    void deleteWorkspace_Fail_NotFoundOrUnauthorized_Test() {
         // given
         // 1. 테스트에 사용할 ID들을 준비합니다.
         Integer userId = 1;
