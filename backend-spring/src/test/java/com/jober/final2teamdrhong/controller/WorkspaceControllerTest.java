@@ -74,7 +74,7 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 생성 성공 테스트")
-    void createWorkspace_Success() throws Exception {
+    void createWorkspace_Success_Test() throws Exception {
         // given (테스트 준비)
         WorkspaceRequest.CreateDTO createDTO = WorkspaceRequest.CreateDTO.builder()
                 .workspaceName("성공 테스트 워크스페이스")
@@ -110,7 +110,7 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 생성 실패 테스트 - 필수 필드 누락")
-    void createWorkspace_Fail_Validation() throws Exception {
+    void createWorkspace_Fail_Validation_Test() throws Exception {
         // given (테스트 준비)
         WorkspaceRequest.CreateDTO createDTO = WorkspaceRequest.CreateDTO.builder()
                 .workspaceName("") // workspaceName을 @NotBlank 위반으로 빈 값으로 설정
@@ -141,7 +141,7 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 목록 조회 성공 테스트")
-    void readWorkspaces_Success() throws Exception {
+    void readWorkspaces_Success_Test() throws Exception {
         // given
         // 1. @BeforeEach에서 생성된 testUser의 소유로 워크스페이스 2개를 DB에 미리 저장합니다.
         Workspace testWorkspace1 = Workspace.builder()
@@ -200,13 +200,13 @@ class WorkspaceControllerTest {
     */
     @Test
     @DisplayName("워크스페이스 목록 조회 실패 테스트 - 존재하지 않는 사용자")
-    void readWorkspaces_Fail_UserNotFound() {
+    void readWorkspaces_Fail_UserNotFound_Test() {
 
     }
 
     @Test
     @DisplayName("워크스페이스 상세 조회 성공 테스트")
-    void readWorkspaceDetail_Success() throws Exception {
+    void readWorkspaceDetail_Success_Test() throws Exception {
         // given
         // 테스트용 워크스페이스를 생성하고, testUser를 주인으로 설정한 뒤 DB에 저장합니다.
         Workspace testWorkspace1 = Workspace.builder()
@@ -235,7 +235,7 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 상세 조회 실패 테스트 - 권한 없음")
-    void readWorkspaceDetail_Fail_Unauthorized() throws Exception {
+    void readWorkspaceDetail_Fail_Unauthorized_Test() throws Exception {
         // given
         // 내가 아닌 다른 사용자(anotherUser) 소유의 워크스페이스를 DB에 저장합니다.
         Workspace othersWorkspace = Workspace.builder()

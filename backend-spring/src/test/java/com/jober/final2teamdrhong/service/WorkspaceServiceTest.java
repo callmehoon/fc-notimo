@@ -35,7 +35,7 @@ class WorkspaceServiceTest {
 
     @Test
     @DisplayName("워크스페이스 생성 성공 테스트")
-    void createWorkspace_Success() {
+    void createWorkspace_Success_Test() {
         // given
         Integer userId = 1;
         // 1. 워크스페이스 생성 요청 DTO 생성
@@ -82,7 +82,7 @@ class WorkspaceServiceTest {
 
     @Test
     @DisplayName("워크스페이스 생성 실패 테스트 - 존재하지 않는 사용자")
-    void createWorkspace_Fail_UserNotFound() {
+    void createWorkspace_Fail_UserNotFound_Test() {
         // given
         // 1. 존재하지 않는 사용자 ID 설정
         Integer userId = 999;
@@ -112,7 +112,7 @@ class WorkspaceServiceTest {
 
     @Test
     @DisplayName("워크스페이스 생성 실패 테스트 - 중복된 URL")
-    void createWorkspace_Fail_DuplicateUrl() {
+    void createWorkspace_Fail_DuplicateUrl_Test() {
         // given
         // 1. 유효한 사용자 ID 설정
         Integer userId = 1;
@@ -148,7 +148,7 @@ class WorkspaceServiceTest {
 
     @Test
     @DisplayName("워크스페이스 목록 조회 성공 테스트")
-    void readWorkspaces_Success() {
+    void readWorkspaces_Success_Test() {
         // given
         // 1. 서비스 메소드에 넘겨줄 userId를 준비합니다.
         Integer userId = 1;
@@ -198,7 +198,7 @@ class WorkspaceServiceTest {
 
     @Test
     @DisplayName("워크스페이스 목록 조회 실패 테스트 - 존재하지 않는 사용자")
-    void readWorkspaces_Fail_UserNotFound() {
+    void readWorkspaces_Fail_UserNotFound_Test() {
         // given
         // 1. 존재하지 않는 사용자 ID를 준비합니다.
         Integer nonExistingUserId = 999;
@@ -222,7 +222,7 @@ class WorkspaceServiceTest {
 
     @Test
     @DisplayName("워크스페이스 상세 조회 성공 테스트")
-    void readWorkspaceDetail_Success() {
+    void readWorkspaceDetail_Success_Test() {
         // given
         // 1. 테스트에 사용할 userId와 workspaceId를 준비합니다.
         Integer userId = 1;
@@ -284,7 +284,7 @@ class WorkspaceServiceTest {
 
     @Test
     @DisplayName("워크스페이스 상세 조회 실패 테스트 - 존재하지 않거나 권한이 없는 워크스페이스")
-    void readWorkspaceDetail_Fail_NotFound() {
+    void readWorkspaceDetail_Fail_NotFound_Test() {
         // given
         // 1. 테스트에 사용할 userId와, 존재하지 않거나 권한이 없는 workspaceId를 준비합니다.
         Integer userId = 1;
