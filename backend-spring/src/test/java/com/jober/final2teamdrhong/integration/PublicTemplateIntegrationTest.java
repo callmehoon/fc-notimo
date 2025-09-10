@@ -15,7 +15,11 @@ import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
 import java.time.LocalDateTime;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+import com.jober.final2teamdrhong.entity.IndividualTemplate;
+import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
@@ -26,10 +30,14 @@ class PublicTemplateIntegrationTest {
     @Autowired
     private PublicTemplateRepository repository;
 
+    @Autowired
+    private IndividualTemplateRepository individualTemplateRepository;
+
     @BeforeEach
     void setUp() {
         // 매 테스트마다 DB 초기화
         repository.deleteAll();
+        individualTemplateRepository.deleteAll();
 
         // 정렬 테스트를 위한 다양한 데이터 생성
         PublicTemplate t1 = PublicTemplate.builder()
@@ -276,5 +284,47 @@ class PublicTemplateIntegrationTest {
                 .andExpect(jsonPath("$.totalPages").value(2))
                 .andExpect(jsonPath("$.number").value(1))
                 .andExpect(jsonPath("$.size").value(2));
+    }
+
+    @Test
+    @DisplayName("공용 템플릿 생성 성공 - 개인 템플릿에서 복사")
+    void testCreatePublicTemplate_Success() throws Exception {
+        // given: 개인 템플릿 생성
+        IndividualTemplate it = IndividualTemplate.builder()
+                .workspaceId(null)
+                .individualTemplateTitle("원본 제목")
+                .individualTemplateContent("원본 내용")
+                .buttonTitle("원본 버튼")
+                .build();
+        it = individualTemplateRepository.save(it);
+
+        // when & then
+        mockMvc.perform(post("/public-templates")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"individualTemplateId\": " + it.getIndividualTemplateId() + "}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.publicTemplateTitle").value("원본 제목"))
+                .andExpect(jsonPath("$.publicTemplateContent").value("원본 내용"))
+                .andExpect(jsonPath("$.buttonTitle").value("원본 버튼"));
+    }
+
+    @Test
+    @DisplayName("공용 템플릿 생성 실패 - 존재하지 않는 개인 템플릿 404")
+    void testCreatePublicTemplate_NotFound() throws Exception {
+        mockMvc.perform(post("/public-templates")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"individualTemplateId\": 999999}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    @DisplayName("공용 템플릿 생성 실패 - 유효성 검증 400")
+    void testCreatePublicTemplate_ValidationError() throws Exception {
+        mockMvc.perform(post("/public-templates")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").exists());
     }
 }
