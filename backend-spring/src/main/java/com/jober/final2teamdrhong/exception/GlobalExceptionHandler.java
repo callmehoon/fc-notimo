@@ -10,6 +10,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import jakarta.persistence.EntityNotFoundException;
+
 /**
  * 컨트롤러 전역에서 발생한 예외를 표준화된 오류 응답으로 변환하는 핸들러.
  * 인증/인가 실패, 데이터베이스 접근 오류, 미처리 예외를 {@link ErrorResponse}로 매핑하고
@@ -78,6 +80,20 @@ public class GlobalExceptionHandler {
         ErrorResponse response = new ErrorResponse("서비스를 일시적으로 이용할 수 없습니다. 잠시 후 다시 시도해주세요.");
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
+    /**
+     * 요청한 리소스를 찾지 못했을 때의 예외를 처리한다.
+     *
+     * @param ex 엔티티 조회 실패 예외
+     * @return 404 Not Found와 함께 안내 메시지를 담은 {@link ErrorResponse}
+     */
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleEntityNotFoundException(EntityNotFoundException ex) {
+        log.warn("리소스를 찾을 수 없음: {}", ex.getMessage());
+        ErrorResponse response = new ErrorResponse("요청하신 리소스를 찾을 수 없습니다.");
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
     /**
