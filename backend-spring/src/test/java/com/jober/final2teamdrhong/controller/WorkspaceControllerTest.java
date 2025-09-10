@@ -74,7 +74,7 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 생성 성공 테스트")
-    void createWorkspace_Success() throws Exception {
+    void createWorkspace_Success_Test() throws Exception {
         // given (테스트 준비)
         WorkspaceRequest.CreateDTO createDTO = WorkspaceRequest.CreateDTO.builder()
                 .workspaceName("성공 테스트 워크스페이스")
@@ -112,7 +112,7 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 생성 실패 테스트 - 필수 필드 누락")
-    void createWorkspace_Fail_Validation() throws Exception {
+    void createWorkspace_Fail_Validation_Test() throws Exception {
         // given (테스트 준비)
         WorkspaceRequest.CreateDTO createDTO = WorkspaceRequest.CreateDTO.builder()
                 .workspaceName("") // workspaceName을 @NotBlank 위반으로 빈 값으로 설정
@@ -138,7 +138,7 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 목록 조회 성공 테스트")
-    void readWorkspaces_Success() throws Exception {
+    void readWorkspaces_Success_Test() throws Exception {
         // given
         // 1. @BeforeEach에서 생성된 testUser의 소유로 워크스페이스 2개를 DB에 미리 저장합니다.
         workspaceRepository.save(Workspace.builder()
@@ -197,13 +197,13 @@ class WorkspaceControllerTest {
     */
     @Test
     @DisplayName("워크스페이스 목록 조회 실패 테스트 - 존재하지 않는 사용자")
-    void readWorkspaces_Fail_UserNotFound() {
+    void readWorkspaces_Fail_UserNotFound_Test() {
 
     }
 
     @Test
     @DisplayName("워크스페이스 상세 조회 성공 테스트")
-    void readWorkspaceDetail_Success() throws Exception {
+    void readWorkspaceDetail_Success_Test() throws Exception {
         // given
         // 테스트용 워크스페이스를 생성하고, testUser를 주인으로 설정한 뒤 DB에 저장합니다.
         Workspace testWorkspace1 = Workspace.builder()
@@ -232,7 +232,7 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 상세 조회 실패 테스트 - 권한 없음")
-    void readWorkspaceDetail_Fail_Unauthorized() throws Exception {
+    void readWorkspaceDetail_Fail_Unauthorized_Test() throws Exception {
         // given
         // 내가 아닌 다른 사용자(anotherUser) 소유의 워크스페이스를 DB에 저장합니다.
         Workspace othersWorkspace = Workspace.builder()
@@ -258,7 +258,7 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 수정 성공 테스트")
-    void updateWorkspace_Success() throws Exception {
+    void updateWorkspace_Success_Test() throws Exception {
         // given
         // 1. 수정 대상이 될 원본 워크스페이스를 DB에 미리 저장합니다.
         //    이 워크스페이스의 소유자는 @BeforeEach에서 생성된 testUser (ID=1) 입니다.
@@ -307,7 +307,7 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 수정 실패 테스트 - 권한 없음")
-    void updateWorkspace_Fail_Unauthorized() throws Exception {
+    void updateWorkspace_Fail_Unauthorized_Test() throws Exception {
         // given
         // 1. 다른 사용자(anotherUser) 소유의 워크스페이스를 DB에 저장합니다.
         Workspace othersWorkspace = Workspace.builder()
@@ -347,7 +347,7 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 수정 실패 테스트 - 필수 필드 누락")
-    void updateWorkspace_Fail_Validation() throws Exception {
+    void updateWorkspace_Fail_Validation_Test() throws Exception {
         // given
         // 1. 수정 대상 워크스페이스를 하나 생성합니다.
         Workspace targetWorkspace = Workspace.builder()
@@ -387,7 +387,7 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 삭제 성공 테스트")
-    void deleteWorkspace_Success() throws Exception {
+    void deleteWorkspace_Success_Test() throws Exception {
         // given
         // 1. 삭제 대상이 될 워크스페이스를 DB에 미리 저장합니다.
         //    이 워크스페이스의 소유자는 @BeforeEach에서 생성된 testUser (ID=1) 입니다.
@@ -421,7 +421,7 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 삭제 실패 테스트 - 권한 없음")
-    void deleteWorkspace_Fail_Unauthorized() throws Exception {
+    void deleteWorkspace_Fail_Unauthorized_Test() throws Exception {
         // given
         // 1. 다른 사용자(anotherUser) 소유의 워크스페이스를 DB에 저장합니다.
         //    현재 요청을 보내는 사용자는 testUser(ID=1)이므로, 이 워크스페이스에 대한 삭제 권한이 없습니다.
