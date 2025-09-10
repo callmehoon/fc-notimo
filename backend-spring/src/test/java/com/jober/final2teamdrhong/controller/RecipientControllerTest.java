@@ -124,7 +124,7 @@ class RecipientControllerTest {
     }
 
     @Test
-    @DisplayName("수신자 생성 실패 테스트 - 유효성 검사 실패 (이름 누락)")
+    @DisplayName("수신자 생성 실패 테스트 - 필수 필드 누락")
     void createRecipient_Fail_Validation_Test() throws Exception {
         // given
         // 1. DTO의 @NotBlank 제약조건을 위반하는, 비어있는 recipientName을 가진 DTO를 준비합니다.
@@ -151,7 +151,7 @@ class RecipientControllerTest {
     }
 
     @Test
-    @DisplayName("수신자 생성 실패 테스트 - 권한 없는 워크스페이스")
+    @DisplayName("수신자 생성 실패 테스트 - 권한 없음")
     void createRecipient_Fail_UnauthorizedWorkspace_Test() throws Exception {
         // given
         // 1. 존재하지 않거나 내 소유가 아닌 워크스페이스 ID를 임의로 준비합니다.
