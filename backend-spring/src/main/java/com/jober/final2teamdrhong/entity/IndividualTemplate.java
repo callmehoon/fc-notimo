@@ -14,6 +14,9 @@ import java.util.List;
 @NoArgsConstructor(access = AccessLevel.PROTECTED) // 기본 생성자를 생성
 
 public class IndividualTemplate {
+    public enum Status {
+        DRAFT, PENDING, APPROVED, REJECTED
+    }
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "individual_template_id")
@@ -41,6 +44,11 @@ public class IndividualTemplate {
 
     @Column(name = "deleted_at", columnDefinition = "DATETIME")
     private LocalDateTime deletedAt;
+
+    @Column(name = "status", nullable = false)
+    @Enumerated(EnumType.STRING)
+    private TemplateModifiedHistory.Status status = TemplateModifiedHistory.Status.DRAFT;
+
 
     @ManyToOne
     @JoinColumn(name = "workspace_id")
