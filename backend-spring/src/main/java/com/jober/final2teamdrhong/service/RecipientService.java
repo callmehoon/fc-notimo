@@ -28,8 +28,7 @@ public class RecipientService {
      * @param workspaceId 수신자를 추가할 워크스페이스의 ID
      * @param userId      요청을 보낸 사용자의 ID (인가에 사용)
      * @return 생성된 수신자의 정보({@link RecipientResponse.SimpleDTO})
-     * @throws IllegalArgumentException 해당 워크스페이스가 존재하지 않거나, 사용자가 접근 권한이 없을
-    경우 발생
+     * @throws IllegalArgumentException 해당 워크스페이스가 존재하지 않거나, 사용자가 접근 권한이 없을 경우 발생
      */
     @Transactional
     public RecipientResponse.SimpleDTO createRecipient(RecipientRequest.CreateDTO createDTO, Integer workspaceId, Integer userId) {
