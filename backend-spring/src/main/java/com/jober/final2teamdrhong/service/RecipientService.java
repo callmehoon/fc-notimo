@@ -12,6 +12,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 /**
  * 수신자(Recipient) 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
  */
@@ -71,5 +73,44 @@ public class RecipientService {
         Page<Recipient> recipientPage = recipientRepository.findAllByWorkspace_WorkspaceId(workspaceId, pageable);
 
         return recipientPage.map(RecipientResponse.SimpleDTO::new);
+    }
+
+    /**
+     * 특정 수신자의 정보를 수정합니다.
+     * <p>
+     * 이 메소드는 다음의 순서로 동작합니다:
+     * <ol>
+     *     <li>요청한 사용자가 대상 워크스페이스에 대한 접근 권한이 있는지 확인합니다.</li>
+     *     <li>수정하려는 수신자가 해당 워크스페이스에 실제로 속해 있는지 검증합니다.</li>
+     *     <li>검증이 완료되면, DTO로부터 받은 새로운 정보로 수신자 엔티티의 상태를 변경합니다.</li>
+     * </ol>
+     * 메소드에 {@link Transactional} 어노테이션이 적용되어 있어,
+     * 메소드 종료 시 변경된 엔티티 정보(Dirty Checking)가 데이터베이스에 자동으로 반영됩니다.
+     *
+     * @param updateDTO   수신자 수정을 위한 새로운 데이터
+     * @param workspaceId 수정할 수신자가 속한 워크스페이스의 ID
+     * @param recipientId 수정할 수신자의 ID
+     * @param userId      요청을 보낸 사용자의 ID (인가에 사용)
+     * @return 수정된 수신자의 정보가 담긴 {@link RecipientResponse.SimpleDTO}
+     * @throws IllegalArgumentException 워크스페이스나 수신자를 찾을 수 없거나, 사용자가 접근 권한이 없을 경우 발생
+     */
+    @Transactional
+    public RecipientResponse.SimpleDTO updateRecipient(RecipientRequest.UpdateDTO updateDTO,
+                                                       Integer workspaceId, Integer recipientId, Integer userId) {
+        // 1. 워크스페이스 접근 권한 확인
+        workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId)
+                .orElseThrow(() -> new IllegalArgumentException("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + workspaceId));
+
+        // 2. 수신자 조회 (워크스페이스 소속인지 함께 검증)
+        Recipient existingRecipient = recipientRepository.findByRecipientIdAndWorkspace_WorkspaceId(recipientId, workspaceId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 워크스페이스에 존재하지 않는 수신자입니다. ID: " + recipientId));
+
+        // 3. 정보 업데이트
+        existingRecipient.setRecipientName(updateDTO.getNewRecipientName());
+        existingRecipient.setRecipientPhoneNumber(updateDTO.getNewRecipientPhoneNumber());
+        existingRecipient.setRecipientMemo(updateDTO.getNewRecipientMemo());
+        existingRecipient.setUpdatedAt(LocalDateTime.now());
+
+        return new RecipientResponse.SimpleDTO(existingRecipient);
     }
 }
