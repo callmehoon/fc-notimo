@@ -1,4 +1,4 @@
-from ..main import models
+from ..core.model_loader import models
 from ..schemas.validate import ValidateRequest, ValidateResponse
 
 def cls_template(request: ValidateRequest) -> ValidateResponse:
