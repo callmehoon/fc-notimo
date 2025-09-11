@@ -25,6 +25,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.hamcrest.Matchers.*;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -289,7 +290,7 @@ class RecipientControllerTest {
                 // 1-4. 응답 JSON의 recipientPhoneNumber가 수정한 값으로 변경되었는지 확인합니다.
                 .andExpect(jsonPath("$.recipientPhoneNumber").value("010-9999-8888"))
                 // 1-5. 응답 JSON의 updatedAt 값이 원본 값과 다른지 (즉, 갱신되었는지) 확인합니다.
-                .andExpect(jsonPath("$.updatedAt").value(org.hamcrest.Matchers.not(originalUpdatedAt)));
+                .andExpect(jsonPath("$.updatedAt").value(not(originalUpdatedAt)));
     }
 
     @Test
