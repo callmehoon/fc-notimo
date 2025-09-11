@@ -5,6 +5,7 @@ import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.WorkspaceRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -20,6 +21,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -491,5 +494,66 @@ class IndividualTemplateServiceTest {
         when(mockEntity.getUpdatedAt()).thenReturn(dateTime);
         when(mockEntity.isDeleted()).thenReturn(isDeleted);
         return mockEntity;
+    }
+
+    // SoftDelete
+    @Nested
+    @DisplayName("deleteTemplate")
+    class DeleteTemplate {
+
+        @Test
+        @DisplayName("updated=1 이면 정상 완료 (예외 없음)")
+        void deleteTemplate_updated1_ok() {
+            // given
+            Integer id = 10;
+            when(individualTemplateRepo.softDeleteByIndividualTemplateId(id)).thenReturn(1);
+
+            // when & then
+            assertDoesNotThrow(() -> service.deleteTemplate(id));
+
+            // verify
+            verify(individualTemplateRepo).softDeleteByIndividualTemplateId(id);
+            // updated=1 이면 existsById는 호출되지 않음(현재 로직 기준)
+            verify(individualTemplateRepo, never()).existsById(anyInt());
+            verifyNoMoreInteractions(individualTemplateRepo);
+        }
+
+        @Test
+        @DisplayName("updated=0 & existsById=true 이면 이미 삭제된 상태로 간주 (예외 없음)")
+        void deleteTemplate_updated0_exists_true_ok() {
+            // given
+            Integer id = 11;
+            when(individualTemplateRepo.softDeleteByIndividualTemplateId(id)).thenReturn(0);
+            when(individualTemplateRepo.existsById(id)).thenReturn(true);
+
+            // when & then
+            assertDoesNotThrow(() -> service.deleteTemplate(id));
+
+            // verify 호출 순서까지 체크 (선택)
+            InOrder inOrder = inOrder(individualTemplateRepo);
+            inOrder.verify(individualTemplateRepo).softDeleteByIndividualTemplateId(id);
+            inOrder.verify(individualTemplateRepo).existsById(id);
+
+            verifyNoMoreInteractions(individualTemplateRepo);
+        }
+
+        @Test
+        @DisplayName("updated=0 & existsById=false 이면 404(EntityNotFoundException) 발생")
+        void deleteTemplate_updated0_exists_false_throw404() {
+            // given
+            Integer id = 999;
+            when(individualTemplateRepo.softDeleteByIndividualTemplateId(id)).thenReturn(0);
+            when(individualTemplateRepo.existsById(id)).thenReturn(false);
+
+            // when & then
+            assertThrows(EntityNotFoundException.class, () -> service.deleteTemplate(id));
+
+            // verify
+            InOrder inOrder = inOrder(individualTemplateRepo);
+            inOrder.verify(individualTemplateRepo).softDeleteByIndividualTemplateId(id);
+            inOrder.verify(individualTemplateRepo).existsById(id);
+
+            verifyNoMoreInteractions(individualTemplateRepo);
+        }
     }
 }

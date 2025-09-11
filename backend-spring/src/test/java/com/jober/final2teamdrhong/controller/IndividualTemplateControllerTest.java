@@ -4,6 +4,8 @@ import com.jober.final2teamdrhong.config.ExTestSecurityConfig;
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateResponse;
 import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import com.jober.final2teamdrhong.service.IndividualTemplateService;
+import jakarta.persistence.EntityNotFoundException;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -12,11 +14,16 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import static org.mockito.Mockito.doThrow;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -28,11 +35,10 @@ import java.util.concurrent.CompletableFuture;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 @WebMvcTest(controllers = IndividualTemplateController.class)
-@Import(ExTestSecurityConfig.class) // 테스트용 시큐리티: permitAll / CSRF off
+@Import({IndividualTemplateControllerTest.TestExceptionHandler.class,
+        ExTestSecurityConfig.class}) // 테스트용 시큐리티: permitAll / CSRF off
 class IndividualTemplateControllerTest {
 
     @Autowired
@@ -305,5 +311,47 @@ class IndividualTemplateControllerTest {
                 .andExpect(jsonPath("$.workspaceId").value(4));
 
         verify(individualTemplateService).getIndividualTemplateAsync(4, 44);
+    }
+
+    // ----------------------
+    // DELETE : 단일 템플릿 삭제
+    // ----------------------
+    @RestControllerAdvice
+    static class TestExceptionHandler {
+        @ExceptionHandler(EntityNotFoundException.class)
+        public ResponseEntity<Void> handleNotFound(EntityNotFoundException e) {
+            return ResponseEntity.notFound().build(); // 404
+        }
+    }
+
+    @Test
+    @DisplayName("DELETE /{workspaceId}/templates/{individualTemplateId} -> 204 No Content")
+    void deleteTemplate_success_returns204() throws Exception {
+        Integer workspaceId = 1;
+        Integer individualTemplateId = 10;
+
+        mvc.perform(delete("/{workspaceId}/templates/{individualTemplateId}",
+                workspaceId, individualTemplateId))
+                .andExpect(status().isNoContent());
+
+        // 서비스가 올바른 ID로 호출되었는지 검증
+        verify(individualTemplateService).deleteTemplate(individualTemplateId);
+    }
+
+    @Test
+    @DisplayName("없는 템플릿 삭제 시 404 Not Found")
+    void deleteTemplate_notFound_returns404() throws Exception {
+        Integer workspaceId = 1;
+        Integer missingId = 999;
+
+        doThrow(new EntityNotFoundException("not found"))
+                .when(individualTemplateService).deleteTemplate(missingId);
+
+        // when & then
+        mvc.perform(delete("/{workspaceId}/templates/{individualTemplateId}",
+                        workspaceId, missingId))
+                .andExpect(status().isNotFound());
+
+        verify(individualTemplateService).deleteTemplate(missingId);
     }
 }

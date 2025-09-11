@@ -198,6 +198,7 @@ public class IndividualTemplateService {
         int updated = individualTemplateRepo.softDeleteByIndividualTemplateId(individualTemplateId);
         if(updated == 1){
             log.info("Soft.deleted template id = {}", individualTemplateId);
+            return;
         }
 
         // updated == 0 인 경우 (isDeleted != false 인 경우)만 해당 부분으로 옴. 존재 x 또는 이미 삭제됨.
