@@ -134,4 +134,38 @@ public class RecipientController {
 
         return ResponseEntity.status(HttpStatus.OK).body(updatedRecipient);
     }
+
+    /**
+     * 특정 워크스페이스에 속한 수신자를 삭제하는 API (소프트 딜리트)
+     * <p>
+     * 요청한 사용자가 해당 워크스페이스에 대한 접근 권한이 있는지 확인 후,
+     * URL 경로의 recipientId에 해당하는 수신자의 is_deleted 플래그를 true로 변경합니다.
+     *
+     * @param workspaceId 삭제할 수신자가 속한 워크스페이스의 ID
+     * @param recipientId 삭제할 수신자의 ID
+     * @return 상태 코드 200 (OK)와 함께 삭제 처리된 수신자의 정보를 담은 ResponseEntity
+     */
+    @Operation(summary = "수신자 삭제", description = "특정 워크스페이스에 속한 수신자를 삭제합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "수신자 삭제 성공",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = RecipientResponse.SimpleDTO.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청: 존재하지 않거나 권한 없는 워크스페이스, " +
+                    "또는 해당 워크스페이스에 속하지 않는 수신자에 접근 시 발생",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "인증 실패 (로그인 필요)",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @DeleteMapping("/{recipientId}")
+    public ResponseEntity<RecipientResponse.SimpleDTO> deleteRecipient(@PathVariable Integer workspaceId,
+                                                                       @PathVariable Integer recipientId) {
+        // TODO: Spring Security 도입 후, @AuthenticationPrincipal 등을 통해 실제 사용자 정보 획득 필요
+        Integer currentUserId = 1;
+        RecipientResponse.SimpleDTO deletedRecipient = recipientService.deleteRecipient(workspaceId, recipientId, currentUserId);
+
+        return ResponseEntity.ok(deletedRecipient);
+    }
 }
