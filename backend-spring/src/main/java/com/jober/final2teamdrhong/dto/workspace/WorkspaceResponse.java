@@ -2,6 +2,7 @@ package com.jober.final2teamdrhong.dto.workspace;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.jober.final2teamdrhong.entity.Workspace;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
@@ -15,6 +16,7 @@ public class WorkspaceResponse {
      * 워크스페이스 목록의 각 아이템 응답을 위한 DTO
      */
     @Getter
+    @Schema(name = "WorkspaceSimpleDTO")
     public static class SimpleDTO {
         private final Integer workspaceId;
         private final String workspaceName;
@@ -45,6 +47,7 @@ public class WorkspaceResponse {
      * 워크스페이스 상세 정보 응답을 위한 DTO
      */
     @Getter
+    @Schema(name = "WorkspaceDetailDTO")
     public static class DetailDTO {
         private final Integer workspaceId;
         private final String workspaceName;
