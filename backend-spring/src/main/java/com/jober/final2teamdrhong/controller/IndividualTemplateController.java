@@ -224,4 +224,21 @@ public class IndividualTemplateController {
 
         return ResponseEntity.status(200).body(response);
     }
+
+    // 템플릿 삭제 (Soft Delete)
+    @Operation(
+            summary = "개인 템플릿 삭제"
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "템플릿 삭제 성공"),
+            @ApiResponse(responseCode = "404", description = "해당 ID의 템플릿을 찾을 수 없습니다.")
+    })
+    @DeleteMapping("{workspaceId}/templates/{individualTemplateId}")
+    public ResponseEntity<Void> deleteTemplate(
+            @Parameter(description = "워크스페이스 ID", required = true, example = "1")
+            @PathVariable("individualTemplateId") Integer individualTemplateId
+    ) {
+        individualTemplateService.deleteTemplate(individualTemplateId);
+        return ResponseEntity.noContent().build();
+    }
 }
