@@ -6,12 +6,20 @@ plugins {
 
 sourceSets {
     main {
-        java { srcDirs = ['backend-spring/src/main/java'] }
-        resources { srcDirs = ['backend-spring/src/main/resources'] }
+        java {
+            srcDirs = ['backend-spring/src/main/java']
+        }
+        resources {
+            srcDirs = ['backend-spring/src/main/resources']
+        }
     }
     test {
-        java { srcDirs = ['backend-spring/src/test/java'] }
-        resources { srcDirs = ['backend-spring/src/test/resources'] }
+        java {
+            srcDirs = ['backend-spring/src/test/java']
+        }
+        resources {
+            srcDirs = ['backend-spring/src/test/resources']
+        }
     }
 }
 
@@ -36,6 +44,7 @@ repositories {
 }
 
 dependencies {
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.12'
     implementation 'org.springframework.boot:spring-boot-starter'
     implementation 'org.springframework.session:spring-session-jdbc'
     implementation 'org.springframework.boot:spring-boot-starter-security'
@@ -46,7 +55,10 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-mail'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-    implementation 'io.github.cdimascio:java-dotenv:5.2.2'
+    implementation 'com.bucket4j:bucket4j-core:8.10.1'
+    implementation 'com.bucket4j:bucket4j-redis:8.10.1'
+    // lettuce-core 버전을 Spring Boot가 관리하도록 제거 (Spring Boot 3.5.5는 6.4.x를 사용)
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0'
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
@@ -55,23 +67,11 @@ dependencies {
     testImplementation 'io.projectreactor:reactor-test'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'com.h2database:h2'
     runtimeOnly 'com.mysql:mysql-connector-j'
     runtimeOnly 'com.h2database:h2'
-    runtimeOnly 'org.springframework.boot:spring-boot-docker-compose'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-    testRuntimeOnly 'com.h2database:h2'
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
 }
 
 tasks.named('test') {
     useJUnitPlatform()
-
-    // 테스트용 최소 JVM 설정 (Java 21 + Mockito 호환성)
-    jvmArgs = [
-            '--add-opens=java.base/java.lang=ALL-UNNAMED',
-            '-Djdk.attach.allowAttachSelf=true'
-    ]
-
-    systemProperty 'spring.profiles.active', 'test'
 }
