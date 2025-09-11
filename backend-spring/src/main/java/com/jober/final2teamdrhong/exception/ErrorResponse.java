@@ -13,6 +13,9 @@ public class ErrorResponse {
     @Schema(description = "오류 메시지", example = "서비스를 일시적으로 이용할 수 없습니다. 잠시 후 다시 시도해주세요.")
     private final String message;
 
+    // Rate Limiting 전용 필드 (선택적으로 포함)
+    private final Long retryAfterSeconds;
+
     /**
      * 오류 응답 객체를 생성한다.
      *
@@ -20,5 +23,12 @@ public class ErrorResponse {
      */
     public ErrorResponse(String message) {
         this.message = message;
+        this.retryAfterSeconds = null;
+    }
+
+    // Rate Limiting 에러 응답용 생성자 (retryAfterSeconds 포함)
+    public ErrorResponse(String message, Long retryAfterSeconds) {
+        this.message = message;
+        this.retryAfterSeconds = retryAfterSeconds;
     }
 }
