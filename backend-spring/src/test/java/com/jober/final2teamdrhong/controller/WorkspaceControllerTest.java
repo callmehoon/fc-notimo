@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -274,6 +275,8 @@ class WorkspaceControllerTest {
                 .user(testUser)
                 .build();
         workspaceRepository.save(originalWorkspace);
+        // 1-1. 수정 전의 updatedAt 값을 저장해둡니다.
+        String originalUpdatedAt = originalWorkspace.getUpdatedAt().toString();
 
         // 2. API 요청 본문(Body)에 담아 보낼 수정 데이터를 DTO 객체로 준비합니다.
         WorkspaceRequest.UpdateDTO updateDTO = WorkspaceRequest.UpdateDTO.builder()
@@ -313,7 +316,7 @@ class WorkspaceControllerTest {
                 .andExpect(jsonPath("$.workspaceName").value("수정된 워크스페이스"))
                 .andExpect(jsonPath("$.workspaceUrl").value("updated-unique-url"))
                 .andExpect(jsonPath("$.companyName").value("수정된 회사"))
-                .andExpect(jsonPath("$.updatedAt").exists())
+                .andExpect(jsonPath("$.updatedAt").value(not(originalUpdatedAt)))
                 .andExpect(jsonPath("$.deletedAt").isEmpty());
     }
 
