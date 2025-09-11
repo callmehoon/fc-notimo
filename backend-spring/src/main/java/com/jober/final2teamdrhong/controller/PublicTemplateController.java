@@ -41,7 +41,6 @@ public class PublicTemplateController {
      *                - 허용 정렬방향: ASC, DESC
      * @return 페이징된 공용 템플릿 응답 객체
      */
-    @GetMapping("/public-templates")
     @Operation(
         summary = "공용 템플릿 목록 조회",
         description = "삭제되지 않은 공용 템플릿 목록을 페이징하여 조회합니다. " +
@@ -88,6 +87,7 @@ public class PublicTemplateController {
             )
         )
     })
+    @GetMapping("/public-templates")
     public Page<PublicTemplateResponse> getPublicTemplates(
         @ParameterObject @Valid PublicTemplatePageableRequest request
     ) {
@@ -103,7 +103,6 @@ public class PublicTemplateController {
      * @return 생성된 공용 템플릿 정보 {@link PublicTemplateResponse}
      * @throws EntityNotFoundException 요청한 개인 템플릿이 존재하지 않을 경우
      */
-    @PostMapping("/public-templates")
     @Operation(
         summary = "공용 템플릿 생성",
         description = "사용자의 개인 템플릿 ID를 기반으로 새로운 공용 템플릿을 생성합니다. " +
@@ -152,6 +151,7 @@ public class PublicTemplateController {
             )
         )
     })
+    @PostMapping("/public-templates")
     public ResponseEntity<PublicTemplateResponse> createPublicTemplate(
         @Valid @RequestBody PublicTemplateCreateRequest request
     ) {
