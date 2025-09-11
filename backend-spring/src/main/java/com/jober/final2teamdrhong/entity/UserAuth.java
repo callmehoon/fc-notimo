@@ -43,10 +43,10 @@ public class UserAuth {
     @Column(name = "is_verified", nullable = false)
     private Boolean isVerified;
 
-    @Column(name = "linked_at", nullable = false, updatable = false)
+    @Column(name = "linked_at", nullable = false, updatable = false, columnDefinition = "DATETIME")
     private LocalDateTime linkedAt;
 
-    @Column(name = "last_used_at")
+    @Column(name = "last_used_at", columnDefinition = "DATETIME")
     private LocalDateTime lastUsedAt;
 
     public enum AuthType {
@@ -61,7 +61,7 @@ public class UserAuth {
         this.socialId = socialId;
         this.passwordHash = passwordHash;
         this.isPrimary = true; // 기본값은 주 인증수단
-        this.isVerified = (authType != AuthType.LOCAL); // 소셜 인증은 바로 true
+        this.isVerified = (authType != AuthType.LOCAL); // 소셜 인증은 바로 true, 로컬은 false
         this.linkedAt = LocalDateTime.now();
     }
 
