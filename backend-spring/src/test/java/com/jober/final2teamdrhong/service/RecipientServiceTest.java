@@ -322,4 +322,98 @@ class RecipientServiceTest {
         verify(recipientRepository, never()).findByRecipientIdAndWorkspace_WorkspaceId(anyInt(),
                 anyInt());
     }
+
+    @Test
+    @DisplayName("수신자 삭제 성공 테스트")
+    void deleteRecipient_Success_Test() {
+        // given
+        // 1. 테스트에 사용할 ID들을 준비합니다.
+        Integer userId = 1;
+        Integer workspaceId = 1;
+        Integer recipientId = 1;
+
+        // 2. Mock 객체와 실제 Recipient 객체를 준비합니다.
+        Workspace mockWorkspace = mock(Workspace.class);
+        Recipient existingRecipient = Recipient.builder()
+                .recipientName("홍길동")
+                .recipientPhoneNumber("010-1111-2222")
+                .workspace(mockWorkspace)
+                .build();
+        // isDeleted와 deletedAt의 초기 상태를 명확히 설정합니다.
+        existingRecipient.setDeleted(false);
+        existingRecipient.setDeletedAt(null);
+
+        // 3. Mockito 행동 정의
+        when(workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId))
+                .thenReturn(Optional.of(mockWorkspace));
+        when(recipientRepository.findByRecipientIdAndWorkspace_WorkspaceId(recipientId, workspaceId))
+                .thenReturn(Optional.of(existingRecipient));
+
+        // when
+        // 실제 테스트 대상인 서비스 메소드를 호출합니다.
+        recipientService.deleteRecipient(workspaceId, recipientId, userId);
+
+        // then
+        // 1. (중요) 서비스 로직에 의해 existingRecipient 객체의 상태가 변경되었는지 검증합니다.
+        //    이것이 Dirty Checking으로 DB에 반영될 핵심 변경사항입니다.
+        assertTrue(existingRecipient.isDeleted());
+        assertNotNull(existingRecipient.getDeletedAt());
+
+        // 2. 각 Repository의 메소드가 정확히 1번씩 호출되었는지 검증합니다.
+        verify(workspaceRepository, times(1)).findByWorkspaceIdAndUser_UserId(workspaceId, userId);
+        verify(recipientRepository, times(1)).findByRecipientIdAndWorkspace_WorkspaceId(recipientId, workspaceId);
+    }
+
+    @Test
+    @DisplayName("수신자 삭제 실패 테스트 - 권한이 없는 워크스페이스")
+    void deleteRecipient_Fail_UnauthorizedWorkspace_Test() {
+        // given
+        // 1. 권한 없는 workspaceId를 준비합니다.
+        Integer userId = 1;
+        Integer unauthorizedWorkspaceId = 999;
+        Integer recipientId = 1;
+
+        // 2. Mockito 행동 정의: 워크스페이스 권한 검증에서 실패하도록 설정합니다.
+        when(workspaceRepository.findByWorkspaceIdAndUser_UserId(unauthorizedWorkspaceId, userId))
+                .thenReturn(Optional.empty());
+
+        // when
+        // 서비스 메소드를 호출했을 때 예외가 발생하는지 검증합니다.
+        Throwable thrown = assertThrows(IllegalArgumentException.class, () ->
+                recipientService.deleteRecipient(unauthorizedWorkspaceId, recipientId, userId));
+
+        // then
+        // 1. 발생한 예외의 메시지가 예상과 일치하는지 확인합니다.
+        assertEquals("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + unauthorizedWorkspaceId,
+                thrown.getMessage());
+
+        // 2. (중요) 권한 검증에서 실패했으므로, 수신자를 조회하는 로직은 절대 호출되면 안됩니다.
+        verify(recipientRepository, never()).findByRecipientIdAndWorkspace_WorkspaceId(anyInt(), anyInt());
+    }
+
+    @Test
+    @DisplayName("수신자 삭제 실패 테스트 - 존재하지 않는 수신자")
+    void deleteRecipient_Fail_RecipientNotFound_Test() {
+        // given
+        // 1. 존재하지 않는 recipientId를 준비합니다.
+        Integer userId = 1;
+        Integer workspaceId = 1;
+        Integer nonExistingRecipientId = 999;
+
+        // 2. Mockito 행동 정의
+        when(workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId))
+                .thenReturn(Optional.of(mock(Workspace.class)));
+        when(recipientRepository.findByRecipientIdAndWorkspace_WorkspaceId(nonExistingRecipientId, workspaceId))
+                .thenReturn(Optional.empty());
+
+        // when
+        // 서비스 메소드를 호출했을 때 예외가 발생하는지 검증합니다.
+        Throwable thrown = assertThrows(IllegalArgumentException.class, () ->
+                recipientService.deleteRecipient(workspaceId, nonExistingRecipientId, userId));
+
+        // then
+        // 1. 발생한 예외의 메시지가 예상과 일치하는지 확인합니다.
+        assertEquals("해당 워크스페이스에 존재하지 않는 수신자입니다. ID: " + nonExistingRecipientId,
+                thrown.getMessage());
+    }
 }
