@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -142,6 +143,7 @@ public class WorkspaceService {
         existingWorkspace.setRepresenterEmail(updateDTO.getNewRepresenterEmail());
         existingWorkspace.setCompanyName(updateDTO.getNewCompanyName());
         existingWorkspace.setCompanyRegisterNumber(updateDTO.getNewCompanyRegisterNumber());
+        existingWorkspace.setUpdatedAt(LocalDateTime.now());
 
         return new WorkspaceResponse.DetailDTO(existingWorkspace);
     }
