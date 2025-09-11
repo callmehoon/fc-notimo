@@ -99,4 +99,39 @@ public class RecipientController {
 
         return ResponseEntity.ok(recipientPage);
     }
+
+    /**
+     * 특정 워크스페이스에 속한 수신자 정보를 수정하는 API
+     * <p>
+     * 요청한 사용자가 해당 워크스페이스에 대한 접근 권한이 있는지 확인 후,
+     * URL 경로의 recipientId에 해당하는 수신자 정보를 요청 본문의 데이터로 업데이트합니다.
+     *
+     * @param updateDTO   수신자 수정을 위한 데이터 (JSON, @Valid로 검증됨)
+     * @param workspaceId 수정할 수신자가 속한 워크스페이스의 ID
+     * @param recipientId 수정할 수신자의 ID
+     * @return 상태 코드 200 (OK)와 함께 수정된 수신자의 정보를 담은 ResponseEntity
+     */
+    @Operation(summary = "수신자 정보 수정", description = "특정 수신자의 이름, 연락처, 메모를 수정합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "수신자 정보 수정 성공",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = RecipientResponse.SimpleDTO.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청: 요청 데이터 유효성 검사 실패 또는 존재하지 않는 리소스(워크스페이스, 수신자)",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "인증 실패 (로그인 필요)",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @PutMapping("/{recipientId}")
+    public ResponseEntity<RecipientResponse.SimpleDTO> updateRecipient(@Valid @RequestBody RecipientRequest.UpdateDTO updateDTO,
+                                                                       @PathVariable Integer workspaceId,
+                                                                       @PathVariable Integer recipientId) {
+        // TODO: Spring Security 도입 후, @AuthenticationPrincipal 등을 통해 실제 사용자 정보 획득 필요
+        Integer currentUserId = 1;
+        RecipientResponse.SimpleDTO updatedRecipient = recipientService.updateRecipient(updateDTO, workspaceId, recipientId, currentUserId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(updatedRecipient);
+    }
 }
