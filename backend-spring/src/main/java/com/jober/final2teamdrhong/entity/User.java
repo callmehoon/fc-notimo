@@ -84,11 +84,11 @@ public class User  {
 
     // 비즈니스 메서드: 정보 업데이트
     public void updateInfo(String userName, String userNumber) {
-        if (userName != null && !userName.trim().isEmpty()) {
+        if (userName != null && !userName.isEmpty()) {
             this.userName = userName;
         }
 
-        if (userNumber != null && !userNumber.trim().isEmpty()) {
+        if (userNumber != null && !userNumber.isEmpty()) {
             this.userNumber = userNumber;
         }
     }
