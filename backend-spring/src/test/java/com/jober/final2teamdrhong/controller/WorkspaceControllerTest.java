@@ -6,6 +6,7 @@ import com.jober.final2teamdrhong.entity.User;
 import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.UserRepository;
 import com.jober.final2teamdrhong.repository.WorkspaceRepository;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -46,6 +48,9 @@ class WorkspaceControllerTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private EntityManager entityManager;
 
     private User testUser;
     private User anotherUser;
@@ -418,13 +423,18 @@ class WorkspaceControllerTest {
 
         // then
         // 1. API 호출 결과를 검증합니다.
-        //    - HTTP 상태 코드가 200 OK 인지 확인합니다.
-        //    - 응답 본문이 JSON이고, 각 필드의 값이 예상과 일치하는지 확인합니다.
         resultActions
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.workspaceId").value(targetWorkspace.getWorkspaceId()))
                 .andExpect(jsonPath("$.workspaceName").value("삭제될 워크스페이스"))
                 .andExpect(jsonPath("$.deletedAt").isNotEmpty()); // deletedAt 필드가 null이 아니거나 비어있지 않은지 확인
+
+        // 2. (중요) DB에서 실제로 소프트 딜리트되었는지 확인합니다.
+        //    영속성 컨텍스트의 1차 캐시를 비워 DB에서 직접 조회하도록 강제합니다.
+        entityManager.flush();
+        entityManager.clear();
+        //    @SQLRestriction("is_deleted = false") 때문에, 삭제된 엔티티는 findById로 조회되지 않아야 합니다.
+        assertFalse(workspaceRepository.findById(targetWorkspace.getWorkspaceId()).isPresent());
     }
 
     @Test
