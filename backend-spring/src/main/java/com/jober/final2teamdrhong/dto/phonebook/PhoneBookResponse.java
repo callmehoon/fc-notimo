@@ -2,6 +2,7 @@ package com.jober.final2teamdrhong.dto.phonebook;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.jober.final2teamdrhong.entity.PhoneBook;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
@@ -15,6 +16,7 @@ public class PhoneBookResponse {
      * 주소록의 기본 정보 응답을 위한 DTO
      */
     @Getter
+    @Schema(name = "PhoneBookSimpleDTO")
     public static class SimpleDTO {
         private final Integer phoneBookId;
         private final String phoneBookName;
