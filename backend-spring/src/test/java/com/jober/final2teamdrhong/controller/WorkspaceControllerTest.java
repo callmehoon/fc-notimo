@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -93,6 +94,7 @@ class WorkspaceControllerTest {
 
         // when (테스트 실행)
         // POST /api/workspaces 로 JSON 데이터를 담아 요청을 보냄
+        // testUser의 실제 ID를 사용하기 위해 Mock 또는 다른 방법 필요
         ResultActions resultActions = mockMvc.perform(
                 post("/workspaces") // 실제 API 엔드포인트 경로
                         .contentType(MediaType.APPLICATION_JSON)
@@ -271,6 +273,8 @@ class WorkspaceControllerTest {
                 .user(testUser)
                 .build();
         workspaceRepository.save(originalWorkspace);
+        // 1-1. 수정 전의 updatedAt 값을 저장해둡니다.
+        String originalUpdatedAt = originalWorkspace.getUpdatedAt().toString();
 
         // 2. API 요청 본문(Body)에 담아 보낼 수정 데이터를 DTO 객체로 준비합니다.
         WorkspaceRequest.UpdateDTO updateDTO = WorkspaceRequest.UpdateDTO.builder()
@@ -286,6 +290,9 @@ class WorkspaceControllerTest {
 
         // when
         // 1. MockMvc를 사용하여 PUT /workspaces/{workspaceId} 엔드포인트로 API 요청을 보냅니다.
+        //    - contentType을 application/json으로 설정합니다.
+        //    - content에 위에서 만든 JSON 문자열을 담습니다.
+        //    - with(csrf())를 통해 CSRF 보호를 통과시킵니다.
         ResultActions resultActions = mockMvc.perform(
                 put("/workspaces/" + originalWorkspace.getWorkspaceId())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -301,7 +308,8 @@ class WorkspaceControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.workspaceName").value("수정된 워크스페이스"))
                 .andExpect(jsonPath("$.workspaceUrl").value("updated-unique-url"))
-                .andExpect(jsonPath("$.updatedAt").exists())
+                .andExpect(jsonPath("$.companyName").value("수정된 회사"))
+                .andExpect(jsonPath("$.updatedAt").value(not(originalUpdatedAt)))
                 .andExpect(jsonPath("$.deletedAt").isEmpty());
     }
 
