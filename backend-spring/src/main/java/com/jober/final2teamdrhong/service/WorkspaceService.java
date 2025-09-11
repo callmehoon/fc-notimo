@@ -143,6 +143,7 @@ public class WorkspaceService {
         existingWorkspace.setRepresenterEmail(updateDTO.getNewRepresenterEmail());
         existingWorkspace.setCompanyName(updateDTO.getNewCompanyName());
         existingWorkspace.setCompanyRegisterNumber(updateDTO.getNewCompanyRegisterNumber());
+        existingWorkspace.setUpdatedAt(LocalDateTime.now());
 
         return new WorkspaceResponse.DetailDTO(existingWorkspace);
     }
@@ -168,12 +169,9 @@ public class WorkspaceService {
 
         // 2. 소프트 딜리트 처리
         existingWorkspace.setDeleted(true);
+        existingWorkspace.setUpdatedAt(LocalDateTime.now());
         existingWorkspace.setDeletedAt(LocalDateTime.now());
 
-        // 3. 변경사항 저장 (Dirty Checking으로 자동 UPDATE)
-        workspaceRepository.save(existingWorkspace);
-
-        // 4. 삭제된 정보를 DTO에 담아 반환
         return new WorkspaceResponse.SimpleDTO(existingWorkspace);
     }
 }
