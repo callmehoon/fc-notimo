@@ -381,12 +381,16 @@ class WorkspaceServiceTest {
         // 1. DTO의 값이 updateDTO의 값으로 잘 변경되었는지 확인
         assertEquals("수정된 워크스페이스", result.getWorkspaceName());
         assertEquals("updated-unique-url", result.getWorkspaceUrl());
+        // 1-1. updatedAt이 수정되었는지 검증합니다.
         assertNotNull(result.getUpdatedAt());
-        assertNull(result.getDeletedAt());
+        assertTrue(result.getUpdatedAt().isAfter(now));
 
         // 2. 실제 엔티티의 값이 잘 변경되었는지도 확인 (Dirty Checking 검증)
         assertEquals("수정된 워크스페이스", existingWorkspace.getWorkspaceName());
         assertEquals("updated-unique-url", existingWorkspace.getWorkspaceUrl());
+        // 2-1. 엔티티의 updatedAt 필드 또한 수정되었는지 검증합니다.
+        assertNotNull(existingWorkspace.getUpdatedAt());
+        assertTrue(existingWorkspace.getUpdatedAt().isAfter(now));
 
         // 3. Repository의 find와 exists 메소드가 각각 1번씩 호출되었는지 검증
         verify(workspaceRepository, times(1)).findByWorkspaceIdAndUser_UserId(workspaceId, userId);

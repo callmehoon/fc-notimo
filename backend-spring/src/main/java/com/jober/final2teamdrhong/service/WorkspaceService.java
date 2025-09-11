@@ -143,6 +143,7 @@ public class WorkspaceService {
         existingWorkspace.setRepresenterEmail(updateDTO.getNewRepresenterEmail());
         existingWorkspace.setCompanyName(updateDTO.getNewCompanyName());
         existingWorkspace.setCompanyRegisterNumber(updateDTO.getNewCompanyRegisterNumber());
+        existingWorkspace.setUpdatedAt(LocalDateTime.now());
 
         return new WorkspaceResponse.DetailDTO(existingWorkspace);
     }
