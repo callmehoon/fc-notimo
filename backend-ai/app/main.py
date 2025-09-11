@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from .routers.template_router import template_router
 from .routers.validate_router import validate_router
-from .core.model_loader import models, load_gen_model, load_cls_model
+from .core.model_loader import *
 import uvicorn
 from contextlib import asynccontextmanager
 
