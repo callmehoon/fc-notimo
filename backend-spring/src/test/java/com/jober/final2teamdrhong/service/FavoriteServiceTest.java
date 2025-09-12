@@ -180,15 +180,21 @@ class FavoriteServiceTest {
     void getFavorites_withoutTemplateType_shouldReturnList() {
         // given
         Integer workspaceId = 1;
-        Favorite mockPublicFavorite = mock(Favorite.class);
-        Favorite mockIndividualFavorite = mock(Favorite.class);
+        Workspace workspace = mock(Workspace.class);
 
-        when(mockPublicFavorite.getPublicTemplate()).thenReturn(mock(PublicTemplate.class));
-        when(mockIndividualFavorite.getPublicTemplate()).thenReturn(null);
-        when(mockIndividualFavorite.getIndividualTemplate()).thenReturn(mock(IndividualTemplate.class));
+        PublicTemplate publicTemplate = mock(PublicTemplate.class);
+        when(publicTemplate.getPublicTemplateId()).thenReturn(100);
+        when(publicTemplate.getPublicTemplateTitle()).thenReturn("공용 제목");
 
-        when(workspaceRepository.findById(workspaceId)).thenReturn(Optional.of(mockWorkspace));
-        when(favoriteRepository.findAllByWorkspaceOrderByFavoriteIdDesc(mockWorkspace)).thenReturn(List.of(mockPublicFavorite, mockIndividualFavorite));
+        IndividualTemplate individualTemplate = mock(IndividualTemplate.class);
+        when(individualTemplate.getIndividualTemplateId()).thenReturn(10);
+        when(individualTemplate.getIndividualTemplateTitle()).thenReturn("개인 제목");
+
+        Favorite publicFavorite = Favorite.builder().workspace(workspace).publicTemplate(publicTemplate).build();
+        Favorite individualFavorite = Favorite.builder().workspace(workspace).individualTemplate(individualTemplate).build();
+
+        when(workspaceRepository.findById(workspaceId)).thenReturn(Optional.of(workspace));
+        when(favoriteRepository.findAllByWorkspaceOrderByFavoriteIdDesc(workspace)).thenReturn(List.of(publicFavorite, individualFavorite));
 
         // when
         List<FavoriteResponse> result = favoriteService.getFavoritesByWorkspace(workspaceId);
@@ -196,21 +202,37 @@ class FavoriteServiceTest {
         // then
         assertThat(result).isNotNull();
         assertThat(result.size()).isEqualTo(2);
-        verify(favoriteRepository).findAllByWorkspaceOrderByFavoriteIdDesc(mockWorkspace);
+
+        // 공용 템플릿 즐겨찾기 내용 검증
+        FavoriteResponse publicResponse = result.get(0);
+        assertThat(publicResponse.getTemplateType()).isEqualTo("PUBLIC");
+        assertThat(publicResponse.getTemplateId()).isEqualTo(publicTemplate.getPublicTemplateId());
+        assertThat(publicResponse.getTemplateTitle()).isEqualTo(publicTemplate.getPublicTemplateTitle());
+
+        // 개인 템플릿 즐겨찾기 내용 검증
+        FavoriteResponse individualResponse = result.get(1);
+        assertThat(individualResponse.getTemplateType()).isEqualTo("INDIVIDUAL");
+        assertThat(individualResponse.getTemplateId()).isEqualTo(individualTemplate.getIndividualTemplateId());
+        assertThat(individualResponse.getTemplateTitle()).isEqualTo(individualTemplate.getIndividualTemplateTitle());
     }
 
     @Test
-    @DisplayName("성공(단위): 즐겨찾기 목록 페이징 조회 (public)")
+    @DisplayName("성공(단위): 즐겨찾기 목록 페이징 조회 (public) - 반환된 내용 검증")
     void getFavorites_withPublicTemplateType_shouldReturnPage() {
         // given
         Integer workspaceId = 1;
         Pageable pageable = PageRequest.of(0, 10);
-        Favorite mockPublicFavorite = mock(Favorite.class);
-        when(mockPublicFavorite.getPublicTemplate()).thenReturn(mock(PublicTemplate.class));
-        Page<Favorite> mockPage = new PageImpl<>(List.of(mockPublicFavorite));
+        Workspace workspace = mock(Workspace.class);
 
-        when(workspaceRepository.findById(workspaceId)).thenReturn(Optional.of(mockWorkspace));
-        when(favoriteRepository.findByWorkspaceAndPublicTemplateIsNotNull(mockWorkspace, pageable)).thenReturn(mockPage);
+        PublicTemplate publicTemplate = mock(PublicTemplate.class);
+        when(publicTemplate.getPublicTemplateId()).thenReturn(100);
+        when(publicTemplate.getPublicTemplateTitle()).thenReturn("공용 제목");
+
+        Favorite publicFavorite = Favorite.builder().workspace(workspace).publicTemplate(publicTemplate).build();
+        Page<Favorite> mockPage = new PageImpl<>(List.of(publicFavorite), pageable, 1);
+
+        when(workspaceRepository.findById(workspaceId)).thenReturn(Optional.of(workspace));
+        when(favoriteRepository.findByWorkspaceAndPublicTemplateIsNotNull(workspace, pageable)).thenReturn(mockPage);
 
         // when
         Page<FavoriteResponse> result = favoriteService.getFavoritesByWorkspace(workspaceId, "public", pageable);
@@ -218,22 +240,29 @@ class FavoriteServiceTest {
         // then
         assertThat(result).isNotNull();
         assertThat(result.getTotalElements()).isEqualTo(1);
-        verify(favoriteRepository).findByWorkspaceAndPublicTemplateIsNotNull(mockWorkspace, pageable);
+        FavoriteResponse response = result.getContent().get(0);
+        assertThat(response.getTemplateType()).isEqualTo("PUBLIC");
+        assertThat(response.getTemplateId()).isEqualTo(publicTemplate.getPublicTemplateId());
+        assertThat(response.getTemplateTitle()).isEqualTo(publicTemplate.getPublicTemplateTitle());
     }
 
     @Test
-    @DisplayName("성공(단위): 즐겨찾기 목록 페이징 조회 (individual)")
+    @DisplayName("성공(단위): 즐겨찾기 목록 페이징 조회 (individual) - 반환된 내용 검증")
     void getFavorites_withIndividualTemplateType_shouldReturnPage() {
         // given
         Integer workspaceId = 1;
         Pageable pageable = PageRequest.of(0, 10);
-        Favorite mockIndividualFavorite = mock(Favorite.class);
-        when(mockIndividualFavorite.getPublicTemplate()).thenReturn(null);
-        when(mockIndividualFavorite.getIndividualTemplate()).thenReturn(mock(IndividualTemplate.class));
-        Page<Favorite> mockPage = new PageImpl<>(List.of(mockIndividualFavorite));
+        Workspace workspace = mock(Workspace.class);
 
-        when(workspaceRepository.findById(workspaceId)).thenReturn(Optional.of(mockWorkspace));
-        when(favoriteRepository.findByWorkspaceAndIndividualTemplateIsNotNull(mockWorkspace, pageable)).thenReturn(mockPage);
+        IndividualTemplate individualTemplate = mock(IndividualTemplate.class);
+        when(individualTemplate.getIndividualTemplateId()).thenReturn(10);
+        when(individualTemplate.getIndividualTemplateTitle()).thenReturn("개인 제목");
+
+        Favorite individualFavorite = Favorite.builder().workspace(workspace).individualTemplate(individualTemplate).build();
+        Page<Favorite> mockPage = new PageImpl<>(List.of(individualFavorite), pageable, 1);
+
+        when(workspaceRepository.findById(workspaceId)).thenReturn(Optional.of(workspace));
+        when(favoriteRepository.findByWorkspaceAndIndividualTemplateIsNotNull(workspace, pageable)).thenReturn(mockPage);
 
         // when
         Page<FavoriteResponse> result = favoriteService.getFavoritesByWorkspace(workspaceId, "individual", pageable);
@@ -241,6 +270,9 @@ class FavoriteServiceTest {
         // then
         assertThat(result).isNotNull();
         assertThat(result.getTotalElements()).isEqualTo(1);
-        verify(favoriteRepository).findByWorkspaceAndIndividualTemplateIsNotNull(mockWorkspace, pageable);
+        FavoriteResponse response = result.getContent().get(0);
+        assertThat(response.getTemplateType()).isEqualTo("INDIVIDUAL");
+        assertThat(response.getTemplateId()).isEqualTo(individualTemplate.getIndividualTemplateId());
+        assertThat(response.getTemplateTitle()).isEqualTo(individualTemplate.getIndividualTemplateTitle());
     }
 }
