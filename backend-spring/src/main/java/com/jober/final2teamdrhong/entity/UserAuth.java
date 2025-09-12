@@ -8,7 +8,16 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users_auth")
+@Table(name = "users_auth", 
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_type_social_id",
+                columnNames = {"auth_type","social_id"})
+    },
+    indexes = {
+        @Index(name = "idx_user_auth_user_id", columnList = "users_id"),
+        @Index(name = "idx_user_auth_type", columnList = "auth_type"),
+        @Index(name = "idx_user_auth_last_used", columnList = "last_used_at")
+    })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserAuth {
