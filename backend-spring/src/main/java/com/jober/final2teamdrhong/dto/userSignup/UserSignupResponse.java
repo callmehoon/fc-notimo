@@ -1,4 +1,4 @@
-package com.jober.final2teamdrhong.dto.UserSignup;
+package com.jober.final2teamdrhong.dto.userSignup;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AccessLevel;
