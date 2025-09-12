@@ -18,13 +18,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-class FavoriteCreationIntegrationTest {
+class FavoriteIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -79,6 +81,7 @@ class FavoriteCreationIntegrationTest {
         savedPublicTemplate = publicTemplateRepository.save(publicTemplate);
     }
 
+    // ====================== Create ======================
     /**
      * 개인 템플릿 즐겨찾기 생성 기능 테스트
      */
@@ -119,7 +122,7 @@ class FavoriteCreationIntegrationTest {
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
-                .andExpect(status().isConflict()); // <-- 4xx 에러 대신 더 명확한 409 Conflict를 기대
+                .andExpect(status().isBadRequest()); // GlobalExceptionHandler에 따라 400을 기대
     }
 
     /**
@@ -165,7 +168,50 @@ class FavoriteCreationIntegrationTest {
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
-                .andExpect(status().isConflict());
+                .andExpect(status().isBadRequest());
     }
 
+
+
+
+
+    // ====================== Read ======================
+    /**
+     * 즐겨찾기 조회 통합 테스트
+     */
+    @Test
+    @DisplayName("성공(통합) : 특정 워크스페이스의 모든 즐겨찾기 목록 조회 (페이징 없음)")
+    @WithMockUser
+    void readAllFavorites_Success() throws Exception {
+        // given
+        favoriteRepository.save(Favorite.builder().workspace(savedWorkspace).publicTemplate(savedPublicTemplate).build());
+        favoriteRepository.save(Favorite.builder().workspace(savedWorkspace).individualTemplate(savedIndividualTemplate).build());
+
+        // when & then
+        mockMvc.perform(get("/favorites")
+                        .param("workspaceId", savedWorkspace.getWorkspaceId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(2));
+    }
+
+    @Test
+    @DisplayName("성공(통합) : 특정 워크스페이스의 공용 템플릿 즐겨찾기 목록 페이징 조회")
+    @WithMockUser
+    void readPublicFavoritesWithPaging_Success() throws Exception {
+        // given
+        favoriteRepository.save(Favorite.builder().workspace(savedWorkspace).publicTemplate(savedPublicTemplate).build());
+        favoriteRepository.save(Favorite.builder().workspace(savedWorkspace).individualTemplate(savedIndividualTemplate).build());
+
+        // when & then
+        mockMvc.perform(get("/favorites")
+                        .param("workspaceId", savedWorkspace.getWorkspaceId().toString())
+                        .param("templateType", "public")
+                        .param("size", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].templateType").value("PUBLIC"))
+                .andExpect(jsonPath("$.totalElements").value(1));
+    }
 }
