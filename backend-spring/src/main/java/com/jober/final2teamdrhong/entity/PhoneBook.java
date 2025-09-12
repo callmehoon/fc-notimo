@@ -35,6 +35,7 @@ public class PhoneBook extends BaseEntity {
     @JoinColumn(name = "workspace_id", nullable = false) // FK
     private Workspace workspace;
 
+    @Builder.Default
     @OneToMany(mappedBy = "phoneBook", fetch = FetchType.LAZY)
     private List<GroupMapping> groupMappings = new ArrayList<>();
 
