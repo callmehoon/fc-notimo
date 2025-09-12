@@ -52,7 +52,7 @@ public class PhoneBookController {
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping
     public ResponseEntity<PhoneBookResponse.SimpleDTO> createPhoneBook(@Valid @RequestBody PhoneBookRequest.CreateDTO createDTO,
-                                                              @PathVariable Integer workspaceId) {
+                                                                       @PathVariable Integer workspaceId) {
         // TODO: Spring Security 도입 후, @AuthenticationPrincipal 등을 통해 실제 사용자 정보 획득 필요
         Integer currentUserId = 1;
         PhoneBookResponse.SimpleDTO createdPhoneBook = phoneBookService.createPhoneBook(createDTO, workspaceId, currentUserId);
