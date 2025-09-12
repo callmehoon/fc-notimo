@@ -41,7 +41,7 @@ public class IndividualTemplateService {
                 .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 workspaceId 입니다. id=" + workspaceId));
 
         IndividualTemplate entity = IndividualTemplate.builder()
-                .workspaceId(workspace)
+                .workspace(workspace)
                 .individualTemplateTitle(null)           // null 저장
                 .individualTemplateContent(null)         // null 저장
                 .buttonTitle(null)                       // null 저장
