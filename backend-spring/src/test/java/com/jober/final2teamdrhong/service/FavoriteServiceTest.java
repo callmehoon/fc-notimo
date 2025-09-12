@@ -1,5 +1,6 @@
 package com.jober.final2teamdrhong.service;
 
+import com.jober.final2teamdrhong.dto.favorite.FavoriteResponse;
 import com.jober.final2teamdrhong.dto.favorite.IndividualTemplateFavoriteRequest;
 import com.jober.final2teamdrhong.dto.favorite.PublicTemplateFavoriteRequest;
 import com.jober.final2teamdrhong.entity.Favorite;
@@ -17,10 +18,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.*;
 
+import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -58,11 +63,6 @@ class FavoriteServiceTest {
 
     /**
      * FavoriteService 개인 템플릿 생성 기능 단위 테스트
-     * ===== 테스트 메서드 순서 =====
-     * 1. 개인 탬플릿 즐겨찾기 생성(성공)
-     * 2. 워크스페이스가 존재하지 않을 경우(실패)
-     * 3. 개인 템플릿이 존재하지 않을 경우(실패)
-     * 4. 이미 즐겨찾기로 등록했을 경우(실패)
      */
     @Test
     @DisplayName("성공 : 개인 탬플릿 즐겨찾기 생성")
@@ -117,11 +117,6 @@ class FavoriteServiceTest {
 
     /**
      * FavoriteService 공용 템플릿 생성 기능 단위 테스트
-     * ===== 테스트 메서드 순서 =====
-     * 1. 공용 탬플릿 즐겨찾기 생성(성공)
-     * 2. 워크스페이스가 존재하지 않을 경우(실패)
-     * 3. 공용 템플릿이 존재하지 않을 경우(실패)
-     * 4. 이미 즐겨찾기로 등록했을 경우(실패)
      */
     @Test
     @DisplayName("성공 : 공용 템플릿 즐겨찾기 생성")
@@ -172,4 +167,80 @@ class FavoriteServiceTest {
         assertEquals("이미 즐겨찾기된 공용 템플릿입니다.", exception.getMessage());
     }
 
+
+
+
+
+    // ====================== Read ======================
+    /**
+     * FavoriteService 즐겨찾기 조회 기능 단위 테스트
+     */
+    @Test
+    @DisplayName("성공(단위): 즐겨찾기 전체 목록 조회 (페이징 없음)")
+    void getFavorites_withoutTemplateType_shouldReturnList() {
+        // given
+        Integer workspaceId = 1;
+        Favorite mockPublicFavorite = mock(Favorite.class);
+        Favorite mockIndividualFavorite = mock(Favorite.class);
+
+        when(mockPublicFavorite.getPublicTemplate()).thenReturn(mock(PublicTemplate.class));
+        when(mockIndividualFavorite.getPublicTemplate()).thenReturn(null);
+        when(mockIndividualFavorite.getIndividualTemplate()).thenReturn(mock(IndividualTemplate.class));
+
+        when(workspaceRepository.findById(workspaceId)).thenReturn(Optional.of(mockWorkspace));
+        when(favoriteRepository.findAllByWorkspaceOrderByFavoriteIdDesc(mockWorkspace)).thenReturn(List.of(mockPublicFavorite, mockIndividualFavorite));
+
+        // when
+        List<FavoriteResponse> result = favoriteService.getFavoritesByWorkspace(workspaceId);
+
+        // then
+        assertThat(result).isNotNull();
+        assertThat(result.size()).isEqualTo(2);
+        verify(favoriteRepository).findAllByWorkspaceOrderByFavoriteIdDesc(mockWorkspace);
+    }
+
+    @Test
+    @DisplayName("성공(단위): 즐겨찾기 목록 페이징 조회 (public)")
+    void getFavorites_withPublicTemplateType_shouldReturnPage() {
+        // given
+        Integer workspaceId = 1;
+        Pageable pageable = PageRequest.of(0, 10);
+        Favorite mockPublicFavorite = mock(Favorite.class);
+        when(mockPublicFavorite.getPublicTemplate()).thenReturn(mock(PublicTemplate.class));
+        Page<Favorite> mockPage = new PageImpl<>(List.of(mockPublicFavorite));
+
+        when(workspaceRepository.findById(workspaceId)).thenReturn(Optional.of(mockWorkspace));
+        when(favoriteRepository.findByWorkspaceAndPublicTemplateIsNotNull(mockWorkspace, pageable)).thenReturn(mockPage);
+
+        // when
+        Page<FavoriteResponse> result = favoriteService.getFavoritesByWorkspace(workspaceId, "public", pageable);
+
+        // then
+        assertThat(result).isNotNull();
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        verify(favoriteRepository).findByWorkspaceAndPublicTemplateIsNotNull(mockWorkspace, pageable);
+    }
+
+    @Test
+    @DisplayName("성공(단위): 즐겨찾기 목록 페이징 조회 (individual)")
+    void getFavorites_withIndividualTemplateType_shouldReturnPage() {
+        // given
+        Integer workspaceId = 1;
+        Pageable pageable = PageRequest.of(0, 10);
+        Favorite mockIndividualFavorite = mock(Favorite.class);
+        when(mockIndividualFavorite.getPublicTemplate()).thenReturn(null);
+        when(mockIndividualFavorite.getIndividualTemplate()).thenReturn(mock(IndividualTemplate.class));
+        Page<Favorite> mockPage = new PageImpl<>(List.of(mockIndividualFavorite));
+
+        when(workspaceRepository.findById(workspaceId)).thenReturn(Optional.of(mockWorkspace));
+        when(favoriteRepository.findByWorkspaceAndIndividualTemplateIsNotNull(mockWorkspace, pageable)).thenReturn(mockPage);
+
+        // when
+        Page<FavoriteResponse> result = favoriteService.getFavoritesByWorkspace(workspaceId, "individual", pageable);
+
+        // then
+        assertThat(result).isNotNull();
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        verify(favoriteRepository).findByWorkspaceAndIndividualTemplateIsNotNull(mockWorkspace, pageable);
+    }
 }
