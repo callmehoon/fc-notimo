@@ -15,8 +15,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;   // ✅ springframework transactional 사용
-
 import org.springframework.security.access.AccessDeniedException;
 import java.util.concurrent.CompletableFuture;
 
@@ -62,7 +60,8 @@ public class IndividualTemplateService {
                 saved.getButtonTitle(),
                 saved.getWorkspace().getWorkspaceId(),
                 saved.getCreatedAt(),
-                saved.getUpdatedAt()
+                saved.getUpdatedAt(),
+                saved.getIsDeleted()
         );
     }
 
@@ -104,7 +103,7 @@ public class IndividualTemplateService {
                         saved.getWorkspace().getWorkspaceId(),
                         saved.getCreatedAt(),
                         saved.getUpdatedAt(),
-                        saved.isDeleted()
+                        saved.getIsDeleted()
                 ));
     }
 
@@ -158,7 +157,7 @@ public class IndividualTemplateService {
                         saved.getWorkspace().getWorkspaceId(),
                         saved.getCreatedAt(),
                         saved.getUpdatedAt(),
-                        saved.isDeleted()
+                        saved.getIsDeleted()
                 ));
     }
 
@@ -191,7 +190,7 @@ public class IndividualTemplateService {
                 saved.getWorkspace().getWorkspaceId(),
                 saved.getCreatedAt(),
                 saved.getUpdatedAt(),
-                saved.isDeleted()
+                saved.getIsDeleted()
         );
     }
 
@@ -201,6 +200,4 @@ public class IndividualTemplateService {
         log.info("[@Async] thread={}, isVirtual={}", Thread.currentThread().getName(), Thread.currentThread().isVirtual());
         return CompletableFuture.completedFuture(getIndividualTemplate(workspaceId, individualTemplateId));
     }
-}
-
 }
