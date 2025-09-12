@@ -1,4 +1,4 @@
-from ..main import models
+from ..core.model_loader import models
 from ..schemas.template import TemplateRequest, TemplateResponse
 
 def gen_template(request: TemplateRequest) -> TemplateResponse:

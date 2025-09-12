@@ -1,3 +1,5 @@
+models = {}
+
 def load_gen_model():
     # TODO 서버 구동시에 호출할 템플릿 생성 모델을 메모리로 로드하는 함수 구현
     pass
