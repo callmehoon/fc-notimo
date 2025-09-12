@@ -124,4 +124,5 @@ public class FavoriteService {
 
         favoriteRepository.delete(favorite);
     }
+
 }
