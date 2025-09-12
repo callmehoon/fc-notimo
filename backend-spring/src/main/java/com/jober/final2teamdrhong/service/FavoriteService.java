@@ -12,6 +12,8 @@ import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
 import com.jober.final2teamdrhong.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,10 +30,11 @@ public class FavoriteService {
     private final IndividualTemplateRepository individualTemplateRepository;
     private final PublicTemplateRepository publicTemplateRepository;
 
-
     // ========== create ==========
+
     /**
      * 개인 템플릿을 즐겨찾기에 추가(create)
+     *
      * @param request 즐겨찾기 생성을 위한 정보 (workspaceId, templateId)
      * @throws IllegalArgumentException 워크스페이스, 템플릿이 존재하지 않거나 이미 즐겨찾기로 등록되었을 경우 발생
      */
@@ -44,7 +47,9 @@ public class FavoriteService {
                 .orElseThrow(() -> new IllegalArgumentException("해당 개인 템플릿을 찾을 수 없습니다."));
 
         favoriteRepository.findByWorkspaceAndIndividualTemplate(workspace, individualTemplate)
-                .ifPresent(f -> {throw new IllegalArgumentException("이미 즐겨찾기된 개인 템플릿입니다.");});
+                .ifPresent(f -> {
+                    throw new IllegalArgumentException("이미 즐겨찾기된 개인 템플릿입니다.");
+                });
 
         Favorite favorite = new Favorite(workspace, null, individualTemplate);
         favoriteRepository.save(favorite);
@@ -52,6 +57,7 @@ public class FavoriteService {
 
     /**
      * 공용 템플릿을 즐겨찾기에 추가(create)
+     *
      * @param request 즐겨찾기 생성을 위한 정보 (workspaceId, templateId)
      * @throws IllegalArgumentException 워크스페이스, 템플릿이 존재하지 않거나 이미 즐겨찾기로 등록되었을 경우 발생
      */
@@ -64,7 +70,9 @@ public class FavoriteService {
                 .orElseThrow(() -> new IllegalArgumentException("해당 공용 템플릿을 찾을 수 없습니다."));
 
         favoriteRepository.findByWorkspaceAndPublicTemplate(workspace, publicTemplate)
-                .ifPresent(f -> {throw new IllegalArgumentException("이미 즐겨찾기된 공용 템플릿입니다.");});
+                .ifPresent(f -> {
+                    throw new IllegalArgumentException("이미 즐겨찾기된 공용 템플릿입니다.");
+                });
 
         Favorite favorite = new Favorite(workspace, publicTemplate, null);
         favoriteRepository.save(favorite);
@@ -72,21 +80,45 @@ public class FavoriteService {
 
 
     // ========== read ==========
+
     /**
-     * 특정 워크스페이스에 속한 모든 즐겨찾기 목록을 조회(read)
+     * 특정 워크스페이스에 속한 모든 즐겨찾기 목록을 페이징 없이 조회합니다.
+     *
      * @param workspaceId 조회의 기준이 되는 워크스페이스 ID
      * @return 해당 워크스페이스의 FavoriteResponse DTO 리스트
-     * @throws IllegalArgumentException 워크스페이스가 존재하지 않을 경우 발생
      */
     public List<FavoriteResponse> getFavoritesByWorkspace(Integer workspaceId) {
         Workspace workspace = workspaceRepository.findById(workspaceId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 워크스페이스를 찾을 수 없습니다."));
 
-        List<Favorite> favorites = favoriteRepository.findAllByWorkspace(workspace);
-
+        List<Favorite> favorites = favoriteRepository.findAllByWorkspaceOrderByFavoriteIdDesc(workspace);
         return favorites.stream()
                 .map(FavoriteResponse::new)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 특정 워크스페이스에 속한 즐겨찾기 목록을 템플릿 유형에 따라 페이징하여 조회합니다.
+     *
+     * @param workspaceId  조회의 기준이 되는 워크스페이스 ID
+     * @param templateType 템플릿 유형 ("public" 또는 "individual")
+     * @param pageable     페이징 정보
+     * @return 해당 워크스페이스의 페이징된 FavoriteResponse DTO
+     */
+    public Page<FavoriteResponse> getFavoritesByWorkspace(Integer workspaceId, String templateType, Pageable pageable) {
+        Workspace workspace = workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 워크스페이스를 찾을 수 없습니다."));
+
+        Page<Favorite> favorites;
+        if ("public".equalsIgnoreCase(templateType)) {
+            favorites = favoriteRepository.findByWorkspaceAndPublicTemplateIsNotNull(workspace, pageable);
+        } else if ("individual".equalsIgnoreCase(templateType)) {
+            favorites = favoriteRepository.findByWorkspaceAndIndividualTemplateIsNotNull(workspace, pageable);
+        } else {
+            return Page.empty(pageable);
+        }
+
+        return favorites.map(FavoriteResponse::new);
     }
 
 }
