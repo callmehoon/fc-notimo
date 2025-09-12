@@ -131,4 +131,15 @@ public class FavoriteController {
         favoriteService.deleteFavorite(favoriteId);
         return ResponseEntity.noContent().build();
     }
+
+    /**
+     * 즐겨찾기를 삭제(delete)
+     * @param favoriteId 삭제할 즐겨찾기 ID
+     * @return 성공 시 HTTP 204 No Content
+     */
+    @DeleteMapping("/favorites/{favoriteId}")
+    public ResponseEntity<?> deleteFavorite(@PathVariable Integer favoriteId) {
+        favoriteService.deleteFavorite(favoriteId);
+        return ResponseEntity.noContent().build();
+    }
 }
