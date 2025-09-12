@@ -25,6 +25,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -155,5 +156,41 @@ class FavoriteControllerTest {
                 .andExpect(jsonPath("$.message").value(errorMessage));
 
         verify(favoriteService).getFavoritesByWorkspace(any(JwtClaims.class), eq(workspaceId), any(), any(FavoritePageRequest.class));
+    }
+
+
+
+
+    // ====================== Delete ======================
+    /**
+     * 즐겨찾기 삭제 테스트
+     */
+    @Test
+    @DisplayName("성공(단위): 즐겨찾기 삭제 API 호출")
+    void deleteFavorite_ApiCall_Success() throws Exception {
+        // given
+        Integer favoriteId = 1;
+        doNothing().when(favoriteService).deleteFavorite(favoriteId);
+
+        // when & then
+        mockMvc.perform(delete("/favorites/{favoriteId}", favoriteId))
+                .andExpect(status().isNoContent());
+
+        verify(favoriteService, times(1)).deleteFavorite(favoriteId);
+    }
+
+    @Test
+    @DisplayName("실패(단위): 존재하지 않는 즐겨찾기 삭제 시 400 에러 발생")
+    void deleteFavorite_ApiCall_NotFound() throws Exception {
+        // given
+        Integer favoriteId = 999;
+        doThrow(new IllegalArgumentException("해당 즐겨찾기를 찾을 수 없습니다."))
+                .when(favoriteService).deleteFavorite(favoriteId);
+
+        // when & then
+        mockMvc.perform(delete("/favorites/{favoriteId}", favoriteId))
+                .andExpect(status().isBadRequest());
+
+        verify(favoriteService, times(1)).deleteFavorite(favoriteId);
     }
 }
