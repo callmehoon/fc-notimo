@@ -5,10 +5,9 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.SQLRestriction;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,7 +18,10 @@ import java.util.List;
 })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class User  {
+@SuperBuilder
+@SQLRestriction("is_deleted = false")
+public class User extends BaseEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "users_id")
@@ -34,37 +36,18 @@ public class User  {
     @Column(unique = true, nullable = false, name = "users_email")
     private String userEmail;
 
-    // BaseTimeEntity 제거  시간필드 직접 추가
-    @CreationTimestamp
-    @Column(name = "created_at", columnDefinition = "DATETIME")
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", columnDefinition = "DATETIME")
-    private LocalDateTime updatedAt;
-
-
-    @Column(name = "users_role")
+    @Builder.Default
+    @Column(name = "users_role", nullable = false)
     @Enumerated(EnumType.STRING)
-    private UserRole userRole;
+    private UserRole userRole = UserRole.USER;
 
     public enum UserRole {
         USER,
         ADMIN
     }
 
-
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UserAuth> userAuths = new ArrayList<>();
-
-    // 생성자 (package-private)
-    @Builder
-    User(String userName, String userEmail, String userNumber, UserRole userRole) {
-        this.userName = userName;
-        this.userEmail = userEmail;
-        this.userNumber = userNumber;
-        this.userRole = ( userRole != null ) ? userRole : UserRole.USER;
-    }
 
     // --- 관계 편의 메서드 ---
     public void addUserAuth(UserAuth userAuth) {
