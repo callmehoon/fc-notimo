@@ -1,4 +1,5 @@
 package com.jober.final2teamdrhong.exception;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -36,5 +37,39 @@ public class GlobalExceptionHandler {
         ErrorResponse response = new ErrorResponse("서버 내부 오류가 발생했습니다. 관리자에게 문의해주세요.");
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
+    // ==================== 인증/인가 관련 예외 처리 (로그인/회원가입 전용) ====================
+    
+    // 4. 인증 실패 예외 처리 (로그인/회원가입 전용)
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex) {
+        ErrorResponse response = new ErrorResponse(ex.getMessage());
+        
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    }
+    
+    // 5. 중복 리소스 예외 처리 (회원가입 시 이메일 중복)
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateResourceException(DuplicateResourceException ex) {
+        ErrorResponse response = new ErrorResponse(ex.getMessage());
+        
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+    
+    // 6. 비즈니스 로직 예외 처리 (인증 코드 만료 등)
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException ex) {
+        ErrorResponse response = new ErrorResponse(ex.getMessage());
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+    
+    // 7. Rate Limiting 예외 처리 (너무 많은 요청)
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ErrorResponse> handleRateLimitExceededException(RateLimitExceededException ex) {
+        ErrorResponse response = new ErrorResponse(ex.getMessage());
+        
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(response);
     }
 }
