@@ -34,7 +34,7 @@ public abstract class BaseEntity {
     private LocalDateTime deletedAt;
 
     @Column(name = "is_deleted", nullable = false)
-    private Boolean isDeleted;
+    private Boolean isDeleted = false;
 
     /**
      * 엔티티를 소프트 삭제 상태로 변경합니다.
