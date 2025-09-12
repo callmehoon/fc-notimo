@@ -243,4 +243,43 @@ class FavoriteServiceTest {
         assertThat(result.getTotalElements()).isEqualTo(1);
         verify(favoriteRepository).findByWorkspaceAndIndividualTemplateIsNotNull(mockWorkspace, pageable);
     }
+
+
+
+
+    // ====================== Delete ======================
+    /**
+     * FavoriteService 즐겨찾기 삭제 기능 단위 테스트
+     */
+    @Test
+    @DisplayName("성공(단위): 즐겨찾기 삭제")
+    void deleteFavorite_Success() {
+        // given
+        Integer favoriteId = 1;
+        Favorite mockFavorite = mock(Favorite.class);
+        when(favoriteRepository.findById(favoriteId)).thenReturn(Optional.of(mockFavorite));
+        doNothing().when(favoriteRepository).delete(mockFavorite);
+
+        // when
+        favoriteService.deleteFavorite(favoriteId);
+
+        // then
+        verify(favoriteRepository, times(1)).findById(favoriteId);
+        verify(favoriteRepository, times(1)).delete(mockFavorite);
+    }
+
+    @Test
+    @DisplayName("실패(단위): 존재하지 않는 즐겨찾기 삭제 시 예외 발생")
+    void deleteFavorite_FailsWith_NotFound() {
+        // given
+        Integer favoriteId = 999;
+        when(favoriteRepository.findById(favoriteId)).thenReturn(Optional.empty());
+
+        // when & then
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> favoriteService.deleteFavorite(favoriteId));
+
+        assertEquals("해당 즐겨찾기를 찾을 수 없습니다.", exception.getMessage());
+        verify(favoriteRepository, never()).delete(any());
+    }
 }
