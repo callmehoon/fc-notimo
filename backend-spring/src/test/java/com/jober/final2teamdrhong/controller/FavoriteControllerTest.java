@@ -140,7 +140,6 @@ class FavoriteControllerTest {
         verify(favoriteService).getFavoritesByWorkspace(any(JwtClaims.class), eq(workspaceId), any(), any(FavoritePageRequest.class));
     }
 
-<<<<<<< HEAD
     @Test
     @DisplayName("실패(컨트롤러): 권한 없는 워크스페이스 조회 시 400 응답")
     @WithMockJwtClaims
@@ -158,11 +157,6 @@ class FavoriteControllerTest {
 
         verify(favoriteService).getFavoritesByWorkspace(any(JwtClaims.class), eq(workspaceId), any(), any(FavoritePageRequest.class));
     }
-
-=======
->>>>>>> 3bbf7563 (test(controller): 즐겨찾기 삭제 기능 테스트)
-
-
 
     // ====================== Delete ======================
     /**
