@@ -142,6 +142,7 @@ public class FavoriteController {
         favoriteService.deleteFavorite(favoriteId);
         return ResponseEntity.noContent().build();
     }
+<<<<<<< HEAD
 
     /**
      * 즐겨찾기를 삭제(delete)
@@ -153,4 +154,6 @@ public class FavoriteController {
         favoriteService.deleteFavorite(favoriteId);
         return ResponseEntity.noContent().build();
     }
+=======
+>>>>>>> bd7ea689 (feat(controller): 즐겨찾기 삭제 기능 추가)
 }
