@@ -33,6 +33,7 @@ public class IndividualTemplate extends BaseEntity {
     @Column(name = "button_title", length = 50)
     private String buttonTitle;
 
+    @Builder.Default
     @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
     private TemplateModifiedHistory.Status status = TemplateModifiedHistory.Status.DRAFT;
