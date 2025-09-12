@@ -5,23 +5,16 @@ import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import com.jober.final2teamdrhong.entity.PublicTemplate;
 import lombok.Getter;
 
+@Getter
 public class FavoriteResponse {
 
-    @Getter
     private final Integer favoriteId;
-    @Getter
     private final String templateType;
-    @Getter
     private final Integer templateId;
-    @Getter
     private final String templateTitle;
-    @Getter
     private final String templateContent;
-    @Getter
     private final String buttonTitle;
-    @Getter
     private final Integer viewCount;
-    @Getter
     private final Integer shareCount;
 
     public FavoriteResponse(Favorite favorite) {
