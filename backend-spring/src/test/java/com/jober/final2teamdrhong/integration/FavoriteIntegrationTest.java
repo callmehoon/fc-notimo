@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -103,6 +104,9 @@ class FavoriteIntegrationTest {
     }
 
     // ====================== Create ======================
+    /**
+     * 개인 템플릿 즐겨찾기 생성 기능 테스트
+     */
     @Test
     @DisplayName("성공 : 개인 템플릿 즐겨찾기 생성")
     @WithMockJwtClaims
@@ -247,5 +251,34 @@ class FavoriteIntegrationTest {
                         .param("workspaceId", savedWorkspace.getWorkspaceId().toString())
                         .with(csrf()))
                 .andExpect(status().isBadRequest());
+    }
+
+
+
+
+    // ====================== Delete ======================
+    /**
+     * 즐겨찾기 삭제 통합 테스트
+     */
+    @Test
+    @DisplayName("성공(통합) : 즐겨찾기 삭제 기능 전체 흐름 테스트")
+    @WithMockUser
+    void deleteFavorite_Integration_Success() throws Exception {
+        // given: 삭제할 즐겨찾기 데이터를 미리 생성
+        Favorite favoriteToDelete = favoriteRepository.save(Favorite.builder()
+                .workspace(savedWorkspace)
+                .publicTemplate(savedPublicTemplate)
+                .build());
+        Integer favoriteId = favoriteToDelete.getFavoriteId();
+        long initialCount = favoriteRepository.count();
+
+        // when: 삭제 API 호출
+        mockMvc.perform(delete("/favorites/{favoriteId}", favoriteId)
+                        .with(csrf()))
+                .andExpect(status().isNoContent());
+
+        // then: DB에서 데이터가 삭제되었는지 확인
+        assertThat(favoriteRepository.count()).isEqualTo(initialCount - 1);
+        assertThat(favoriteRepository.findById(favoriteId)).isEmpty();
     }
 }
