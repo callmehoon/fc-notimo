@@ -100,4 +100,19 @@ public class FavoriteService {
         return favorites.map(FavoriteResponse::convertToFavoriteResponse);
     }
 
+
+    // ========== delete ==========
+
+    /**
+     * 즐겨찾기를 삭제(delete)
+     * @param favoriteId 삭제할 즐겨찾기 ID
+     * @throws IllegalArgumentException 해당 즐겨찾기가 존재하지 않을 경우 발생
+     */
+    @Transactional
+    public void deleteFavorite(Integer favoriteId) {
+        Favorite favorite = favoriteRepository.findById(favoriteId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 즐겨찾기를 찾을 수 없습니다."));
+
+        favoriteRepository.delete(favorite);
+    }
 }
