@@ -14,9 +14,4 @@ public class IndividualTemplateFavoriteRequest {
 
     @NotNull(message = "개인 템플릿 ID는 필수 입력값입니다.")
     private Integer individualTemplateId;
-
-    public IndividualTemplateFavoriteRequest(Integer workspaceId, Integer individualTemplateId) {
-        this.workspaceId = workspaceId;
-        this.individualTemplateId = individualTemplateId;
-    }
 }
