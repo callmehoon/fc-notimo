@@ -39,6 +39,16 @@ public abstract class BaseEntity {
     private Boolean isDeleted = false;
 
     /**
+     * 엔티티의 수정 시각(updatedAt)을 현재 시간으로 갱신합니다.
+     * JPA의 Dirty Checking에 의해 DB에 반영됩니다.
+     * 수정 시간은 Asia/Seoul 시간대를 기준으로 기록됩니다.
+     */
+    public void update() {
+        // Java의 ZoneId를 사용하여 서울 시간대의 현재 시간을 가져옵니다.
+        this.updatedAt = ZonedDateTime.now(ZoneId.of("Asia/Seoul")).toLocalDateTime();
+    }
+
+    /**
      * 엔티티를 소프트 삭제 상태로 변경합니다.
      * 삭제 시간은 Asia/Seoul 시간대를 기준으로 기록됩니다.
      */
