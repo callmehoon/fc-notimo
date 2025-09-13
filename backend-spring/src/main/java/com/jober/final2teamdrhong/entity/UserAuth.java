@@ -5,13 +5,27 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.SQLRestriction;
+
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users_auth")
+@Table(name = "users_auth",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_type_social_id",
+                columnNames = {"auth_type","social_id"})
+    },
+    indexes = {
+        @Index(name = "idx_user_auth_user_id", columnList = "users_id"),
+        @Index(name = "idx_user_auth_type", columnList = "auth_type"),
+        @Index(name = "idx_user_auth_last_used", columnList = "last_used_at")
+    })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class UserAuth {
+@SuperBuilder
+@SQLRestriction("is_deleted = false")
+public class UserAuth extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -37,32 +51,46 @@ public class UserAuth {
     @Column(name = "password_hash")
     private String passwordHash;
 
+    @Builder.Default
     @Column(name = "is_primary", nullable = false)
-    private Boolean isPrimary;
+    private Boolean isPrimary = true;
 
+    @Builder.Default
     @Column(name = "is_verified", nullable = false)
-    private Boolean isVerified;
+    private Boolean isVerified = false;
 
-    @Column(name = "linked_at", nullable = false, updatable = false)
-    private LocalDateTime linkedAt;
+    @Builder.Default
+    @Column(name = "linked_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMP")
+    private LocalDateTime linkedAt = LocalDateTime.now();
 
-    @Column(name = "last_used_at")
+    @Column(name = "last_used_at", columnDefinition = "TIMESTAMP")
     private LocalDateTime lastUsedAt;
 
     public enum AuthType {
         LOCAL, GOOGLE, KAKAO, NAVER
     }
 
+    // 로컬 인증 생성을 위한 정적 팩토리 메소드 추가
+    public static UserAuth createLocalAuth(User user, String passwordHash) {
+        return UserAuth.builder()
+                .user(user)
+                .authType(AuthType.LOCAL)
+                .passwordHash(passwordHash)
+                .isVerified(false) // <-- 조건부 로직을 여기에 명확하게 기술
+                .build();
+    }
 
-    @Builder
-    private UserAuth(User user, AuthType authType, String socialId, String passwordHash) {
-        this.user = user;
-        this.authType = authType;
-        this.socialId = socialId;
-        this.passwordHash = passwordHash;
-        this.isPrimary = true; // 기본값은 주 인증수단
-        this.isVerified = (authType != AuthType.LOCAL); // 소셜 인증은 바로 true
-        this.linkedAt = LocalDateTime.now();
+    // 소셜 인증 생성을 위한 정적 팩토리 메소드 추가
+    public static UserAuth createSocialAuth(User user, AuthType authType, String socialId) {
+        if (authType == AuthType.LOCAL) {
+            throw new IllegalArgumentException("소셜 인증 타입이 필요합니다.");
+        }
+        return UserAuth.builder()
+                .user(user)
+                .authType(authType)
+                .socialId(socialId)
+                .isVerified(true) // <-- 조건부 로직을 여기에 명확하게 기술
+                .build();
     }
 
     // --- 비즈니스 메서드 ---

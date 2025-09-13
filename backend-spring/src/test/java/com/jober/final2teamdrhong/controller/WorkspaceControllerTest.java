@@ -5,6 +5,7 @@ import com.jober.final2teamdrhong.dto.workspace.WorkspaceRequest;
 import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.UserRepository;
 import com.jober.final2teamdrhong.repository.WorkspaceRepository;
+import com.jober.final2teamdrhong.util.test.WithMockJwtClaims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,23 +14,18 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import com.jober.final2teamdrhong.entity.User;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.jdbc.core.JdbcTemplate;
 
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.not;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-@WithMockUser(username = "test@example.com", roles = "USER") // 인증된 목 유저 설정
 class WorkspaceControllerTest {
 
     @Autowired
@@ -56,7 +52,7 @@ class WorkspaceControllerTest {
         workspaceRepository.deleteAll();
         userRepository.deleteAll();
         jdbcTemplate.execute("ALTER TABLE users ALTER COLUMN users_id RESTART WITH 1");
-        
+
         // 이제 testUser가 ID=1로 생성됨 (컨트롤러의 하드코딩된 userId=1과 일치)
         testUser = User.builder()
                 .userName("테스트유저")
@@ -75,8 +71,9 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 생성 성공 테스트")
+    @WithMockJwtClaims(userId = 1)
     void createWorkspace_Success_Test() throws Exception {
-        // given (테스트 준비)
+        // given
         WorkspaceRequest.CreateDTO createDTO = WorkspaceRequest.CreateDTO.builder()
                 .workspaceName("성공 테스트 워크스페이스")
                 .workspaceSubname("부이름")
@@ -92,17 +89,15 @@ class WorkspaceControllerTest {
 
         String requestBody = objectMapper.writeValueAsString(createDTO);
 
-        // when (테스트 실행)
+        // when
         // POST /api/workspaces 로 JSON 데이터를 담아 요청을 보냄
-        // testUser의 실제 ID를 사용하기 위해 Mock 또는 다른 방법 필요
         ResultActions resultActions = mockMvc.perform(
                 post("/workspaces") // 실제 API 엔드포인트 경로
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody)
-                        .with(csrf())
         );
 
-        // then (결과 검증)
+        // then
         resultActions
                 .andExpect(status().isCreated()) // HTTP 상태 코드가 201 Created 인지 확인
                 .andExpect(jsonPath("$.workspaceName").value("성공 테스트 워크스페이스"));
@@ -111,8 +106,9 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 생성 실패 테스트 - 필수 필드 누락")
+    @WithMockJwtClaims(userId = 1)
     void createWorkspace_Fail_Validation_Test() throws Exception {
-        // given (테스트 준비)
+        // given
         WorkspaceRequest.CreateDTO createDTO = WorkspaceRequest.CreateDTO.builder()
                 .workspaceName("") // workspaceName을 @NotBlank 위반으로 빈 값으로 설정
                 .workspaceSubname("부이름")
@@ -128,20 +124,20 @@ class WorkspaceControllerTest {
 
         String requestBody = objectMapper.writeValueAsString(createDTO);
 
-        // when (테스트 실행)
+        // when
         ResultActions resultActions = mockMvc.perform(
                 post("/workspaces")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody)
-                        .with(csrf())
         );
 
-        // then (결과 검증)
+        // then
         resultActions.andExpect(status().isBadRequest()); // 유효성 검사 실패로 400 Bad Request가 반환되는지 확인
     }
 
     @Test
     @DisplayName("워크스페이스 목록 조회 성공 테스트")
+    @WithMockJwtClaims(userId = 1)
     void readWorkspaces_Success_Test() throws Exception {
         // given
         // 1. @BeforeEach에서 생성된 testUser의 소유로 워크스페이스 2개를 DB에 미리 저장합니다.
@@ -182,31 +178,28 @@ class WorkspaceControllerTest {
             .andExpect(jsonPath("$[1].workspaceName").value("테스트 워크스페이스2"));
     }
 
-    /*
-    [목록 조회 실패 통합 테스트를 작성하지 않는 이유]
-
-    현재 WorkspaceController의 readWorkspaces 메소드는 인증된 사용자의 ID를
-    내부적으로 Integer currentUserId = 1; 과 같이 하드코딩하여 사용하고 있으며,
-    @BeforeEach setUp 메소드는 항상 ID가 1인 사용자를 DB에 생성합니다.
-
-    따라서 통합 테스트 환경에서는 "존재하지 않는 사용자"로 조회를 시도하는
-    실패 시나리오를 의도적으로 만들어내는 것이 불가능합니다.
-
-    이 "사용자 없음" 실패 시나리오는 Service 계층의 단위 테스트
-    (WorkspaceServiceTest의 readWorkspaces_Fail_UserNotFound)에서
-    Mockito를 사용하여 완벽하게 검증되었으므로, 컨트롤러 통합 테스트에서는 생략합니다.
-
-    추후 컨트롤러가 @AuthenticationPrincipal을 통해 실제 인증된 사용자 정보를 사용하도록
-    리팩토링되면, 그 시점에 이 실패 케이스에 대한 통합 테스트를 추가할 수 있습니다.
-    */
     @Test
     @DisplayName("워크스페이스 목록 조회 실패 테스트 - 존재하지 않는 사용자")
-    void readWorkspaces_Fail_UserNotFound_Test() {
+    @WithMockJwtClaims(userId = 999) // DB에 절대 존재하지 않을 ID를 사용
+    void readWorkspaces_Fail_UserNotFound_Test() throws Exception {
+        // given
+        // 이 테스트에서는 별도의 given 데이터가 필요 없습니다.
+        // @WithMockJwtClaims가 DB에 없는 사용자(ID: 999)로
+        // 인증 정보를 설정해 줄 것이기 때문입니다.
 
+        // when
+        // 존재하지 않는 사용자로 API를 호출합니다.
+        ResultActions resultActions = mockMvc.perform(get("/workspaces"));
+
+        // then
+        // 서비스 계층에서 "해당 사용자를 찾을 수 없습니다" 예외가 발생하고,
+        // GlobalExceptionHandler에 의해 400 Bad Request가 반환되는지 확인합니다.
+        resultActions.andExpect(status().isBadRequest());
     }
 
     @Test
     @DisplayName("워크스페이스 상세 조회 성공 테스트")
+    @WithMockJwtClaims(userId = 1)
     void readWorkspaceDetail_Success_Test() throws Exception {
         // given
         // 테스트용 워크스페이스를 생성하고, testUser를 주인으로 설정한 뒤 DB에 저장합니다.
@@ -236,6 +229,7 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 상세 조회 실패 테스트 - 권한 없음")
+    @WithMockJwtClaims(userId = 1)
     void readWorkspaceDetail_Fail_Unauthorized_Test() throws Exception {
         // given
         // 내가 아닌 다른 사용자(anotherUser) 소유의 워크스페이스를 DB에 저장합니다.
