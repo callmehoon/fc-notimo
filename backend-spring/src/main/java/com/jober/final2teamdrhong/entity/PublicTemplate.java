@@ -2,6 +2,7 @@ package com.jober.final2teamdrhong.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -28,11 +29,13 @@ public class PublicTemplate extends BaseEntity {
     @Column(name = "button_title", length = 50)
     private String buttonTitle;
 
+    @Builder.Default
     @Column(name = "share_count", nullable = false)
-    private Integer shareCount;
+    private Integer shareCount = 0;
 
+    @Builder.Default
     @Column(name = "view_count", nullable = false)
-    private Integer viewCount;
+    private Integer viewCount = 0;
 
     /**
      * 조회수를 1 증가시킨다.

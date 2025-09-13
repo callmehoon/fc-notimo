@@ -1,5 +1,6 @@
 package com.jober.final2teamdrhong.dto.workspace;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.jober.final2teamdrhong.entity.Workspace;
 import lombok.Getter;
 
@@ -15,10 +16,15 @@ public class WorkspaceResponse {
      */
     @Getter
     public static class SimpleDTO {
-        private Integer workspaceId;
-        private String workspaceName;
-        private String workspaceSubname;
-        private LocalDateTime createdAt;
+        private final Integer workspaceId;
+        private final String workspaceName;
+        private final String workspaceSubname;
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
+        private final LocalDateTime createdAt;
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
+        private final LocalDateTime updatedAt;
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
+        private final LocalDateTime deletedAt; // delete 동작시 반환되는 SimpleDTO에서 삭제된 시각을 알 수 없기 때문에 삭제시간 추가
 
         /**
          * Workspace 엔티티를 SimpleDTO로 변환하는 생성자입니다.
@@ -30,6 +36,8 @@ public class WorkspaceResponse {
             this.workspaceName = workspace.getWorkspaceName();
             this.workspaceSubname = workspace.getWorkspaceSubname();
             this.createdAt = workspace.getCreatedAt();
+            this.updatedAt = workspace.getUpdatedAt();
+            this.deletedAt = workspace.getDeletedAt();
         }
     }
 
