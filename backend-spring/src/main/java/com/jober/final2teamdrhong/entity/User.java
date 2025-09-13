@@ -46,6 +46,7 @@ public class User extends BaseEntity {
         ADMIN
     }
 
+    @Builder.Default
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UserAuth> userAuths = new ArrayList<>();
 
