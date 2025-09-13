@@ -31,7 +31,7 @@ public class PublicTemplateService {
      */
     @Transactional(readOnly = true)
     public Page<PublicTemplateResponse> getTemplates(Pageable pageable) {
-        return publicTemplateRepository.findAllByIsDeletedFalse(pageable)
+        return publicTemplateRepository.findAll(pageable)
             .map(this::toResponse);
     }   
 
