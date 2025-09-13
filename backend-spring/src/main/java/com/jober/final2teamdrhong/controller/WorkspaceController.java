@@ -39,6 +39,7 @@ public class WorkspaceController {
      * 요청 본문(RequestBody)으로 받은 데이터를 사용하여 워크스페이스를 생성하며, 이 API를 호출하기 위해서는 인증이 필요합니다.
      *
      * @param createDTO 클라이언트로부터 받은 워크스페이스 생성을 위한 데이터 전송 객체 (DTO) (JSON, @Valid로 검증됨)
+     * @param jwtClaims {@link AuthenticationPrincipal}을 통해 SecurityContext에서 직접 주입받는 현재 로그인된 사용자의 JWT 정보 객체
      * @return 상태 코드 201 (Created)와 함께 생성된 워크스페이스의 간략 정보를 담은 ResponseEntity
      */
     @Operation(summary = "워크스페이스 생성", description = "새로운 워크스페이스를 생성합니다.")
