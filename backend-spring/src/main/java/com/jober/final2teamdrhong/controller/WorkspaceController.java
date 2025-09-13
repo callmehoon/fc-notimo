@@ -1,10 +1,12 @@
 package com.jober.final2teamdrhong.controller;
 
+import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
 import com.jober.final2teamdrhong.dto.workspace.WorkspaceRequest;
 import com.jober.final2teamdrhong.dto.workspace.WorkspaceResponse;
 import com.jober.final2teamdrhong.exception.ErrorResponse;
 import com.jober.final2teamdrhong.service.WorkspaceService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -15,10 +17,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 워크스페이스 관련 HTTP 요청을 처리하는 컨트롤러입니다.
@@ -65,8 +67,9 @@ public class WorkspaceController {
     /**
      * 현재 인증된 사용자가 속한 모든 워크스페이스 목록을 조회합니다.
      * <p>
-     * 별도의 파라미터 없이, 현재 세션 또는 토큰의 인증 정보를 기반으로 해당 사용자가 접근 가능한 워크스페이스의 간략한 정보 목록을 반환합니다.
+     * API 호출 시 전달된 JWT 토큰의 인증 정보를 기반으로, 해당 사용자가 접근 가능한 워크스페이스의 간략한 정보 목록을 반환합니다.
      *
+     * @param jwtClaims {@link AuthenticationPrincipal}을 통해 SecurityContext에서 직접 주입받는 현재 로그인된 사용자의 JWT 정보 객체
      * @return 상태 코드 200 (OK)와 함께 조회된 워크스페이스 간략 정보(SimpleDTO) 리스트를 담은 ResponseEntity
      */
     @Operation(summary = "워크스페이스 목록 조회", description = "현재 로그인된 사용자가 접근 가능한 모든 워크스페이스의 목록을 조회합니다.")
@@ -83,12 +86,11 @@ public class WorkspaceController {
     })
     @SecurityRequirement(name = "bearerAuth")
     @GetMapping
-    public ResponseEntity<List<WorkspaceResponse.SimpleDTO>> readWorkspaces() {
-        // TODO: Spring Security 도입 후, @AuthenticationPrincipal 등을 통해 실제 사용자 정보 획득 필요
-        Integer currentUserId = 1;
+    public ResponseEntity<List<WorkspaceResponse.SimpleDTO>> readWorkspaces(@AuthenticationPrincipal JwtClaims jwtClaims) {
+        Integer currentUserId = jwtClaims.getUserId();
         List<WorkspaceResponse.SimpleDTO> workspaceList = workspaceService.readWorkspaces(currentUserId);
 
-        return ResponseEntity.ok(workspaceList);
+        return ResponseEntity.status(HttpStatus.OK).body(workspaceList);
     }
 
     /**
@@ -98,6 +100,7 @@ public class WorkspaceController {
      * 요청한 사용자가 해당 워크스페이스에 접근 권한이 있는지 확인하는 인가 과정이 포함됩니다.
      *
      * @param workspaceId 조회할 워크스페이스의 ID
+     * @param jwtClaims {@link AuthenticationPrincipal}을 통해 SecurityContext에서 직접 주입받는 현재 로그인된 사용자의 JWT 정보 객체
      * @return 상태 코드 200 (OK)와 함께 조회된 워크스페이스 상세 정보(DetailDTO)를 담은 ResponseEntity
      */
     @Operation(summary = "워크스페이스 상세 조회", description = "특정 워크스페이스의 상세 정보를 조회합니다.")
@@ -114,11 +117,11 @@ public class WorkspaceController {
     })
     @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/{workspaceId}")
-    public ResponseEntity<WorkspaceResponse.DetailDTO> readWorkspaceDetail(@PathVariable Integer workspaceId) {
-        // TODO: Spring Security 도입 후, @AuthenticationPrincipal 등을 통해 실제 사용자 정보 획득 필요
-        Integer currentUserId = 1;
+    public ResponseEntity<WorkspaceResponse.DetailDTO> readWorkspaceDetail(@PathVariable Integer workspaceId,
+                                                                           @AuthenticationPrincipal JwtClaims jwtClaims) {
+        Integer currentUserId = jwtClaims.getUserId();
         WorkspaceResponse.DetailDTO workspaceDetail = workspaceService.readWorkspaceDetail(workspaceId, currentUserId);
 
-        return ResponseEntity.ok(workspaceDetail);
+        return ResponseEntity.status(HttpStatus.OK).body(workspaceDetail);
     }
 }
