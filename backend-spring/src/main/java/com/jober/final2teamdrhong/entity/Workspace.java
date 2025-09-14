@@ -58,9 +58,11 @@ public class Workspace extends BaseEntity {
     @Column(name = "company_register_number")
     private String companyRegisterNumber;
 
+    @Builder.Default
     @OneToMany(mappedBy = "workspace", fetch = FetchType.LAZY)
     private List<PhoneBook> phoneBooks = new ArrayList<>();
 
+    @Builder.Default
     @OneToMany(mappedBy = "workspace", fetch = FetchType.LAZY)
     private List<Recipient> recipients = new ArrayList<>();
 
