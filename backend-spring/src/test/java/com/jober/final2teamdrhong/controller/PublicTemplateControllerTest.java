@@ -9,20 +9,24 @@ import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Assertions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.mapping.context.MappingContext;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplateResponse;
 import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplateCreateRequest;
 import com.jober.final2teamdrhong.service.PublicTemplateService;
+import org.mockito.ArgumentCaptor;
+import com.jober.final2teamdrhong.filter.JwtAuthenticationFilter;
 
 @WebMvcTest(PublicTemplateController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -31,8 +35,14 @@ class PublicTemplateControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private PublicTemplateService publicTemplateService;
+
+    @MockitoBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @MockitoBean(name = "jpaMappingContext")
+    private MappingContext<?, ?> jpaMappingContext;
 
     @Test
     @DisplayName("기본 파라미터로 템플릿 조회 - 최신순 정렬")
@@ -56,7 +66,13 @@ class PublicTemplateControllerTest {
                 .andExpect(jsonPath("$.totalElements").value(2))
                 .andExpect(jsonPath("$.totalPages").value(1));
 
-        verify(publicTemplateService, times(1)).getTemplates(any(Pageable.class));
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(publicTemplateService, times(1)).getTemplates(pageableCaptor.capture());
+        Pageable pageable = pageableCaptor.getValue();
+        Assertions.assertEquals(0, pageable.getPageNumber());
+        Assertions.assertEquals(10, pageable.getPageSize());
+        Assertions.assertNotNull(pageable.getSort().getOrderFor("createdAt"));
+        Assertions.assertTrue(pageable.getSort().getOrderFor("createdAt").isDescending());
     }
 
     @Test
@@ -81,7 +97,13 @@ class PublicTemplateControllerTest {
                 .andExpect(jsonPath("$.content[0].publicTemplateTitle").value("높은공유템플릿"))
                 .andExpect(jsonPath("$.content[1].publicTemplateTitle").value("낮은공유템플릿"));
 
-        verify(publicTemplateService, times(1)).getTemplates(any(Pageable.class));
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(publicTemplateService, times(1)).getTemplates(pageableCaptor.capture());
+        Pageable pageable = pageableCaptor.getValue();
+        Assertions.assertEquals(0, pageable.getPageNumber());
+        Assertions.assertEquals(10, pageable.getPageSize());
+        Assertions.assertNotNull(pageable.getSort().getOrderFor("shareCount"));
+        Assertions.assertTrue(pageable.getSort().getOrderFor("shareCount").isDescending());
     }
 
     @Test
@@ -106,7 +128,13 @@ class PublicTemplateControllerTest {
                 .andExpect(jsonPath("$.content[0].publicTemplateTitle").value("높은조회템플릿"))
                 .andExpect(jsonPath("$.content[1].publicTemplateTitle").value("낮은조회템플릿"));
 
-        verify(publicTemplateService, times(1)).getTemplates(any(Pageable.class));
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(publicTemplateService, times(1)).getTemplates(pageableCaptor.capture());
+        Pageable pageable = pageableCaptor.getValue();
+        Assertions.assertEquals(0, pageable.getPageNumber());
+        Assertions.assertEquals(10, pageable.getPageSize());
+        Assertions.assertNotNull(pageable.getSort().getOrderFor("viewCount"));
+        Assertions.assertTrue(pageable.getSort().getOrderFor("viewCount").isDescending());
     }
 
     @Test
@@ -131,7 +159,13 @@ class PublicTemplateControllerTest {
                 .andExpect(jsonPath("$.content[0].publicTemplateTitle").value("가나다"))
                 .andExpect(jsonPath("$.content[1].publicTemplateTitle").value("나다라"));
 
-        verify(publicTemplateService, times(1)).getTemplates(any(Pageable.class));
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(publicTemplateService, times(1)).getTemplates(pageableCaptor.capture());
+        Pageable pageable = pageableCaptor.getValue();
+        Assertions.assertEquals(0, pageable.getPageNumber());
+        Assertions.assertEquals(10, pageable.getPageSize());
+        Assertions.assertNotNull(pageable.getSort().getOrderFor("publicTemplateTitle"));
+        Assertions.assertTrue(pageable.getSort().getOrderFor("publicTemplateTitle").isAscending());
     }
 
     @Test
@@ -157,7 +191,13 @@ class PublicTemplateControllerTest {
                 .andExpect(jsonPath("$.number").value(1))
                 .andExpect(jsonPath("$.size").value(2));
 
-        verify(publicTemplateService, times(1)).getTemplates(any(Pageable.class));
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(publicTemplateService, times(1)).getTemplates(pageableCaptor.capture());
+        Pageable pageable = pageableCaptor.getValue();
+        Assertions.assertEquals(1, pageable.getPageNumber());
+        Assertions.assertEquals(2, pageable.getPageSize());
+        Assertions.assertNotNull(pageable.getSort().getOrderFor("createdAt"));
+        Assertions.assertTrue(pageable.getSort().getOrderFor("createdAt").isDescending());
     }
 
     @Test
@@ -226,7 +266,13 @@ class PublicTemplateControllerTest {
                 .andExpect(jsonPath("$.totalElements").value(0))
                 .andExpect(jsonPath("$.totalPages").value(0));
 
-        verify(publicTemplateService, times(1)).getTemplates(any(Pageable.class));
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(publicTemplateService, times(1)).getTemplates(pageableCaptor.capture());
+        Pageable pageable = pageableCaptor.getValue();
+        Assertions.assertEquals(0, pageable.getPageNumber());
+        Assertions.assertEquals(10, pageable.getPageSize());
+        Assertions.assertNotNull(pageable.getSort().getOrderFor("createdAt"));
+        Assertions.assertTrue(pageable.getSort().getOrderFor("createdAt").isDescending());
     }
 
     private PublicTemplateResponse createMockResponse(Integer id, String title, String content) {
@@ -243,7 +289,6 @@ class PublicTemplateControllerTest {
     void createPublicTemplate_Success_ReturnsCreated() throws Exception {
         // given
         Integer individualTemplateId = 10;
-        PublicTemplateCreateRequest request = new PublicTemplateCreateRequest(individualTemplateId);
         PublicTemplateResponse response = new PublicTemplateResponse(1, "제목", "내용", "버튼");
 
         when(publicTemplateService.createPublicTemplate(any(PublicTemplateCreateRequest.class)))
@@ -259,7 +304,10 @@ class PublicTemplateControllerTest {
                 .andExpect(jsonPath("$.publicTemplateContent").value("내용"))
                 .andExpect(jsonPath("$.buttonTitle").value("버튼"));
 
-        verify(publicTemplateService, times(1)).createPublicTemplate(any(PublicTemplateCreateRequest.class));
+        ArgumentCaptor<PublicTemplateCreateRequest> requestCaptor = ArgumentCaptor.forClass(PublicTemplateCreateRequest.class);
+        verify(publicTemplateService, times(1)).createPublicTemplate(requestCaptor.capture());
+        PublicTemplateCreateRequest captured = requestCaptor.getValue();
+        Assertions.assertEquals(individualTemplateId, captured.individualTemplateId());
     }
 
     @Test
