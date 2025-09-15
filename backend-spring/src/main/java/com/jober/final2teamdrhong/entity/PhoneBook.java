@@ -2,11 +2,9 @@ package com.jober.final2teamdrhong.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.SQLRestriction;
-import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,39 +13,29 @@ import java.util.List;
 @Getter
 @Setter
 @ToString(exclude = {"workspace", "groupMappings"})
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@SuperBuilder
 @SQLRestriction("is_deleted = false")
-public class PhoneBook {
+public class PhoneBook extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "phone_book_id", nullable = false) // PK
     private Integer phoneBookId;
 
+    @NonNull
     @Column(name = "phone_book_name", nullable = false)
     private String phoneBookName;
 
     @Column(name = "phone_book_memo", length = 1000)
     private String phoneBookMemo;
 
-    @CreationTimestamp
-    @Column(name = "created_at", columnDefinition = "DATETIME", nullable = false)
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", columnDefinition = "DATETIME", nullable = false)
-    private LocalDateTime updatedAt;
-
-    @Column(name = "deleted_at", columnDefinition = "DATETIME")
-    private LocalDateTime deletedAt;
-
-    @Column(name = "is_deleted", nullable = false)
-    private boolean isDeleted;
-
+    @NonNull
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "workspace_id", nullable = false) // FK
     private Workspace workspace;
 
+    @Builder.Default
     @OneToMany(mappedBy = "phoneBook", fetch = FetchType.LAZY)
     private List<GroupMapping> groupMappings = new ArrayList<>();
 
@@ -58,14 +46,5 @@ public class PhoneBook {
     public void addGroupMapping(GroupMapping groupMapping) {
         this.groupMappings.add(groupMapping);
         groupMapping.setPhoneBook(this);
-    }
-
-    @Builder
-    public PhoneBook(@NonNull String phoneBookName,
-                     String phoneBookMemo,
-                     @NonNull Workspace workspace) {
-        this.phoneBookName = phoneBookName;
-        this.phoneBookMemo = phoneBookMemo;
-        this.workspace = workspace;
     }
 }
