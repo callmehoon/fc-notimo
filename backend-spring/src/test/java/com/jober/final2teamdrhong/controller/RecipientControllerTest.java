@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.hamcrest.Matchers.*;
@@ -249,6 +250,7 @@ class RecipientControllerTest {
 
     @Test
     @DisplayName("수신자 정보 수정 성공 테스트")
+    @WithMockJwtClaims(userId = 1)
     void updateRecipient_Success_Test() throws Exception {
         // given
         // 1. DB에 수정 대상이 될 원본 수신자 데이터를 미리 저장합니다.
@@ -277,7 +279,6 @@ class RecipientControllerTest {
                         savedRecipient.getRecipientId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody)
-                        .with(csrf())
         );
 
         // then
@@ -297,6 +298,7 @@ class RecipientControllerTest {
 
     @Test
     @DisplayName("수신자 정보 수정 실패 테스트 - 필수 필드 누락")
+    @WithMockJwtClaims(userId = 1)
     void updateRecipient_Fail_Validation_Test() throws Exception {
         // given
         // 1. DB에 수정 대상 데이터를 미리 저장합니다.
@@ -321,7 +323,6 @@ class RecipientControllerTest {
                         savedRecipient.getRecipientId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody)
-                        .with(csrf())
         );
 
         // then
