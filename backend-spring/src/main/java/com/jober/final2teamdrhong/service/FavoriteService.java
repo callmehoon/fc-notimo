@@ -31,16 +31,16 @@ public class FavoriteService {
      */
     @Transactional
     public void createIndividualTemplateFavorite(IndividualTemplateFavoriteRequest request) {
-        Workspace workspace = workspaceRepository.findById(request.getWorkspaceId())
-                .orElseThrow(() -> new IllegalArgumentException("해당 워크스페이스를 찾을 수 없습니다."));
+        Workspace workspace = workspaceRepository.findByIdOrThrow(request.getWorkspaceId());
 
-        IndividualTemplate individualTemplate = individualTemplateRepository.findById(request.getIndividualTemplateId())
-                .orElseThrow(() -> new IllegalArgumentException("해당 개인 템플릿을 찾을 수 없습니다."));
+        IndividualTemplate individualTemplate = individualTemplateRepository.findByIdOrThrow(request.getIndividualTemplateId());
 
-        favoriteRepository.findByWorkspaceAndIndividualTemplate(workspace, individualTemplate)
-                .ifPresent(f -> {throw new IllegalArgumentException("이미 즐겨찾기된 개인 템플릿입니다.");});
+        favoriteRepository.validateIndividualTemplateNotExists(workspace, individualTemplate);
 
-        Favorite favorite = new Favorite(workspace, null, individualTemplate);
+        Favorite favorite = Favorite.builder()
+                .workspace(workspace)
+                .individualTemplate(individualTemplate)
+                .build();
         favoriteRepository.save(favorite);
     }
 
@@ -51,16 +51,16 @@ public class FavoriteService {
      */
     @Transactional
     public void createPublicTemplateFavorite(PublicTemplateFavoriteRequest request) {
-        Workspace workspace = workspaceRepository.findById(request.getWorkspaceId())
-                .orElseThrow(() -> new IllegalArgumentException("해당 워크스페이스를 찾을 수 없습니다."));
+        Workspace workspace = workspaceRepository.findByIdOrThrow(request.getWorkspaceId());
 
-        PublicTemplate publicTemplate = publicTemplateRepository.findById(request.getPublicTemplateId())
-                .orElseThrow(() -> new IllegalArgumentException("해당 공용 템플릿을 찾을 수 없습니다."));
+        PublicTemplate publicTemplate = publicTemplateRepository.findByIdOrThrow(request.getPublicTemplateId());
 
-        favoriteRepository.findByWorkspaceAndPublicTemplate(workspace, publicTemplate)
-                .ifPresent(f -> {throw new IllegalArgumentException("이미 즐겨찾기된 공용 템플릿입니다.");});
+        favoriteRepository.validatePublicTemplateNotExists(workspace, publicTemplate);
 
-        Favorite favorite = new Favorite(workspace, publicTemplate, null);
+        Favorite favorite = Favorite.builder()
+                .workspace(workspace)
+                .publicTemplate(publicTemplate)
+                .build();
         favoriteRepository.save(favorite);
     }
 
