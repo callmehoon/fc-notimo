@@ -56,6 +56,7 @@ class WorkspaceControllerTest {
         // 기존 데이터 완전 삭제 및 H2 시퀀스 리셋
         workspaceRepository.deleteAll();
         userRepository.deleteAll();
+        jdbcTemplate.execute("ALTER TABLE workspace ALTER COLUMN workspace_id RESTART WITH 1");
         jdbcTemplate.execute("ALTER TABLE users ALTER COLUMN users_id RESTART WITH 1");
 
         // 이제 testUser가 ID=1로 생성됨 (컨트롤러의 하드코딩된 userId=1과 일치)
