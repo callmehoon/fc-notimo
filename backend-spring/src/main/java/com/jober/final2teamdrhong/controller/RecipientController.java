@@ -148,6 +148,7 @@ public class RecipientController {
      *
      * @param workspaceId 삭제할 수신자가 속한 워크스페이스의 ID
      * @param recipientId 삭제할 수신자의 ID
+     * @param jwtClaims {@link AuthenticationPrincipal}을 통해 SecurityContext에서 직접 주입받는 현재 로그인된 사용자의 JWT 정보 객체
      * @return 상태 코드 200 (OK)와 함께 삭제 처리된 수신자의 정보를 담은 ResponseEntity
      */
     @Operation(summary = "수신자 삭제", description = "특정 워크스페이스에 속한 수신자를 삭제합니다.")
@@ -166,11 +167,11 @@ public class RecipientController {
     @SecurityRequirement(name = "bearerAuth")
     @DeleteMapping("/{recipientId}")
     public ResponseEntity<RecipientResponse.SimpleDTO> deleteRecipient(@PathVariable Integer workspaceId,
-                                                                       @PathVariable Integer recipientId) {
-        // TODO: Spring Security 도입 후, @AuthenticationPrincipal 등을 통해 실제 사용자 정보 획득 필요
-        Integer currentUserId = 1;
+                                                                       @PathVariable Integer recipientId,
+                                                                       @AuthenticationPrincipal JwtClaims jwtClaims) {
+        Integer currentUserId = jwtClaims.getUserId();
         RecipientResponse.SimpleDTO deletedRecipient = recipientService.deleteRecipient(workspaceId, recipientId, currentUserId);
 
-        return ResponseEntity.ok(deletedRecipient);
+        return ResponseEntity.status(HttpStatus.OK).body(deletedRecipient);
     }
 }
