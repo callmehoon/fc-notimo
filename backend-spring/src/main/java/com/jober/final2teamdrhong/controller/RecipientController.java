@@ -113,6 +113,7 @@ public class RecipientController {
      * @param updateDTO   수신자 수정을 위한 데이터 (JSON, @Valid로 검증됨)
      * @param workspaceId 수정할 수신자가 속한 워크스페이스의 ID
      * @param recipientId 수정할 수신자의 ID
+     * @param jwtClaims {@link AuthenticationPrincipal}을 통해 SecurityContext에서 직접 주입받는 현재 로그인된 사용자의 JWT 정보 객체
      * @return 상태 코드 200 (OK)와 함께 수정된 수신자의 정보를 담은 ResponseEntity
      */
     @Operation(summary = "수신자 정보 수정", description = "특정 수신자의 이름, 연락처, 메모를 수정합니다.")
@@ -131,9 +132,9 @@ public class RecipientController {
     @PutMapping("/{recipientId}")
     public ResponseEntity<RecipientResponse.SimpleDTO> updateRecipient(@Valid @RequestBody RecipientRequest.UpdateDTO updateDTO,
                                                                        @PathVariable Integer workspaceId,
-                                                                       @PathVariable Integer recipientId) {
-        // TODO: Spring Security 도입 후, @AuthenticationPrincipal 등을 통해 실제 사용자 정보 획득 필요
-        Integer currentUserId = 1;
+                                                                       @PathVariable Integer recipientId,
+                                                                       @AuthenticationPrincipal JwtClaims jwtClaims) {
+        Integer currentUserId = jwtClaims.getUserId();
         RecipientResponse.SimpleDTO updatedRecipient = recipientService.updateRecipient(updateDTO, workspaceId, recipientId, currentUserId);
 
         return ResponseEntity.status(HttpStatus.OK).body(updatedRecipient);
