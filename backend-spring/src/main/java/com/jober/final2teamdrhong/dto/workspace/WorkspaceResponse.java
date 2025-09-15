@@ -1,6 +1,8 @@
 package com.jober.final2teamdrhong.dto.workspace;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.jober.final2teamdrhong.entity.Workspace;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
