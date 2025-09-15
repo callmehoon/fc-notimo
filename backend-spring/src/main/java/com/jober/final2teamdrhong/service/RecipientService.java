@@ -5,7 +5,8 @@ import com.jober.final2teamdrhong.dto.recipient.RecipientResponse;
 import com.jober.final2teamdrhong.entity.Recipient;
 import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.RecipientRepository;
-import com.jober.final2teamdrhong.repository.WorkspaceRepository;
+import com.jober.final2teamdrhong.service.validator.RecipientValidator;
+import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,7 +24,8 @@ import java.time.LocalDateTime;
 public class RecipientService {
 
     private final RecipientRepository recipientRepository;
-    private final WorkspaceRepository workspaceRepository;
+    private final RecipientValidator recipientValidator;
+    private final WorkspaceValidator workspaceValidator;
 
     /**
      * 특정 워크스페이스에 새로운 수신자를 생성합니다.
@@ -37,8 +39,7 @@ public class RecipientService {
     @Transactional
     public RecipientResponse.SimpleDTO createRecipient(RecipientRequest.CreateDTO createDTO, Integer workspaceId, Integer userId) {
         // 1. 인가(Authorization): 요청한 사용자가 워크스페이스에 접근 권한이 있는지 확인합니다.
-        Workspace workspace = workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + workspaceId));
+        Workspace workspace = workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
 
         // 2. 엔티티 생성: DTO의 데이터를 기반으로 Recipient 엔티티를 생성합니다.
         Recipient recipient = Recipient.builder()
@@ -67,8 +68,7 @@ public class RecipientService {
      * @throws IllegalArgumentException 해당 워크스페이스가 존재하지 않거나, 사용자가 접근 권한이 없을 경우 발생
      */
     public Page<RecipientResponse.SimpleDTO> readRecipients(Integer workspaceId, Integer userId, Pageable pageable) {
-        workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + workspaceId));
+        workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
 
         Page<Recipient> recipientPage = recipientRepository.findAllByWorkspace_WorkspaceId(workspaceId, pageable);
 
@@ -98,18 +98,16 @@ public class RecipientService {
     public RecipientResponse.SimpleDTO updateRecipient(RecipientRequest.UpdateDTO updateDTO,
                                                        Integer workspaceId, Integer recipientId, Integer userId) {
         // 1. 워크스페이스 접근 권한 확인
-        workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + workspaceId));
+        workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
 
         // 2. 수신자 조회 (워크스페이스 소속인지 함께 검증)
-        Recipient existingRecipient = recipientRepository.findByRecipientIdAndWorkspace_WorkspaceId(recipientId, workspaceId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 워크스페이스에 존재하지 않는 수신자입니다. ID: " + recipientId));
+        Recipient existingRecipient = recipientValidator.validateAndGetRecipient(workspaceId, recipientId);
 
         // 3. 정보 업데이트
         existingRecipient.setRecipientName(updateDTO.getNewRecipientName());
         existingRecipient.setRecipientPhoneNumber(updateDTO.getNewRecipientPhoneNumber());
         existingRecipient.setRecipientMemo(updateDTO.getNewRecipientMemo());
-        existingRecipient.setUpdatedAt(LocalDateTime.now());
+        existingRecipient.update();
 
         return new RecipientResponse.SimpleDTO(existingRecipient);
     }
@@ -132,17 +130,13 @@ public class RecipientService {
     @Transactional
     public RecipientResponse.SimpleDTO deleteRecipient(Integer workspaceId, Integer recipientId, Integer userId) {
         // 1. 워크스페이스 접근 권한 확인
-        workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + workspaceId));
+        workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
 
         // 2. 수신자 조회 (워크스페이스 소속인지 함께 검증)
-        Recipient existingRecipient = recipientRepository.findByRecipientIdAndWorkspace_WorkspaceId(recipientId, workspaceId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 워크스페이스에 존재하지 않는 수신자입니다. ID: " + recipientId));
+        Recipient existingRecipient = recipientValidator.validateAndGetRecipient(workspaceId, recipientId);
 
         // 3. 소프트 딜리트 처리
-        existingRecipient.setDeleted(true);
-        existingRecipient.setUpdatedAt(LocalDateTime.now());
-        existingRecipient.setDeletedAt(LocalDateTime.now());
+        existingRecipient.softDelete();
 
         return new RecipientResponse.SimpleDTO(existingRecipient);
     }
