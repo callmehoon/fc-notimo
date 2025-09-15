@@ -74,6 +74,7 @@ public class RecipientController {
      *
      * @param workspaceId 수신자 목록을 조회할 워크스페이스의 ID
      * @param pageable    페이지 번호, 페이지 크기, 정렬 방법을 담은 객체
+     * @param jwtClaims {@link AuthenticationPrincipal}을 통해 SecurityContext에서 직접 주입받는 현재 로그인된 사용자의 JWT 정보 객체
      * @return 상태 코드 200 (OK)와 함께 페이징된 수신자 목록 정보를 담은 ResponseEntity
      */
     @Operation(summary = "수신자 목록 페이징 조회", description = "특정 워크스페이스에 속한 모든 수신자 목록을 페이징하여 조회합니다. " +
@@ -95,11 +96,11 @@ public class RecipientController {
                                                                             @PageableDefault(size = 50,
                                                                                     sort = "createdAt",
                                                                                     direction = Sort.Direction.DESC)
-                                                                            Pageable pageable) {
-        // TODO: Spring Security 도입 후, @AuthenticationPrincipal 등을 통해 실제 사용자 정보 획득 필요
-        Integer currentUserId = 1;
+                                                                            Pageable pageable,
+                                                                            @AuthenticationPrincipal JwtClaims jwtClaims) {
+        Integer currentUserId = jwtClaims.getUserId();
         Page<RecipientResponse.SimpleDTO> recipientPage = recipientService.readRecipients(workspaceId, currentUserId, pageable);
 
-        return ResponseEntity.ok(recipientPage);
+        return ResponseEntity.status(HttpStatus.OK).body(recipientPage);
     }
 }
