@@ -5,7 +5,7 @@ import com.jober.final2teamdrhong.dto.recipient.RecipientResponse;
 import com.jober.final2teamdrhong.entity.Recipient;
 import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.RecipientRepository;
-import com.jober.final2teamdrhong.repository.WorkspaceRepository;
+import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class RecipientService {
 
     private final RecipientRepository recipientRepository;
-    private final WorkspaceRepository workspaceRepository;
+    private final WorkspaceValidator workspaceValidator;
 
     /**
      * 특정 워크스페이스에 새로운 수신자를 생성합니다.
@@ -35,8 +35,7 @@ public class RecipientService {
     @Transactional
     public RecipientResponse.SimpleDTO createRecipient(RecipientRequest.CreateDTO createDTO, Integer workspaceId, Integer userId) {
         // 1. 인가(Authorization): 요청한 사용자가 워크스페이스에 접근 권한이 있는지 확인합니다.
-        Workspace workspace = workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + workspaceId));
+        Workspace workspace = workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
 
         // 2. 엔티티 생성: DTO의 데이터를 기반으로 Recipient 엔티티를 생성합니다.
         Recipient recipient = Recipient.builder()

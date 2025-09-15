@@ -1,6 +1,8 @@
 package com.jober.final2teamdrhong.dto.recipient;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.jober.final2teamdrhong.entity.Recipient;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
@@ -14,14 +16,18 @@ public class RecipientResponse {
      * 수신자의 기본 정보 응답을 위한 DTO
      */
     @Getter
+    @Schema(name = "RecipientSimpleDTO")
     public static class SimpleDTO {
-        private Integer recipientId;
-        private String recipientName;
-        private String recipientPhoneNumber;
-        private String recipientMemo;
-        private LocalDateTime createdAt;
-        private LocalDateTime updatedAt;
-        private LocalDateTime deletedAt;
+        private final Integer recipientId;
+        private final String recipientName;
+        private final String recipientPhoneNumber;
+        private final String recipientMemo;
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
+        private final LocalDateTime createdAt;
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
+        private final LocalDateTime updatedAt;
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
+        private final LocalDateTime deletedAt;
 
         /**
          * Recipient 엔티티를 SimpleDTO로 변환하는 생성자입니다.
