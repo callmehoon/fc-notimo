@@ -13,6 +13,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 /**
  * 수신자(Recipient) 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
  */
@@ -128,17 +130,13 @@ public class RecipientService {
     @Transactional
     public RecipientResponse.SimpleDTO deleteRecipient(Integer workspaceId, Integer recipientId, Integer userId) {
         // 1. 워크스페이스 접근 권한 확인
-        workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + workspaceId));
+        workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
 
         // 2. 수신자 조회 (워크스페이스 소속인지 함께 검증)
-        Recipient existingRecipient = recipientRepository.findByRecipientIdAndWorkspace_WorkspaceId(recipientId, workspaceId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 워크스페이스에 존재하지 않는 수신자입니다. ID: " + recipientId));
+        Recipient existingRecipient = recipientValidator.validateAndGetRecipient(workspaceId, recipientId);
 
         // 3. 소프트 딜리트 처리
-        existingRecipient.setDeleted(true);
-        existingRecipient.setUpdatedAt(LocalDateTime.now());
-        existingRecipient.setDeletedAt(LocalDateTime.now());
+        existingRecipient.softDelete();
 
         return new RecipientResponse.SimpleDTO(existingRecipient);
     }
