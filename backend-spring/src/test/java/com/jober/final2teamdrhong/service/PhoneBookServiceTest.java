@@ -5,15 +5,14 @@ import com.jober.final2teamdrhong.dto.phonebook.PhoneBookResponse;
 import com.jober.final2teamdrhong.entity.PhoneBook;
 import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.PhoneBookRepository;
-import com.jober.final2teamdrhong.repository.WorkspaceRepository;
+import com.jober.final2teamdrhong.service.validator.PhoneBookValidator;
+import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -26,7 +25,10 @@ class PhoneBookServiceTest {
     private PhoneBookRepository phoneBookRepository;
 
     @Mock
-    private WorkspaceRepository workspaceRepository;
+    private WorkspaceValidator workspaceValidator;
+
+    @Mock
+    private PhoneBookValidator phoneBookValidator;
 
     @InjectMocks
     private PhoneBookService phoneBookService;
@@ -45,17 +47,17 @@ class PhoneBookServiceTest {
 
         // 2. Mock 객체들을 준비합니다.
         Workspace mockWorkspace = mock(Workspace.class);
-        // PhoneBook은 실제 객체를 사용하여 DTO 변환을 테스트합니다.
         PhoneBook phoneBookToSave = PhoneBook.builder()
+                .phoneBookId(1) // DTO 변환을 위해 ID 설정
                 .phoneBookName(createDTO.getPhoneBookName())
                 .phoneBookMemo(createDTO.getPhoneBookMemo())
                 .workspace(mockWorkspace)
                 .build();
 
         // 3. Mockito 행동 정의
-        //    - findByWorkspaceIdAndUser_UserId 호출 시, mockWorkspace를 반환하여 권한 검증을 통과시킵니다.
-        when(workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId))
-                .thenReturn(Optional.of(mockWorkspace));
+        //    - workspaceValidator.validateAndGetWorkspace 호출 시, mockWorkspace를 반환하여 권한 검증을 통과시킵니다.
+        when(workspaceValidator.validateAndGetWorkspace(workspaceId, userId))
+                .thenReturn(mockWorkspace);
         //    - phoneBookRepository.save 호출 시, 저장된 것처럼 phoneBookToSave 객체를 반환합니다.
         when(phoneBookRepository.save(any(PhoneBook.class))).thenReturn(phoneBookToSave);
 
@@ -66,11 +68,12 @@ class PhoneBookServiceTest {
         // then
         // 1. 반환된 DTO가 null이 아닌지, 그리고 필드 값들이 요청한 데이터와 일치하는지 검증합니다.
         assertNotNull(result);
+        assertEquals(1, result.getPhoneBookId());
         assertEquals("테스트 주소록", result.getPhoneBookName());
         assertEquals("테스트 메모입니다.", result.getPhoneBookMemo());
 
-        // 2. Repository의 find와 save 메소드가 각각 정확히 1번씩 호출되었는지 검증합니다.
-        verify(workspaceRepository, times(1)).findByWorkspaceIdAndUser_UserId(workspaceId, userId);
+        // 2. Validator와 Repository의 메소드가 각각 정확히 1번씩 호출되었는지 검증합니다.
+        verify(workspaceValidator, times(1)).validateAndGetWorkspace(workspaceId, userId);
         verify(phoneBookRepository, times(1)).save(any(PhoneBook.class));
     }
 
@@ -83,10 +86,9 @@ class PhoneBookServiceTest {
         Integer unauthorizedWorkspaceId = 999;
         PhoneBookRequest.CreateDTO createDTO = new PhoneBookRequest.CreateDTO();
 
-        // 2. Mockito 행동 정의: Repository가 이 ID로 조회 시 "결과 없음"을 의미하는
-        //    비어있는 Optional을 반환하도록 설정합니다.
-        when(workspaceRepository.findByWorkspaceIdAndUser_UserId(unauthorizedWorkspaceId, userId))
-                .thenReturn(Optional.empty());
+        // 2. Mockito 행동 정의: workspaceValidator가 예외를 던지도록 설정합니다.
+        when(workspaceValidator.validateAndGetWorkspace(unauthorizedWorkspaceId, userId))
+                .thenThrow(new IllegalArgumentException("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + unauthorizedWorkspaceId));
 
         // when
         // 서비스 메소드를 호출했을 때 특정 예외가 발생하는지 검증합니다.
