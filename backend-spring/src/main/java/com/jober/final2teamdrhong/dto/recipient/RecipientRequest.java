@@ -37,6 +37,7 @@ public class RecipientRequest {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    @Schema(name = "RecipientUpdateDTO")
     public static class UpdateDTO {
         @NotBlank(message = "수신인 이름은 필수 입력 항목입니다.")
         @Length(min = 2, max = 10, message = "수신인 이름은 2자 이상 10자 이하로 입력해주세요.")
