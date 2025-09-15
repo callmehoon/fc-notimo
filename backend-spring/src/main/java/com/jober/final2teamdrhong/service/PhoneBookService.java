@@ -5,8 +5,8 @@ import com.jober.final2teamdrhong.dto.phonebook.PhoneBookResponse;
 import com.jober.final2teamdrhong.entity.PhoneBook;
 import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.PhoneBookRepository;
-import com.jober.final2teamdrhong.repository.UserRepository;
-import com.jober.final2teamdrhong.repository.WorkspaceRepository;
+import com.jober.final2teamdrhong.service.validator.PhoneBookValidator;
+import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,7 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class PhoneBookService {
 
     private final PhoneBookRepository phoneBookRepository;
-    private final WorkspaceRepository workspaceRepository;
+    private final PhoneBookValidator phoneBookValidator;
+    private final WorkspaceValidator workspaceValidator;
 
     /**
      * 특정 워크스페이스에 새로운 주소록을 생성합니다.
@@ -34,8 +35,7 @@ public class PhoneBookService {
     @Transactional
     public PhoneBookResponse.SimpleDTO createPhoneBook(PhoneBookRequest.CreateDTO createDTO, Integer workspaceId, Integer userId) {
         // 1. 인가(Authorization): 요청한 사용자가 워크스페이스에 접근 권한이 있는지 확인합니다.
-        Workspace workspace = workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + workspaceId));
+        Workspace workspace = workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
 
         // 2. 엔티티 생성: DTO의 데이터를 기반으로 PhoneBook 엔티티를 생성합니다.
         PhoneBook phoneBook = PhoneBook.builder()
