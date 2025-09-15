@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -167,9 +168,7 @@ public class WorkspaceService {
                 .orElseThrow(() -> new IllegalArgumentException("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + workspaceId));
 
         // 2. 소프트 딜리트 처리
-        existingWorkspace.setDeleted(true);
-        existingWorkspace.setUpdatedAt(LocalDateTime.now());
-        existingWorkspace.setDeletedAt(LocalDateTime.now());
+        existingWorkspace.softDelete();
 
         return new WorkspaceResponse.SimpleDTO(existingWorkspace);
     }
