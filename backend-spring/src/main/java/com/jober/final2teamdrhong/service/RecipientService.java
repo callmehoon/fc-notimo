@@ -13,8 +13,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-
 /**
  * 수신자(Recipient) 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
  */
