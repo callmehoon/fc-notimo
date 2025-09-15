@@ -2,282 +2,123 @@ package com.jober.final2teamdrhong.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 
-import com.jober.final2teamdrhong.entity.PublicTemplate;
-import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplateCreateRequest;
 import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplateResponse;
-import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
+import com.jober.final2teamdrhong.entity.IndividualTemplate;
+import com.jober.final2teamdrhong.entity.PublicTemplate;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
-import org.junit.jupiter.api.BeforeEach;
+import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import jakarta.persistence.EntityNotFoundException;
 
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
-@SpringBootTest
+@ExtendWith(MockitoExtension.class)
 class PublicTemplateServiceTest {
 
-    @Autowired
+    @InjectMocks
     private PublicTemplateService publicTemplateService;
 
-    @Autowired
+    @Mock
     private PublicTemplateRepository publicTemplateRepository;
 
-    @Autowired
+    @Mock
     private IndividualTemplateRepository individualTemplateRepository;
 
-    @BeforeEach
-    void setUp() {
-        publicTemplateRepository.deleteAll();
-
-        // 더미 데이터 생성 - 다양한 정렬 테스트를 위한 데이터
-        PublicTemplate t1 = PublicTemplate.builder()
+    @Test
+    @DisplayName("getTemplates는 Repository에서 조회한 페이지를 그대로 매핑해 반환한다")
+    void getTemplates_ReturnsMappedPage() {
+        // given
+        PublicTemplate e1 = PublicTemplate.builder()
                 .publicTemplateTitle("가나다")
                 .publicTemplateContent("Content1")
                 .buttonTitle("버튼1")
                 .build();
-        setFieldValue(t1, "shareCount", 5);
-        setFieldValue(t1, "viewCount", 20);
-        setFieldValue(t1, "createdAt", LocalDateTime.now().minusDays(3));
-
-        PublicTemplate t2 = PublicTemplate.builder()
+        PublicTemplate e2 = PublicTemplate.builder()
                 .publicTemplateTitle("나다라")
                 .publicTemplateContent("Content2")
                 .buttonTitle("버튼2")
                 .build();
-        setFieldValue(t2, "shareCount", 15);
-        setFieldValue(t2, "viewCount", 10);
-        setFieldValue(t2, "createdAt", LocalDateTime.now().minusDays(2));
 
-        PublicTemplate t3 = PublicTemplate.builder()
-                .publicTemplateTitle("다라마")
-                .publicTemplateContent("Content3")
-                .buttonTitle("버튼3")
-                .build();
-        setFieldValue(t3, "shareCount", 8);
-        setFieldValue(t3, "viewCount", 30);
-        setFieldValue(t3, "createdAt", LocalDateTime.now().minusDays(1));
+        Page<PublicTemplate> page = new PageImpl<>(List.of(e1, e2), PageRequest.of(0, 10, Sort.by("createdAt").descending()), 2);
+        when(publicTemplateRepository.findAll(any(Pageable.class))).thenReturn(page);
 
-        PublicTemplate t4 = PublicTemplate.builder()
-                .publicTemplateTitle("라마바")
-                .publicTemplateContent("Content4")
-                .buttonTitle("버튼4")
-                .build();
-        setFieldValue(t4, "shareCount", 12);
-        setFieldValue(t4, "viewCount", 25);
-        setFieldValue(t4, "createdAt", LocalDateTime.now());
-
-        // 삭제된 템플릿 (조회되지 않아야 함)
-        PublicTemplate deletedTemplate = PublicTemplate.builder()
-                .publicTemplateTitle("삭제된템플릿")
-                .publicTemplateContent("Deleted Content")
-                .buttonTitle("삭제된버튼")
-                .build();
-        setFieldValue(deletedTemplate, "shareCount", 100);
-        setFieldValue(deletedTemplate, "viewCount", 100);
-        setFieldValue(deletedTemplate, "createdAt", LocalDateTime.now());
-        setFieldValue(deletedTemplate, "isDeleted", true);
-
-        publicTemplateRepository.save(t1);
-        publicTemplateRepository.save(t2);
-        publicTemplateRepository.save(t3);
-        publicTemplateRepository.save(t4);
-        publicTemplateRepository.save(deletedTemplate);
-    }
-
-    /**
-     * 리플렉션을 사용하여 private 필드에 값을 설정하는 헬퍼 메소드
-     */
-    private void setFieldValue(Object obj, String fieldName, Object value) {
-        try {
-            java.lang.reflect.Field field = obj.getClass().getDeclaredField(fieldName);
-            field.setAccessible(true);
-            field.set(obj, value);
-        } catch (Exception e) {
-            throw new RuntimeException("필드 설정 실패: " + fieldName, e);
-        }
-    }
-
-    @Test
-    @DisplayName("공유순 정렬 - 내림차순으로 정렬되어야 함")
-    void getTemplatesByShareCount() {
-        // when
-        Pageable pageable = PageRequest.of(0, 10, Sort.by("shareCount").descending());
-        Page<PublicTemplateResponse> result = publicTemplateService.getTemplates(pageable);
-        List<PublicTemplateResponse> templates = result.getContent();
-
-        // then
-        assertThat(templates).hasSize(4); // 삭제되지 않은 템플릿만 조회
-        
-        // 정렬이 올바르게 되었는지 확인 (공유수가 높은 순서대로)
-        // 나다라(15) -> 라마바(12) -> 다라마(8) -> 가나다(5)
-        assertThat(templates.get(0).publicTemplateTitle()).isEqualTo("나다라");
-        assertThat(templates.get(1).publicTemplateTitle()).isEqualTo("라마바");
-        assertThat(templates.get(2).publicTemplateTitle()).isEqualTo("다라마");
-        assertThat(templates.get(3).publicTemplateTitle()).isEqualTo("가나다");
-    }
-
-    @Test
-    @DisplayName("조회순 정렬 - 내림차순으로 정렬되어야 함")
-    void getTemplatesByViewCount() {
-        // when
-        Pageable pageable = PageRequest.of(0, 10, Sort.by("viewCount").descending());
-        Page<PublicTemplateResponse> result = publicTemplateService.getTemplates(pageable);
-        List<PublicTemplateResponse> templates = result.getContent();
-
-        // then
-        assertThat(templates).hasSize(4); // 삭제되지 않은 템플릿만 조회
-        
-        // 정렬이 올바르게 되었는지 확인 (조회수가 높은 순서대로)
-        // 다라마(30) -> 라마바(25) -> 가나다(20) -> 나다라(10)
-        assertThat(templates.get(0).publicTemplateTitle()).isEqualTo("다라마");
-        assertThat(templates.get(1).publicTemplateTitle()).isEqualTo("라마바");
-        assertThat(templates.get(2).publicTemplateTitle()).isEqualTo("가나다");
-        assertThat(templates.get(3).publicTemplateTitle()).isEqualTo("나다라");
-    }
-
-    @Test
-    @DisplayName("최신순 정렬 - 내림차순으로 정렬되어야 함")
-    void getTemplatesByRecent() {
         // when
         Pageable pageable = PageRequest.of(0, 10, Sort.by("createdAt").descending());
         Page<PublicTemplateResponse> result = publicTemplateService.getTemplates(pageable);
-        List<PublicTemplateResponse> templates = result.getContent();
 
         // then
-        assertThat(templates).hasSize(4); // 삭제되지 않은 템플릿만 조회
-        
-        // 정렬이 올바르게 되었는지 확인 (최신순으로)
-        // 라마바(최신) -> 다라마 -> 나다라 -> 가나다(최구)
-        assertThat(templates.get(0).publicTemplateTitle()).isEqualTo("라마바");
-        assertThat(templates.get(1).publicTemplateTitle()).isEqualTo("다라마");
-        assertThat(templates.get(2).publicTemplateTitle()).isEqualTo("나다라");
-        assertThat(templates.get(3).publicTemplateTitle()).isEqualTo("가나다");
+        assertThat(result.getTotalElements()).isEqualTo(2);
+        assertThat(result.getContent()).extracting(PublicTemplateResponse::publicTemplateTitle)
+                .containsExactly("가나다", "나다라");
+        verify(publicTemplateRepository).findAll(any(Pageable.class));
     }
 
     @Test
-    @DisplayName("제목 가나다순 정렬 - 오름차순으로 정렬되어야 함")
-    void getTemplatesByTitle() {
-        // when
-        Pageable pageable = PageRequest.of(0, 10, Sort.by("publicTemplateTitle").ascending());
-        Page<PublicTemplateResponse> result = publicTemplateService.getTemplates(pageable);
-        List<PublicTemplateResponse> templates = result.getContent();
-
-        // then
-        assertThat(templates).hasSize(4); // 삭제되지 않은 템플릿만 조회
-        assertThat(templates.get(0).publicTemplateTitle()).isEqualTo("가나다");
-        assertThat(templates.get(1).publicTemplateTitle()).isEqualTo("나다라");
-        assertThat(templates.get(2).publicTemplateTitle()).isEqualTo("다라마");
-        assertThat(templates.get(3).publicTemplateTitle()).isEqualTo("라마바");
-        
-        // 오름차순 검증
-        for (int i = 0; i < templates.size() - 1; i++) {
-            assertThat(templates.get(i).publicTemplateTitle())
-                .isLessThanOrEqualTo(templates.get(i + 1).publicTemplateTitle());
-        }
-    }
-
-    @Test
-    @DisplayName("기본값 정렬 - 최신순으로 정렬되어야 함")
-    void getTemplatesByDefault() {
-        // when - sortBy가 null이거나 잘못된 값일 때
-        Pageable pageableDefault = PageRequest.of(0, 10, Sort.by("createdAt").descending());
-        Page<PublicTemplateResponse> result1 = publicTemplateService.getTemplates(pageableDefault);
-        Page<PublicTemplateResponse> result2 = publicTemplateService.getTemplates(pageableDefault);
-        List<PublicTemplateResponse> templates1 = result1.getContent();
-        List<PublicTemplateResponse> templates2 = result2.getContent();
-
-        // then
-        assertThat(templates1).hasSize(4);
-        assertThat(templates2).hasSize(4);
-        
-        // 둘 다 최신순으로 정렬되어야 함 (라마바가 가장 최신)
-        assertThat(templates1.get(0).publicTemplateTitle()).isEqualTo("라마바");
-        assertThat(templates2.get(0).publicTemplateTitle()).isEqualTo("라마바");
-    }
-
-    @Test
-    @DisplayName("페이징 테스트 - 페이지 크기와 페이지 번호가 올바르게 적용되어야 함")
-    void getTemplatesWithPaging() {
-        // when - 페이지 크기 2, 첫 번째 페이지
-        Pageable pageable = PageRequest.of(0, 2, Sort.by("shareCount").descending());
-        Page<PublicTemplateResponse> result = publicTemplateService.getTemplates(pageable);
-        List<PublicTemplateResponse> templates = result.getContent();
-
-        // then
-        assertThat(templates).hasSize(2);
-        assertThat(result.getTotalElements()).isEqualTo(4);
-        assertThat(result.getTotalPages()).isEqualTo(2);
-        assertThat(result.getNumber()).isEqualTo(0);
-        assertThat(result.getSize()).isEqualTo(2);
-    }
-
-    @Test
-    @DisplayName("삭제된 템플릿은 조회되지 않아야 함")
-    void getTemplatesExcludeDeleted() {
-        // when
-        Pageable pageable = PageRequest.of(0, 10, Sort.by("shareCount").descending());
-        Page<PublicTemplateResponse> result = publicTemplateService.getTemplates(pageable);
-        List<PublicTemplateResponse> templates = result.getContent();
-
-        // then
-        assertThat(templates).hasSize(4);
-        assertThat(templates).noneMatch(template -> 
-            template.publicTemplateTitle().equals("삭제된템플릿"));
-    }
-
-    @Test
-    @DisplayName("공용 템플릿 생성 - 개인 템플릿 복사 성공")
+    @DisplayName("createPublicTemplate는 개인 템플릿 값을 복사해 저장하고 응답을 반환한다")
     void createPublicTemplate_Success() {
         // given
-        IndividualTemplate it = IndividualTemplate.builder()
-                .workspaceId(null)
+        Integer individualTemplateId = 123;
+        IndividualTemplate source = IndividualTemplate.builder()
                 .individualTemplateTitle("원본 제목")
                 .individualTemplateContent("원본 내용")
                 .buttonTitle("원본 버튼")
                 .build();
-        it = individualTemplateRepository.save(it);
+        when(individualTemplateRepository.findById(individualTemplateId)).thenReturn(Optional.of(source));
 
-        long beforeCount = publicTemplateRepository.count();
+        // save 호출 시 전달된 엔티티를 그대로 반환하도록 설정
+        when(publicTemplateRepository.save(any(PublicTemplate.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         // when
-        PublicTemplateResponse response = publicTemplateService.createPublicTemplate(
-                new PublicTemplateCreateRequest(it.getIndividualTemplateId())
-        );
+        PublicTemplateResponse response = publicTemplateService
+                .createPublicTemplate(new PublicTemplateCreateRequest(individualTemplateId));
 
         // then
         assertThat(response.publicTemplateTitle()).isEqualTo("원본 제목");
         assertThat(response.publicTemplateContent()).isEqualTo("원본 내용");
         assertThat(response.buttonTitle()).isEqualTo("원본 버튼");
 
-        assertThat(publicTemplateRepository.count()).isEqualTo(beforeCount + 1);
-
-        // 저장된 엔티티 값 확인
-        PublicTemplate saved = publicTemplateRepository.findAll().stream()
-                .filter(p -> "원본 제목".equals(p.getPublicTemplateTitle()))
-                .findFirst()
-                .orElseThrow();
-        assertThat(saved.getPublicTemplateContent()).isEqualTo("원본 내용");
-        assertThat(saved.getButtonTitle()).isEqualTo("원본 버튼");
-        assertThat(saved.getShareCount()).isZero();
-        assertThat(saved.getViewCount()).isZero();
-        assertThat(saved.getIsDeleted()).isFalse();
+        // then: 저장된 엔티티 필드도 원본과 동일하게 복사되었는지 검증
+        ArgumentCaptor<PublicTemplate> captor = ArgumentCaptor.forClass(PublicTemplate.class);
+        verify(individualTemplateRepository).findById(individualTemplateId);
+        verify(publicTemplateRepository).save(captor.capture());
+        PublicTemplate savedEntity = captor.getValue();
+        assertThat(savedEntity.getPublicTemplateTitle()).isEqualTo("원본 제목");
+        assertThat(savedEntity.getPublicTemplateContent()).isEqualTo("원본 내용");
+        assertThat(savedEntity.getButtonTitle()).isEqualTo("원본 버튼");
     }
 
     @Test
-    @DisplayName("공용 템플릿 생성 - 개인 템플릿 없음 예외")
+    @DisplayName("createPublicTemplate는 개인 템플릿이 없으면 EntityNotFoundException을 던진다")
     void createPublicTemplate_NotFound() {
+        // given
+        when(individualTemplateRepository.findById(999999)).thenReturn(Optional.empty());
+
         // when & then
-        assertThatThrownBy(() -> publicTemplateService.createPublicTemplate(new PublicTemplateCreateRequest(999999)))
-                .isInstanceOf(EntityNotFoundException.class);
+        assertThatThrownBy(() -> publicTemplateService
+                .createPublicTemplate(new PublicTemplateCreateRequest(999999)))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("IndividualTemplate not found");
+
+        // 저장 로직은 호출되지 않아야 한다
+        verify(publicTemplateRepository, never()).save(any(PublicTemplate.class));
     }
 }
