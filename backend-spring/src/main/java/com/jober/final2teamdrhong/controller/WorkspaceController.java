@@ -167,6 +167,7 @@ public class WorkspaceController {
      * 실제 데이터는 삭제되지 않고 삭제 플래그(is_deleted)만 변경됩니다.
      *
      * @param workspaceId 삭제할 워크스페이스의 ID
+     * @param jwtClaims {@link AuthenticationPrincipal}을 통해 SecurityContext에서 직접 주입받는 현재 로그인된 사용자의 JWT 정보 객체
      * @return 상태 코드 200 (OK)와 함께 삭제된 워크스페이스의 간략 정보를 담은 ResponseEntity
      */
     @Operation(summary = "워크스페이스 삭제", description = "특정 워크스페이스를 삭제합니다.")
@@ -183,9 +184,9 @@ public class WorkspaceController {
     })
     @SecurityRequirement(name = "bearerAuth")
     @DeleteMapping("/{workspaceId}")
-    public ResponseEntity<WorkspaceResponse.SimpleDTO> deleteWorkspace(@PathVariable Integer workspaceId) {
-        // TODO: Spring Security 도입 후, @AuthenticationPrincipal 등을 통해 실제 사용자 정보 획득 필요
-        Integer currentUserId = 1;
+    public ResponseEntity<WorkspaceResponse.SimpleDTO> deleteWorkspace(@PathVariable Integer workspaceId,
+                                                                       @AuthenticationPrincipal JwtClaims jwtClaims) {
+        Integer currentUserId = jwtClaims.getUserId();
         WorkspaceResponse.SimpleDTO deletedWorkspace = workspaceService.deleteWorkspace(workspaceId, currentUserId);
 
         return ResponseEntity.ok(deletedWorkspace);
