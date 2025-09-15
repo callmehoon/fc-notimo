@@ -1,5 +1,6 @@
 package com.jober.final2teamdrhong.controller;
 
+import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
 import com.jober.final2teamdrhong.dto.recipient.RecipientRequest;
 import com.jober.final2teamdrhong.dto.recipient.RecipientResponse;
 import com.jober.final2teamdrhong.exception.ErrorResponse;
@@ -19,6 +20,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -39,6 +41,7 @@ public class RecipientController {
      *
      * @param createDTO   클라이언트로부터 받은 수신자 생성을 위한 데이터 (JSON, @Valid로 검증됨)
      * @param workspaceId 수신자를 추가할 워크스페이스의 ID
+     * @param jwtClaims {@link AuthenticationPrincipal}을 통해 SecurityContext에서 직접 주입받는 현재 로그인된 사용자의 JWT 정보 객체
      * @return 상태 코드 201 (Created)와 함께 생성된 수신자의 정보를 담은 ResponseEntity
      */
     @Operation(summary = "수신자 생성", description = "특정 워크스페이스에 새로운 수신자를 추가합니다.")
@@ -56,9 +59,9 @@ public class RecipientController {
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping
     public ResponseEntity<RecipientResponse.SimpleDTO> createRecipient(@Valid @RequestBody RecipientRequest.CreateDTO createDTO,
-                                                                       @PathVariable Integer workspaceId) {
-        // TODO: Spring Security 도입 후, @AuthenticationPrincipal 등을 통해 실제 사용자 정보 획득 필요
-        Integer currentUserId = 1;
+                                                                       @PathVariable Integer workspaceId,
+                                                                       @AuthenticationPrincipal JwtClaims jwtClaims) {
+        Integer currentUserId = jwtClaims.getUserId();
         RecipientResponse.SimpleDTO createdRecipient = recipientService.createRecipient(createDTO, workspaceId, currentUserId);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(createdRecipient);
@@ -71,6 +74,7 @@ public class RecipientController {
      *
      * @param workspaceId 수신자 목록을 조회할 워크스페이스의 ID
      * @param pageable    페이지 번호, 페이지 크기, 정렬 방법을 담은 객체
+     * @param jwtClaims {@link AuthenticationPrincipal}을 통해 SecurityContext에서 직접 주입받는 현재 로그인된 사용자의 JWT 정보 객체
      * @return 상태 코드 200 (OK)와 함께 페이징된 수신자 목록 정보를 담은 ResponseEntity
      */
     @Operation(summary = "수신자 목록 페이징 조회", description = "특정 워크스페이스에 속한 모든 수신자 목록을 페이징하여 조회합니다. " +
@@ -92,12 +96,12 @@ public class RecipientController {
                                                                             @PageableDefault(size = 50,
                                                                                     sort = "createdAt",
                                                                                     direction = Sort.Direction.DESC)
-                                                                            Pageable pageable) {
-        // TODO: Spring Security 도입 후, @AuthenticationPrincipal 등을 통해 실제 사용자 정보 획득 필요
-        Integer currentUserId = 1;
+                                                                            Pageable pageable,
+                                                                            @AuthenticationPrincipal JwtClaims jwtClaims) {
+        Integer currentUserId = jwtClaims.getUserId();
         Page<RecipientResponse.SimpleDTO> recipientPage = recipientService.readRecipients(workspaceId, currentUserId, pageable);
 
-        return ResponseEntity.ok(recipientPage);
+        return ResponseEntity.status(HttpStatus.OK).body(recipientPage);
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.jober.final2teamdrhong.dto.recipient;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import org.hibernate.validator.constraints.Length;
@@ -17,6 +18,7 @@ public class RecipientRequest {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    @Schema(name = "RecipientCreateDTO")
     public static class CreateDTO {
         @NotBlank(message = "수신인 이름은 필수 입력 항목입니다.")
         @Length(min = 2, max = 10, message = "수신인 이름은 2자 이상 10자 이하로 입력해주세요.")
