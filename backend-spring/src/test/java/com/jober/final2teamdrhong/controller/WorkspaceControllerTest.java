@@ -256,6 +256,7 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 수정 성공 테스트")
+    @WithMockJwtClaims(userId = 1)
     void updateWorkspace_Success_Test() throws Exception {
         // given
         // 1. 수정 대상이 될 원본 워크스페이스를 DB에 미리 저장합니다.
@@ -298,7 +299,6 @@ class WorkspaceControllerTest {
                 put("/workspaces/" + originalWorkspace.getWorkspaceId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody)
-                        .with(csrf())
         );
 
         // then
@@ -316,6 +316,7 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 수정 실패 테스트 - 권한 없음")
+    @WithMockJwtClaims(userId = 1)
     void updateWorkspace_Fail_Unauthorized_Test() throws Exception {
         // given
         // 1. 다른 사용자(anotherUser) 소유의 워크스페이스를 DB에 저장합니다.
@@ -346,7 +347,6 @@ class WorkspaceControllerTest {
                 put("/workspaces/" + othersWorkspace.getWorkspaceId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody)
-                        .with(csrf())
         );
 
         // then
@@ -357,6 +357,7 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 수정 실패 테스트 - 필수 필드 누락")
+    @WithMockJwtClaims(userId = 1)
     void updateWorkspace_Fail_Validation_Test() throws Exception {
         // given
         // 1. 수정 대상 워크스페이스를 하나 생성합니다. 이 테스트에서는 ID만 필요합니다.
@@ -386,10 +387,9 @@ class WorkspaceControllerTest {
                 put("/workspaces/" + targetWorkspace.getWorkspaceId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody)
-                        .with(csrf())
         );
 
-        // then (결과 검증)
+        // then
         // 1. 컨트롤러의 @Valid 어노테이션에 의해 요청이 서비스 계층으로 전달되기 전에 차단되고,
         //    400 Bad Request가 반환되는지 확인합니다.
         resultActions.andExpect(status().isBadRequest());
