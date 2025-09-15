@@ -1,5 +1,6 @@
 package com.jober.final2teamdrhong.controller;
 
+import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
 import com.jober.final2teamdrhong.dto.phonebook.PhoneBookRequest;
 import com.jober.final2teamdrhong.dto.phonebook.PhoneBookResponse;
 import com.jober.final2teamdrhong.exception.ErrorResponse;
@@ -15,6 +16,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -35,6 +37,7 @@ public class PhoneBookController {
      *
      * @param createDTO   클라이언트로부터 받은 주소록 생성을 위한 데이터 (JSON, @Valid로 검증됨)
      * @param workspaceId 주소록을 추가할 워크스페이스의 ID
+     * @param jwtClaims {@link AuthenticationPrincipal}을 통해 SecurityContext에서 직접 주입받는 현재 로그인된 사용자의 JWT 정보 객체
      * @return 상태 코드 201 (Created)와 함께 생성된 주소록의 정보를 담은 ResponseEntity
      */
     @Operation(summary = "주소록 생성", description = "특정 워크스페이스에 새로운 주소록을 추가합니다.")
@@ -52,9 +55,9 @@ public class PhoneBookController {
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping
     public ResponseEntity<PhoneBookResponse.SimpleDTO> createPhoneBook(@Valid @RequestBody PhoneBookRequest.CreateDTO createDTO,
-                                                                       @PathVariable Integer workspaceId) {
-        // TODO: Spring Security 도입 후, @AuthenticationPrincipal 등을 통해 실제 사용자 정보 획득 필요
-        Integer currentUserId = 1;
+                                                                       @PathVariable Integer workspaceId,
+                                                                       @AuthenticationPrincipal JwtClaims jwtClaims) {
+        Integer currentUserId = jwtClaims.getUserId();
         PhoneBookResponse.SimpleDTO createdPhoneBook = phoneBookService.createPhoneBook(createDTO, workspaceId, currentUserId);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(createdPhoneBook);
