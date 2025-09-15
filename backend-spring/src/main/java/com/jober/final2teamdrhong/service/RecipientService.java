@@ -5,14 +5,13 @@ import com.jober.final2teamdrhong.dto.recipient.RecipientResponse;
 import com.jober.final2teamdrhong.entity.Recipient;
 import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.RecipientRepository;
+import com.jober.final2teamdrhong.service.validator.RecipientValidator;
 import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
 
 /**
  * 수신자(Recipient) 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
@@ -23,6 +22,7 @@ import java.time.LocalDateTime;
 public class RecipientService {
 
     private final RecipientRepository recipientRepository;
+    private final RecipientValidator recipientValidator;
     private final WorkspaceValidator workspaceValidator;
 
     /**
@@ -96,18 +96,16 @@ public class RecipientService {
     public RecipientResponse.SimpleDTO updateRecipient(RecipientRequest.UpdateDTO updateDTO,
                                                        Integer workspaceId, Integer recipientId, Integer userId) {
         // 1. 워크스페이스 접근 권한 확인
-        workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + workspaceId));
+        workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
 
         // 2. 수신자 조회 (워크스페이스 소속인지 함께 검증)
-        Recipient existingRecipient = recipientRepository.findByRecipientIdAndWorkspace_WorkspaceId(recipientId, workspaceId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 워크스페이스에 존재하지 않는 수신자입니다. ID: " + recipientId));
+        Recipient existingRecipient = recipientValidator.validateAndGetRecipient(workspaceId, recipientId);
 
         // 3. 정보 업데이트
         existingRecipient.setRecipientName(updateDTO.getNewRecipientName());
         existingRecipient.setRecipientPhoneNumber(updateDTO.getNewRecipientPhoneNumber());
         existingRecipient.setRecipientMemo(updateDTO.getNewRecipientMemo());
-        existingRecipient.setUpdatedAt(LocalDateTime.now());
+        existingRecipient.update();
 
         return new RecipientResponse.SimpleDTO(existingRecipient);
     }
