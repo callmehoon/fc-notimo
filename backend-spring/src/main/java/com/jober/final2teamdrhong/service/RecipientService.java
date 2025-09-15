@@ -64,8 +64,7 @@ public class RecipientService {
      * @throws IllegalArgumentException 해당 워크스페이스가 존재하지 않거나, 사용자가 접근 권한이 없을 경우 발생
      */
     public Page<RecipientResponse.SimpleDTO> readRecipients(Integer workspaceId, Integer userId, Pageable pageable) {
-        workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + workspaceId));
+        workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
 
         Page<Recipient> recipientPage = recipientRepository.findAllByWorkspace_WorkspaceId(workspaceId, pageable);
 
