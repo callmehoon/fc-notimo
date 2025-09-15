@@ -86,7 +86,7 @@ class RecipientControllerTest {
     @DisplayName("수신자 생성 성공 테스트")
     @WithMockJwtClaims(userId = 1)
     void createRecipient_Success_Test() throws Exception {
-        // given (테스트 준비)
+        // given
         // 1. API 요청 본문에 담아 보낼 DTO 객체를 생성합니다.
         RecipientRequest.CreateDTO createDTO = RecipientRequest.CreateDTO.builder()
                 .recipientName("홍길동")
@@ -97,7 +97,7 @@ class RecipientControllerTest {
         // 2. DTO 객체를 JSON 문자열로 변환합니다.
         String requestBody = objectMapper.writeValueAsString(createDTO);
 
-        // when (테스트 실행)
+        // when
         // 1. MockMvc를 사용하여 POST /workspaces/{workspaceId}/recipients 엔드포인트로 API 요청을 보냅니다.
         //    - contentType을 application/json으로 설정합니다.
         //    - content에 위에서 만든 JSON 문자열을 담습니다.
@@ -107,7 +107,7 @@ class RecipientControllerTest {
                         .content(requestBody)
         );
 
-        // then (결과 검증)
+        // then
         // 1. API 호출 결과를 검증합니다.
         resultActions
                 // 1-1. HTTP 상태 코드가 201 Created 인지 확인합니다.
@@ -183,8 +183,9 @@ class RecipientControllerTest {
 
     @Test
     @DisplayName("수신자 목록 페이징 조회 성공 테스트")
+    @WithMockJwtClaims(userId = 1)
     void readRecipients_Paging_Success_Test() throws Exception {
-        // given (테스트 준비)
+        // given
         // 1. setUp()에서 생성된 testWorkspace에 테스트용 수신자 2명을 추가로 저장합니다.
         recipientRepository.save(Recipient.builder()
                 .recipientName("홍길동")
@@ -197,7 +198,7 @@ class RecipientControllerTest {
                 .workspace(testWorkspace)
                 .build());
 
-        // when (테스트 실행)
+        // when
         // 1. MockMvc를 사용하여 GET 요청을 보냅니다.
         //    - URL에 page, size, sort 쿼리 파라미터를 추가하여 페이징을 요청합니다.
         ResultActions resultActions = mockMvc.perform(
@@ -208,7 +209,7 @@ class RecipientControllerTest {
                         .accept(MediaType.APPLICATION_JSON)
         );
 
-        // then (결과 검증)
+        // then
         // 1. API 호출 결과를 검증합니다. 응답 JSON 구조가 Page 객체 형식에 맞는지 확인합니다.
         resultActions
                 // 1-1. HTTP 상태 코드가 200 OK 인지 확인합니다.
@@ -225,6 +226,7 @@ class RecipientControllerTest {
 
     @Test
     @DisplayName("수신자 목록 페이징 조회 실패 테스트 - 권한 없음")
+    @WithMockJwtClaims(userId = 1)
     void readRecipients_Paging_Fail_UnauthorizedWorkspace_Test() throws Exception {
         // given
         // 1. 존재하지 않거나 내 소유가 아닌 워크스페이스 ID를 임의로 준비합니다.
