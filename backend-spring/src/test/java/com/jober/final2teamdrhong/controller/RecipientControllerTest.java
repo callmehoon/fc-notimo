@@ -61,8 +61,9 @@ class RecipientControllerTest {
         workspaceRepository.deleteAll();
         userRepository.deleteAll();
         // 2. H2 DB의 ID 시퀀스를 초기화하여 항상 일관된 ID로 테스트를 시작하도록 보장합니다.
-        jdbcTemplate.execute("ALTER TABLE users ALTER COLUMN users_id RESTART WITH 1");
+        jdbcTemplate.execute("ALTER TABLE recipient ALTER COLUMN recipient_id RESTART WITH 1");
         jdbcTemplate.execute("ALTER TABLE workspace ALTER COLUMN workspace_id RESTART WITH 1");
+        jdbcTemplate.execute("ALTER TABLE users ALTER COLUMN users_id RESTART WITH 1");
 
         // 3. 테스트에서 사용할 기본 사용자(ID=1)와 워크스페이스(ID=1)를 생성하고 DB에 저장합니다.
         //    이는 컨트롤러의 하드코딩된 currentUserId = 1 과 일치시키기 위함입니다.
