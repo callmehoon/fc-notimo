@@ -2,11 +2,9 @@ package com.jober.final2teamdrhong.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.SQLRestriction;
-import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,42 +13,33 @@ import java.util.List;
 @Getter
 @Setter
 @ToString(exclude = {"workspace", "groupMappings"})
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@SuperBuilder
 @SQLRestriction("is_deleted = false")
-public class Recipient {
+public class Recipient extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "recipient_id", nullable = false)
     private Integer recipientId;
 
+    @NonNull
     @Column(name = "recipient_name", nullable = false)
     private String recipientName;
 
+    @NonNull
     @Column(name = "recipient_phone_number", nullable = false)
     private String recipientPhoneNumber;
 
     @Column(name = "recipient_memo", length = 1000)
     private String recipientMemo;
 
-    @CreationTimestamp
-    @Column(name = "created_at", columnDefinition = "DATETIME", nullable = false)
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", columnDefinition = "DATETIME", nullable = false)
-    private LocalDateTime updatedAt;
-
-    @Column(name = "deleted_at", columnDefinition = "DATETIME")
-    private LocalDateTime deletedAt;
-
-    @Column(name = "is_deleted", nullable = false)
-    private boolean isDeleted;
-
+    @NonNull
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "workspace_id", nullable = false) // FK
     private Workspace workspace;
 
+    @Builder.Default
     @OneToMany(mappedBy = "recipient", fetch = FetchType.LAZY)
     private List<GroupMapping> groupMappings = new ArrayList<>();
 
@@ -61,16 +50,5 @@ public class Recipient {
     public void addGroupMapping(GroupMapping groupMapping) {
         this.groupMappings.add(groupMapping);
         groupMapping.setRecipient(this);
-    }
-
-    @Builder
-    public Recipient(@NonNull String recipientName,
-                     @NonNull String recipientPhoneNumber,
-                     String recipientMemo,
-                     @NonNull Workspace workspace) {
-        this.recipientName = recipientName;
-        this.recipientPhoneNumber = recipientPhoneNumber;
-        this.recipientMemo = recipientMemo;
-        this.workspace = workspace;
     }
 }
