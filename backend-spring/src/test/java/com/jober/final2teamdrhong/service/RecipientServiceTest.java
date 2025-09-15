@@ -5,6 +5,7 @@ import com.jober.final2teamdrhong.dto.recipient.RecipientResponse;
 import com.jober.final2teamdrhong.entity.Recipient;
 import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.RecipientRepository;
+import com.jober.final2teamdrhong.service.validator.RecipientValidator;
 import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,6 +33,9 @@ class RecipientServiceTest {
 
     @Mock
     private WorkspaceValidator workspaceValidator;
+
+    @Mock
+    private RecipientValidator recipientValidator;
 
     @InjectMocks
     private RecipientService recipientService;
@@ -184,56 +188,36 @@ class RecipientServiceTest {
                 .newRecipientMemo("수정된 메모")
                 .build();
 
-        // 2. Mock 객체들을 준비합니다.
+        // 2. Mock 객체와 Spy 객체를 준비합니다.
         Workspace mockWorkspace = mock(Workspace.class);
-        // findByRecipientIdAndWorkspace_WorkspaceId가 반환할 실제 Recipient 객체를 생성합니다.
-        // 이 객체의 상태가 서비스 메소드 호출 후 어떻게 변하는지 검증해야 합니다.
-        Recipient existingRecipient = Recipient.builder()
+        // Spy 객체를 사용하여 실제 메서드(setter, update) 호출을 검증할 수 있도록 합니다.
+        Recipient existingRecipient = spy(Recipient.builder()
                 .recipientName("홍길동")
-                .recipientPhoneNumber("010-1111-2222")
-                .recipientMemo("원본 메모")
+                .recipientPhoneNumber("010-1111-1111")
                 .workspace(mockWorkspace)
-                .build();
-        // updatedAt 필드는 @UpdateTimestamp에 의해 관리되지만, 테스트에서는 직접 값을 넣어줍니다.
-        existingRecipient.setUpdatedAt(java.time.LocalDateTime.now().minusDays(1));
-        java.time.LocalDateTime beforeUpdate = existingRecipient.getUpdatedAt();
+                .build());
 
         // 3. Mockito 행동 정의
         //    - 워크스페이스 권한 검증을 통과시킵니다.
-        when(workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId))
-                .thenReturn(Optional.of(mockWorkspace));
+        when(workspaceValidator.validateAndGetWorkspace(workspaceId, userId)).thenReturn(mockWorkspace);
         //    - 수신자 조회 및 소유권 검증을 통과시키고, 위에서 만든 existingRecipient 객체를 반환합니다.
-        when(recipientRepository.findByRecipientIdAndWorkspace_WorkspaceId(recipientId, workspaceId))
-                .thenReturn(Optional.of(existingRecipient));
+        when(recipientValidator.validateAndGetRecipient(recipientId, workspaceId)).thenReturn(existingRecipient);
 
         // when
         // 실제 테스트 대상인 서비스 메소드를 호출합니다.
-        RecipientResponse.SimpleDTO result = recipientService.updateRecipient(updateDTO, workspaceId, recipientId, userId);
+        recipientService.updateRecipient(updateDTO, workspaceId, recipientId, userId);
 
         // then
-        // 1. 반환된 DTO의 필드 값들이 요청한 데이터(updateDTO)와 일치하는지 검증합니다.
-        assertNotNull(result);
-        assertEquals(updateDTO.getNewRecipientName(), result.getRecipientName());
-        assertEquals(updateDTO.getNewRecipientPhoneNumber(), result.getRecipientPhoneNumber());
-        assertEquals(updateDTO.getNewRecipientMemo(), result.getRecipientMemo());
-        // 1-1. updatedAt이 수정되었는지 검증합니다.
-        assertNotNull(result.getUpdatedAt());
-        assertTrue(result.getUpdatedAt().isAfter(beforeUpdate));
-
+        // 1. 각 Validator의 메소드가 정확히 1번씩 호출되었는지 검증합니다.
+        verify(workspaceValidator, times(1)).validateAndGetWorkspace(workspaceId, userId);
+        verify(recipientValidator, times(1)).validateAndGetRecipient(recipientId, workspaceId);
 
         // 2. (중요) 서비스 계층의 핵심 로직 검증:
-        //    메소드에 전달했던 existingRecipient 객체의 상태가 DTO의 내용대로 실제로 변경되었는지 확인합니다.
-        //    이는 @Transactional에 의한 Dirty Checking이 올바르게 동작할 것임을 보장합니다.
-        assertEquals(updateDTO.getNewRecipientName(), existingRecipient.getRecipientName());
-        assertEquals(updateDTO.getNewRecipientPhoneNumber(), existingRecipient.getRecipientPhoneNumber());
-        assertEquals(updateDTO.getNewRecipientMemo(), existingRecipient.getRecipientMemo());
-        // 2-1. 엔티티의 updatedAt 필드 또한 수정되었는지 검증합니다.
-        assertNotNull(existingRecipient.getUpdatedAt());
-        assertTrue(existingRecipient.getUpdatedAt().isAfter(beforeUpdate));
-
-        // 3. 각 Repository의 메소드가 정확히 1번씩 호출되었는지 검증합니다.
-        verify(workspaceRepository, times(1)).findByWorkspaceIdAndUser_UserId(workspaceId, userId);
-        verify(recipientRepository, times(1)).findByRecipientIdAndWorkspace_WorkspaceId(recipientId, workspaceId);
+        //    Spy 객체의 상태 변경 메서드들이 DTO의 내용대로 실제로 호출되었는지 확인합니다.
+        verify(existingRecipient, times(1)).setRecipientName("김길동");
+        verify(existingRecipient, times(1)).setRecipientPhoneNumber("010-9999-8888");
+        verify(existingRecipient, times(1)).setRecipientMemo("수정된 메모");
+        verify(existingRecipient, times(1)).update();
     }
 
     @Test
@@ -248,11 +232,11 @@ class RecipientServiceTest {
 
         // 2. Mockito 행동 정의
         //    - 워크스페이스 권한 검증은 통과시킵니다.
-        when(workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId))
-                .thenReturn(Optional.of(mock(Workspace.class)));
-        //    - 수신자 조회 단계에서 비어있는 Optional을 반환하여 "결과 없음"을 시뮬레이션합니다.
-        when(recipientRepository.findByRecipientIdAndWorkspace_WorkspaceId(nonExistingRecipientId, workspaceId))
-                .thenReturn(Optional.empty());
+        when(workspaceValidator.validateAndGetWorkspace(workspaceId, userId))
+                .thenReturn(mock(Workspace.class));
+        //    - 수신자 조회 단계에서 예외를 발생시켜 "결과 없음"을 시뮬레이션합니다.
+        when(recipientValidator.validateAndGetRecipient(workspaceId, nonExistingRecipientId))
+                .thenThrow(new IllegalArgumentException("해당 워크스페이스에 존재하지 않는 수신자입니다. ID: " + nonExistingRecipientId));
 
         // when
         // 서비스 메소드를 호출했을 때 예외가 발생하는지 검증합니다.
@@ -276,8 +260,8 @@ class RecipientServiceTest {
         RecipientRequest.UpdateDTO updateDTO = new RecipientRequest.UpdateDTO();
 
         // 2. Mockito 행동 정의: 워크스페이스 권한 검증 단계에서 실패하도록 설정합니다.
-        when(workspaceRepository.findByWorkspaceIdAndUser_UserId(unauthorizedWorkspaceId, userId))
-                .thenReturn(Optional.empty());
+        when(workspaceValidator.validateAndGetWorkspace(unauthorizedWorkspaceId, userId))
+                .thenThrow(new IllegalArgumentException("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + unauthorizedWorkspaceId));
 
         // when
         // 서비스 메소드를 호출했을 때 예외가 발생하는지 검증합니다.
@@ -290,7 +274,6 @@ class RecipientServiceTest {
                 thrown.getMessage());
 
         // 2. (중요) 권한 검증에서 실패했으므로, 수신자를 조회하는 로직은 절대 호출되면 안됩니다.
-        verify(recipientRepository, never()).findByRecipientIdAndWorkspace_WorkspaceId(anyInt(),
-                anyInt());
+        verify(recipientValidator, never()).validateAndGetRecipient(anyInt(), anyInt());
     }
 }
