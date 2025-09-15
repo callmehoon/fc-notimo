@@ -134,6 +134,7 @@ public class WorkspaceController {
      *
      * @param updateDTO   워크스페이스 수정을 위한 요청 데이터 (JSON, @Valid로 검증됨)
      * @param workspaceId 수정할 워크스페이스의 ID
+     * @param jwtClaims {@link AuthenticationPrincipal}을 통해 SecurityContext에서 직접 주입받는 현재 로그인된 사용자의 JWT 정보 객체
      * @return 상태 코드 200 (OK)와 함께 수정된 워크스페이스 상세 정보(DetailDTO)를 담은 ResponseEntity
      */
     @Operation(summary = "워크스페이스 정보 수정", description = "특정 워크스페이스의 상세 정보를 수정합니다.")
@@ -151,9 +152,9 @@ public class WorkspaceController {
     @SecurityRequirement(name = "bearerAuth")
     @PutMapping("/{workspaceId}")
     public ResponseEntity<WorkspaceResponse.DetailDTO> updateWorkspace(@Valid @RequestBody WorkspaceRequest.UpdateDTO updateDTO,
-                                                                       @PathVariable Integer workspaceId) {
-        // TODO: Spring Security 도입 후, @AuthenticationPrincipal 등을 통해 실제 사용자 정보 획득 필요
-        Integer currentUserId = 1;
+                                                                       @PathVariable Integer workspaceId,
+                                                                       @AuthenticationPrincipal JwtClaims jwtClaims) {
+        Integer currentUserId = jwtClaims.getUserId();
         WorkspaceResponse.DetailDTO updatedWorkspace = workspaceService.updateWorkspace(updateDTO, workspaceId, currentUserId);
 
         return ResponseEntity.status(HttpStatus.OK).body(updatedWorkspace);
