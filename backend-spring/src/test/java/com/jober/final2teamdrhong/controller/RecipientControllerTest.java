@@ -23,7 +23,6 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -337,6 +336,7 @@ class RecipientControllerTest {
 
     @Test
     @DisplayName("수신자 삭제 성공 테스트")
+    @WithMockJwtClaims(userId = 1)
     void deleteRecipient_Success_Test() throws Exception {
         // given
         // 1. DB에 삭제 대상이 될 수신자 데이터를 미리 저장합니다.
@@ -351,7 +351,6 @@ class RecipientControllerTest {
         ResultActions resultActions = mockMvc.perform(
                 delete("/workspaces/" + testWorkspace.getWorkspaceId() + "/recipients/" +
                         savedRecipient.getRecipientId())
-                        .with(csrf())
         );
 
         // then
@@ -374,6 +373,7 @@ class RecipientControllerTest {
 
     @Test
     @DisplayName("수신자 삭제 실패 테스트 - 권한 없음")
+    @WithMockJwtClaims(userId = 1)
     void deleteRecipient_Fail_UnauthorizedWorkspace_Test() throws Exception {
         // given
         // 1. DB에 테스트용 수신자를 저장합니다.
@@ -390,7 +390,6 @@ class RecipientControllerTest {
         ResultActions resultActions = mockMvc.perform(
                 delete("/workspaces/" + unauthorizedWorkspaceId + "/recipients/" +
                         savedRecipient.getRecipientId())
-                        .with(csrf())
         );
 
         // then
