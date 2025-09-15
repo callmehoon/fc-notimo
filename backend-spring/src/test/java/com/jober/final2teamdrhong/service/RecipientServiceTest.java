@@ -286,36 +286,34 @@ class RecipientServiceTest {
         Integer workspaceId = 1;
         Integer recipientId = 1;
 
-        // 2. Mock 객체와 실제 Recipient 객체를 준비합니다.
+        // 2. Mock 객체와 Spy 객체를 준비합니다.
         Workspace mockWorkspace = mock(Workspace.class);
-        Recipient existingRecipient = Recipient.builder()
+        // Spy 객체를 사용하여 실제 메서드(setter, update) 호출을 검증할 수 있도록 합니다.
+        Recipient existingRecipient = spy(Recipient.builder()
                 .recipientName("홍길동")
-                .recipientPhoneNumber("010-1111-2222")
+                .recipientPhoneNumber("010-1111-1111")
                 .workspace(mockWorkspace)
-                .build();
-        // isDeleted와 deletedAt의 초기 상태를 명확히 설정합니다.
-        existingRecipient.setDeleted(false);
-        existingRecipient.setDeletedAt(null);
+                .build());
 
         // 3. Mockito 행동 정의
-        when(workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId))
-                .thenReturn(Optional.of(mockWorkspace));
-        when(recipientRepository.findByRecipientIdAndWorkspace_WorkspaceId(recipientId, workspaceId))
-                .thenReturn(Optional.of(existingRecipient));
+        //    - 워크스페이스 권한 검증을 통과시킵니다.
+        when(workspaceValidator.validateAndGetWorkspace(workspaceId, userId))
+                .thenReturn(mock(Workspace.class));
+        //    - 수신자 조회를 통과시키고, 위에서 만든 Spy 객체를 반환합니다.
+        when(recipientValidator.validateAndGetRecipient(recipientId, workspaceId))
+                .thenReturn(existingRecipient);
 
         // when
         // 실제 테스트 대상인 서비스 메소드를 호출합니다.
         recipientService.deleteRecipient(workspaceId, recipientId, userId);
 
         // then
-        // 1. (중요) 서비스 로직에 의해 existingRecipient 객체의 상태가 변경되었는지 검증합니다.
-        //    이것이 Dirty Checking으로 DB에 반영될 핵심 변경사항입니다.
-        assertTrue(existingRecipient.isDeleted());
-        assertNotNull(existingRecipient.getDeletedAt());
+        // 1. (중요) 서비스 로직에 의해 existingRecipient 객체의 상태 변경 메서드가 호출되었는지 검증합니다.
+        verify(existingRecipient, times(1)).softDelete();
 
-        // 2. 각 Repository의 메소드가 정확히 1번씩 호출되었는지 검증합니다.
-        verify(workspaceRepository, times(1)).findByWorkspaceIdAndUser_UserId(workspaceId, userId);
-        verify(recipientRepository, times(1)).findByRecipientIdAndWorkspace_WorkspaceId(recipientId, workspaceId);
+        // 2. 각 Validator의 메소드가 정확히 1번씩 호출되었는지 검증합니다.
+        verify(workspaceValidator, times(1)).validateAndGetWorkspace(workspaceId, userId);
+        verify(recipientValidator, times(1)).validateAndGetRecipient(recipientId, workspaceId);
     }
 
     @Test
@@ -328,8 +326,8 @@ class RecipientServiceTest {
         Integer recipientId = 1;
 
         // 2. Mockito 행동 정의: 워크스페이스 권한 검증에서 실패하도록 설정합니다.
-        when(workspaceRepository.findByWorkspaceIdAndUser_UserId(unauthorizedWorkspaceId, userId))
-                .thenReturn(Optional.empty());
+        when(workspaceValidator.validateAndGetWorkspace(unauthorizedWorkspaceId, userId))
+                .thenThrow(new IllegalArgumentException("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + unauthorizedWorkspaceId));
 
         // when
         // 서비스 메소드를 호출했을 때 예외가 발생하는지 검증합니다.
@@ -342,7 +340,7 @@ class RecipientServiceTest {
                 thrown.getMessage());
 
         // 2. (중요) 권한 검증에서 실패했으므로, 수신자를 조회하는 로직은 절대 호출되면 안됩니다.
-        verify(recipientRepository, never()).findByRecipientIdAndWorkspace_WorkspaceId(anyInt(), anyInt());
+        verify(recipientValidator, never()).validateAndGetRecipient(anyInt(), anyInt());
     }
 
     @Test
@@ -355,10 +353,12 @@ class RecipientServiceTest {
         Integer nonExistingRecipientId = 999;
 
         // 2. Mockito 행동 정의
-        when(workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId))
-                .thenReturn(Optional.of(mock(Workspace.class)));
-        when(recipientRepository.findByRecipientIdAndWorkspace_WorkspaceId(nonExistingRecipientId, workspaceId))
-                .thenReturn(Optional.empty());
+        //    - 워크스페이스 권한 검증은 통과시킵니다.
+        when(workspaceValidator.validateAndGetWorkspace(workspaceId, userId))
+                .thenReturn(mock(Workspace.class));
+        //    - 수신자 조회 단계에서 예외를 발생시켜 "결과 없음"을 시뮬레이션합니다.
+        when(recipientValidator.validateAndGetRecipient(workspaceId, nonExistingRecipientId))
+                .thenThrow(new IllegalArgumentException("해당 워크스페이스에 존재하지 않는 수신자입니다. ID: " + nonExistingRecipientId));
 
         // when
         // 서비스 메소드를 호출했을 때 예외가 발생하는지 검증합니다.
