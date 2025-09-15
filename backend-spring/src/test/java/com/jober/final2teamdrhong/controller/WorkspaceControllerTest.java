@@ -17,16 +17,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.test.context.support.WithMockUser;
-import com.jober.final2teamdrhong.entity.User;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -309,7 +304,6 @@ class WorkspaceControllerTest {
         // 1. MockMvc를 사용하여 PUT /workspaces/{workspaceId} 엔드포인트로 API 요청을 보냅니다.
         //    - contentType을 application/json으로 설정합니다.
         //    - content에 위에서 만든 JSON 문자열을 담습니다.
-        //    - with(csrf())를 통해 CSRF 보호를 통과시킵니다.
         ResultActions resultActions = mockMvc.perform(
                 put("/workspaces/" + originalWorkspace.getWorkspaceId())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -412,6 +406,7 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 삭제 성공 테스트")
+    @WithMockJwtClaims(userId = 1)
     void deleteWorkspace_Success_Test() throws Exception {
         // given
         // 1. 삭제 대상이 될 워크스페이스를 DB에 미리 저장합니다.
@@ -430,7 +425,6 @@ class WorkspaceControllerTest {
         // MockMvc를 사용하여 DELETE /workspaces/{workspaceId} 엔드포인트로 API 요청을 보냅니다.
         ResultActions resultActions = mockMvc.perform(
                 delete("/workspaces/" + targetWorkspace.getWorkspaceId())
-                        .with(csrf()) // CSRF 보호 통과
         );
 
         // then
@@ -451,6 +445,7 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 삭제 실패 테스트 - 권한 없음")
+    @WithMockJwtClaims(userId = 1)
     void deleteWorkspace_Fail_Unauthorized_Test() throws Exception {
         // given
         // 1. 다른 사용자(anotherUser) 소유의 워크스페이스를 DB에 저장합니다.
@@ -469,7 +464,6 @@ class WorkspaceControllerTest {
         // 현재 사용자(testUser)가 다른 사람(anotherUser)의 워크스페이스 삭제를 시도합니다.
         ResultActions resultActions = mockMvc.perform(
                 delete("/workspaces/" + othersWorkspace.getWorkspaceId())
-                        .with(csrf()) // CSRF 보호 통과
         );
 
         // then
