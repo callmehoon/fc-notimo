@@ -1,6 +1,7 @@
 package com.jober.final2teamdrhong.config;
 
 import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.util.StringUtils;
@@ -26,7 +27,10 @@ import java.util.UUID;
 
 @Configuration
 @Slf4j
+@RequiredArgsConstructor
 public class JwtConfig {
+    
+    private final AuthProperties authProperties;
     
     @Value("${jwt.secret.key:}")
     private String jwtSecretKey;
@@ -89,12 +93,12 @@ public class JwtConfig {
         return Keys.hmacShaKeyFor(jwtSecretKey.getBytes());
     }
     
-    // 토큰 만료 시간 상수
-    public static final long ACCESS_TOKEN_VALIDITY = 1000 * 60 * 15; // 15분
-    private static final long REFRESH_TOKEN_VALIDITY = 1000 * 60 * 60 * 24 * 7; // 7일
-
     public long getAccessTokenValiditySeconds() {
-        return ACCESS_TOKEN_VALIDITY / 1000;
+        return authProperties.getToken().getAccessTokenValiditySeconds();
+    }
+    
+    public long getRefreshTokenValiditySeconds() {
+        return authProperties.getToken().getRefreshTokenValiditySeconds();
     }
 
     /**
@@ -102,7 +106,7 @@ public class JwtConfig {
      */
     public String generateAccessToken(String email, Integer userId) {
         Date now = new Date();
-        Date validity = new Date(now.getTime() + ACCESS_TOKEN_VALIDITY);
+        Date validity = new Date(now.getTime() + (authProperties.getToken().getAccessTokenValiditySeconds() * 1000));
         String jti = UUID.randomUUID().toString(); // JWT ID 생성
         
         return Jwts.builder()
@@ -121,7 +125,7 @@ public class JwtConfig {
      */
     public String generateRefreshToken(String email, Integer userId) {
         Date now = new Date();
-        Date validity = new Date(now.getTime() + REFRESH_TOKEN_VALIDITY);
+        Date validity = new Date(now.getTime() + (authProperties.getToken().getRefreshTokenValiditySeconds() * 1000));
         String jti = UUID.randomUUID().toString(); // JWT ID 생성
         
         return Jwts.builder()
