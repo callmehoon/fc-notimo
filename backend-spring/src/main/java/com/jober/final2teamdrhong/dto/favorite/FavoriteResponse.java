@@ -3,9 +3,13 @@ package com.jober.final2teamdrhong.dto.favorite;
 import com.jober.final2teamdrhong.entity.Favorite;
 import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import com.jober.final2teamdrhong.entity.PublicTemplate;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 
 @Getter
+@Builder
+@AllArgsConstructor
 public class FavoriteResponse {
 
     private final Integer favoriteId;
@@ -17,27 +21,35 @@ public class FavoriteResponse {
     private final Integer viewCount;
     private final Integer shareCount;
 
-    public FavoriteResponse(Favorite favorite) {
-        this.favoriteId = favorite.getFavoriteId();
-
-        if (favorite.getPublicTemplate() != null) {
-            PublicTemplate pt = favorite.getPublicTemplate();
-            this.templateType = "PUBLIC";
-            this.templateId = pt.getPublicTemplateId();
-            this.templateTitle = pt.getPublicTemplateTitle();
-            this.templateContent = pt.getPublicTemplateContent();
-            this.buttonTitle = pt.getButtonTitle();
-            this.viewCount = pt.getViewCount();
-            this.shareCount = pt.getShareCount();
-        } else {
-            IndividualTemplate it = favorite.getIndividualTemplate();
-            this.templateType = "INDIVIDUAL";
-            this.templateId = it.getIndividualTemplateId();
-            this.templateTitle = it.getIndividualTemplateTitle();
-            this.templateContent = it.getIndividualTemplateContent();
-            this.buttonTitle = it.getButtonTitle();
-            this.viewCount = null;
-            this.shareCount = null;
+    public static FavoriteResponse fromPublicTemplate(Favorite favorite) {
+        PublicTemplate pt = favorite.getPublicTemplate();
+        if (pt == null) {
+            throw new IllegalArgumentException("Favorite does not refer to a PublicTemplate.");
         }
+        return FavoriteResponse.builder()
+                .favoriteId(favorite.getFavoriteId())
+                .templateType("PUBLIC")
+                .templateId(pt.getPublicTemplateId())
+                .templateTitle(pt.getPublicTemplateTitle())
+                .templateContent(pt.getPublicTemplateContent())
+                .buttonTitle(pt.getButtonTitle())
+                .viewCount(pt.getViewCount())
+                .shareCount(pt.getShareCount())
+                .build();
+    }
+
+    public static FavoriteResponse fromIndividualTemplate(Favorite favorite) {
+        IndividualTemplate it = favorite.getIndividualTemplate();
+        if (it == null) {
+            throw new IllegalArgumentException("Favorite does not refer to an IndividualTemplate.");
+        }
+        return FavoriteResponse.builder()
+                .favoriteId(favorite.getFavoriteId())
+                .templateType("INDIVIDUAL")
+                .templateId(it.getIndividualTemplateId())
+                .templateTitle(it.getIndividualTemplateTitle())
+                .templateContent(it.getIndividualTemplateContent())
+                .buttonTitle(it.getButtonTitle())
+                .build();
     }
 }
