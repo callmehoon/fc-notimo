@@ -72,4 +72,16 @@ public class PublicTemplateService {
 
         return toResponse(savedPublicTemplate);
     }
+
+    /**
+     * 공용 템플릿을 소프트 삭제 처리한다.
+     *
+     * @param publicTemplateId 삭제할 공용 템플릿의 ID
+     * @throws IllegalArgumentException 지정한 ID의 템플릿이 존재하지 않는 경우 발생
+     */
+    public void deletePublicTemplate(Integer publicTemplateId) {
+        PublicTemplate publicTemplate = publicTemplateRepository.findByIdOrThrow(publicTemplateId);
+
+        publicTemplate.softDelete();
+    }
 } 
