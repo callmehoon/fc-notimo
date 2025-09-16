@@ -3,6 +3,7 @@ package com.jober.final2teamdrhong.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jober.final2teamdrhong.dto.workspace.WorkspaceRequest;
 import com.jober.final2teamdrhong.repository.UserRepository;
+import com.jober.final2teamdrhong.util.test.WithMockJwtClaims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -11,12 +12,10 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import com.jober.final2teamdrhong.entity.User;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -24,7 +23,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-@WithMockUser(username = "test@example.com", roles = "USER") // 인증된 목 유저 설정
 class WorkspaceControllerTest {
 
     @Autowired
@@ -51,8 +49,9 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 생성 성공 테스트")
+    @WithMockJwtClaims(userId = 1)
     void createWorkspace_Success_Test() throws Exception {
-        // given (테스트 준비)
+        // given
         WorkspaceRequest.CreateDTO createDTO = WorkspaceRequest.CreateDTO.builder()
                 .workspaceName("성공 테스트 워크스페이스")
                 .workspaceSubname("부이름")
@@ -68,16 +67,15 @@ class WorkspaceControllerTest {
 
         String requestBody = objectMapper.writeValueAsString(createDTO);
 
-        // when (테스트 실행)
+        // when
         // POST /api/workspaces 로 JSON 데이터를 담아 요청을 보냄
         ResultActions resultActions = mockMvc.perform(
                 post("/workspaces") // 실제 API 엔드포인트 경로
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody)
-                        .with(csrf())
         );
 
-        // then (결과 검증)
+        // then
         resultActions
                 .andExpect(status().isCreated()) // HTTP 상태 코드가 201 Created 인지 확인
                 .andExpect(jsonPath("$.workspaceName").value("성공 테스트 워크스페이스"));
@@ -86,8 +84,9 @@ class WorkspaceControllerTest {
 
     @Test
     @DisplayName("워크스페이스 생성 실패 테스트 - 필수 필드 누락")
+    @WithMockJwtClaims(userId = 1)
     void createWorkspace_Fail_Validation_Test() throws Exception {
-        // given (테스트 준비)
+        // given
         WorkspaceRequest.CreateDTO createDTO = WorkspaceRequest.CreateDTO.builder()
                 .workspaceName("") // workspaceName을 @NotBlank 위반으로 빈 값으로 설정
                 .workspaceSubname("부이름")
@@ -103,15 +102,14 @@ class WorkspaceControllerTest {
 
         String requestBody = objectMapper.writeValueAsString(createDTO);
 
-        // when (테스트 실행)
+        // when
         ResultActions resultActions = mockMvc.perform(
                 post("/workspaces")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody)
-                        .with(csrf())
         );
 
-        // then (결과 검증)
+        // then
         resultActions.andExpect(status().isBadRequest()); // 유효성 검사 실패로 400 Bad Request가 반환되는지 확인
     }
 }

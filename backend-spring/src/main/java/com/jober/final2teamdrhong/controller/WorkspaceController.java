@@ -1,5 +1,6 @@
 package com.jober.final2teamdrhong.controller;
 
+import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
 import com.jober.final2teamdrhong.dto.workspace.WorkspaceRequest;
 import com.jober.final2teamdrhong.dto.workspace.WorkspaceResponse;
 import com.jober.final2teamdrhong.exception.ErrorResponse;
@@ -15,6 +16,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,6 +39,7 @@ public class WorkspaceController {
      * 요청 본문(RequestBody)으로 받은 데이터를 사용하여 워크스페이스를 생성하며, 이 API를 호출하기 위해서는 인증이 필요합니다.
      *
      * @param createDTO 클라이언트로부터 받은 워크스페이스 생성을 위한 데이터 전송 객체 (DTO) (JSON, @Valid로 검증됨)
+     * @param jwtClaims {@link AuthenticationPrincipal}을 통해 SecurityContext에서 직접 주입받는 현재 로그인된 사용자의 JWT 정보 객체
      * @return 상태 코드 201 (Created)와 함께 생성된 워크스페이스의 간략 정보를 담은 ResponseEntity
      */
     @Operation(summary = "워크스페이스 생성", description = "새로운 워크스페이스를 생성합니다.")
@@ -53,9 +56,9 @@ public class WorkspaceController {
     })
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping
-    public ResponseEntity<WorkspaceResponse.SimpleDTO> createWorkspace(@Valid @RequestBody WorkspaceRequest.CreateDTO createDTO) {
-        // TODO: Spring Security 도입 후, @AuthenticationPrincipal 등을 통해 실제 사용자 정보 획득 필요
-        Integer currentUserId = 1;
+    public ResponseEntity<WorkspaceResponse.SimpleDTO> createWorkspace(@Valid @RequestBody WorkspaceRequest.CreateDTO createDTO,
+                                                                       @AuthenticationPrincipal JwtClaims jwtClaims) {
+        Integer currentUserId = jwtClaims.getUserId();
         WorkspaceResponse.SimpleDTO createdWorkspace = workspaceService.createWorkspace(createDTO, currentUserId);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(createdWorkspace);
