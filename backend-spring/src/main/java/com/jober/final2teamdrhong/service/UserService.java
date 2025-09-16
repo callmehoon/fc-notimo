@@ -12,6 +12,7 @@ import com.jober.final2teamdrhong.exception.DuplicateResourceException;
 import com.jober.final2teamdrhong.repository.UserRepository;
 import com.jober.final2teamdrhong.service.storage.VerificationStorage;
 import com.jober.final2teamdrhong.util.LogMaskingUtil;
+import com.jober.final2teamdrhong.util.TimingAttackProtection;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -31,8 +32,9 @@ public class UserService {
     private final JwtConfig jwtConfig;
     private final RefreshTokenService refreshTokenService;
     private final AuthProperties authProperties;
+    private final TimingAttackProtection timingAttackProtection;
 
-    public UserService(VerificationStorage verificationStorage, UserRepository userRepository, PasswordEncoder passwordEncoder, RateLimitService rateLimitService, JwtConfig jwtConfig, RefreshTokenService refreshTokenService, AuthProperties authProperties) {
+    public UserService(VerificationStorage verificationStorage, UserRepository userRepository, PasswordEncoder passwordEncoder, RateLimitService rateLimitService, JwtConfig jwtConfig, RefreshTokenService refreshTokenService, AuthProperties authProperties, TimingAttackProtection timingAttackProtection) {
         this.verificationStorage = verificationStorage;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
@@ -40,6 +42,7 @@ public class UserService {
         this.jwtConfig = jwtConfig;
         this.refreshTokenService = refreshTokenService;
         this.authProperties = authProperties;
+        this.timingAttackProtection = timingAttackProtection;
     }
 
     /**
@@ -117,58 +120,32 @@ public class UserService {
         log.info("인증 코드 검증 성공 (일회성): email={}", LogMaskingUtil.maskEmail(email));
     }
 
-    /**
-     * 타이밍 공격 방지를 위한 최소 응답 시간 보장
-     * @param minimumMs 최소 대기 시간 (밀리초)
-     */
-    private void ensureMinimumResponseTime(long minimumMs) {
-        try {
-            long currentTime = System.currentTimeMillis();
-            // 요청 시작 시간을 현재 스레드에 저장된 값에서 가져오거나, 현재 시간 사용
-            long startTime = getCurrentRequestStartTime();
-            long elapsed = currentTime - startTime;
-            
-            if (elapsed < minimumMs) {
-                long sleepTime = minimumMs - elapsed;
-                log.debug("보안 지연 적용: {}ms 대기", sleepTime);
-                Thread.sleep(sleepTime);
-            }
-        } catch (InterruptedException e) {
-            // 인터럽트 상태 복원
-            Thread.currentThread().interrupt();
-            log.warn("응답 시간 지연 중 인터럽트 발생");
-        }
-    }
-    
-    /**
-     * 현재 요청의 시작 시간을 반환 (없으면 현재 시간 - 100ms)
-     */
-    private long getCurrentRequestStartTime() {
-        // 실제로는 요청 시작 시간을 ThreadLocal에 저장하거나 
-        // Spring의 RequestAttributes를 사용할 수 있지만,
-        // 단순화를 위해 현재 시간에서 100ms를 뺀 값을 사용
-        return System.currentTimeMillis() - 100;
-    }
 
     /**
      * 로컬 계정 로그인 (Refresh Token 포함)
      */
     public UserLoginResponse loginWithRefreshToken(@Valid UserLoginRequest userLoginRequest, String clientIp) {
-        log.info("로그인 시도: email={}", LogMaskingUtil.maskEmail(userLoginRequest.getEmail()));
-        
+        // 타이밍 공격 방지를 위한 요청 시작 시간 기록
+        timingAttackProtection.startTiming();
+
         try {
+            log.info("로그인 시도: email={}", LogMaskingUtil.maskEmail(userLoginRequest.getEmail()));
+
             AuthenticationResult authResult = authenticateUser(userLoginRequest);
             if (authResult.isFailure()) {
                 handleAuthenticationFailure(userLoginRequest.getEmail());
             }
             return createSuccessfulLoginResponse(authResult.getUser(), authResult.getLocalAuth(), clientIp);
-            
+
         } catch (BadCredentialsException e) {
             handleAuthenticationFailure(userLoginRequest.getEmail());
             throw e;
         } catch (Exception e) {
             handleUnexpectedError(userLoginRequest.getEmail(), e);
             return null; // 실제로는 예외가 던져지므로 도달하지 않음
+        } finally {
+            // ThreadLocal 정리 (메모리 누수 방지)
+            timingAttackProtection.clear();
         }
     }
     
@@ -199,17 +176,17 @@ public class UserService {
      * 인증 실패 처리
      */
     private void handleAuthenticationFailure(String email) {
-        ensureMinimumResponseTime(authProperties.getSecurity().getMinResponseTimeMs());
+        timingAttackProtection.ensureMinimumResponseTime(authProperties.getSecurity().getMinResponseTimeMs());
         log.warn("로그인 실패: email={}, reason=인증 정보 불일치", LogMaskingUtil.maskEmail(email));
         throw new BadCredentialsException(authProperties.getMessages().getInvalidCredentials());
     }
-    
+
     /**
      * 예상치 못한 오류 처리
      */
     private void handleUnexpectedError(String email, Exception e) {
-        ensureMinimumResponseTime(authProperties.getSecurity().getMinResponseTimeMs());
-        log.error("로그인 처리 중 오류 발생: email={}, error={}", 
+        timingAttackProtection.ensureMinimumResponseTime(authProperties.getSecurity().getMinResponseTimeMs());
+        log.error("로그인 처리 중 오류 발생: email={}, error={}",
                 LogMaskingUtil.maskEmail(email), e.getMessage());
         throw new BadCredentialsException(authProperties.getMessages().getInvalidCredentials());
     }
