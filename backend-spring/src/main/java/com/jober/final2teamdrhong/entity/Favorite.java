@@ -1,11 +1,13 @@
 package com.jober.final2teamdrhong.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.SQLRestriction;
 
-@Data
+@Getter
 @Entity
 @Table(name = "favorite", uniqueConstraints = {
         // 스페이스와 템플릿들의 조합을 UNIQUE로 설정. 데이터 중복 방지
