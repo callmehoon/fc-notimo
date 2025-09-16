@@ -14,4 +14,6 @@ public interface WorkspaceRepository extends JpaRepository<Workspace, Integer> {
      * @return 존재하면 true, 그렇지 않으면 false
      */
     boolean existsByWorkspaceUrl(String workspaceUrl);
+
+    boolean existsByWorkspaceIdAndUser_UserId(Integer workspaceId, Integer userId);
 }

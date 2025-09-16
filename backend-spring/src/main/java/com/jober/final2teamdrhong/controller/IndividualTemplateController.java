@@ -1,7 +1,7 @@
 package com.jober.final2teamdrhong.controller;
 
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateResponse;
-import com.jober.final2teamdrhong.entity.User;
+import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
 import com.jober.final2teamdrhong.service.IndividualTemplateService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -44,9 +44,12 @@ public class IndividualTemplateController {
     public ResponseEntity<IndividualTemplateResponse> createEmptyTemplate(
             @Parameter(description = "Workspace ID", example = "1")
             @PathVariable Integer workspaceId,
-            @AuthenticationPrincipal User user) {
-        individualTemplateService.validateWorkspaceOwnership(workspaceId, user);
+            @AuthenticationPrincipal JwtClaims claims
+    ) {
+        Integer userId = claims.getUserId();
+        individualTemplateService.validateWorkspaceOwnership(workspaceId, userId);
 
+        System.out.print(claims);
         log.info("[SYNC] thread={}, isVirtual={}", Thread.currentThread().getName(), Thread.currentThread().isVirtual());
         IndividualTemplateResponse response = individualTemplateService.createTemplate(workspaceId);
         return ResponseEntity.ok(response);
@@ -68,8 +71,9 @@ public class IndividualTemplateController {
     public CompletableFuture<ResponseEntity<IndividualTemplateResponse>> createEmptyTemplateAsync(
             @Parameter(description = "Workspace ID", example = "1")
             @PathVariable Integer workspaceId,
-            @AuthenticationPrincipal User user) {
-        individualTemplateService.validateWorkspaceOwnership(workspaceId, user);
+            @AuthenticationPrincipal JwtClaims claims) {
+        Integer userId = claims.getUserId();
+        individualTemplateService.validateWorkspaceOwnership(workspaceId, userId);
 
         log.info("[ASYNC-ENTRY] thread={}, isVirtual={}", Thread.currentThread().getName(), Thread.currentThread().isVirtual());
         return individualTemplateService.createTemplateAsync(workspaceId).thenApply(ResponseEntity::ok);
