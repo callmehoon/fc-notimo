@@ -55,6 +55,7 @@ public abstract class BaseEntity {
     public void softDelete() {
         this.isDeleted = true;
         // Java의 ZoneId를 사용하여 서울 시간대의 현재 시간을 가져옵니다.
+        this.updatedAt = ZonedDateTime.now(ZoneId.of("Asia/Seoul")).toLocalDateTime();
         this.deletedAt = ZonedDateTime.now(ZoneId.of("Asia/Seoul")).toLocalDateTime();
     }
 }
