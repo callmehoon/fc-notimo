@@ -47,7 +47,7 @@ class WorkspaceRepositoryTest {
     @DisplayName("URL 존재 여부 확인 테스트")
     void existsByWorkspaceUrl_Test() {
         // given
-        // 1. user 필드를 제외하고 빌더로 Workspace 객체를 생성합니다.
+        // 1. 빌더로 Workspace 객체를 생성합니다.
         //    (빌더에 포함된 @NonNull 필드는 필수로 넣어주어야 합니다.)
         Workspace newWorkspace = Workspace.builder()
                 .workspaceName("테스트 워크스페이스")

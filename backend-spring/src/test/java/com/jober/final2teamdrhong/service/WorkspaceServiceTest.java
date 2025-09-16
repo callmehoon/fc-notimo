@@ -251,6 +251,8 @@ class WorkspaceServiceTest {
         when(mockWorkspace.getCompanyName()).thenReturn("회사이름");
         when(mockWorkspace.getCompanyRegisterNumber()).thenReturn("123-45-67890");
         when(mockWorkspace.getCreatedAt()).thenReturn(now);
+        when(mockWorkspace.getUpdatedAt()).thenReturn(now);
+        when(mockWorkspace.getDeletedAt()).thenReturn(null);
 
         // when
         // 실제 테스트 대상인 서비스 메소드를 호출합니다.
@@ -272,6 +274,8 @@ class WorkspaceServiceTest {
         assertEquals("회사이름", result.getCompanyName());
         assertEquals("123-45-67890", result.getCompanyRegisterNumber());
         assertEquals(now, result.getCreatedAt());
+        assertEquals(now, result.getUpdatedAt());
+        assertNull(result.getDeletedAt());
 
         // 2. Repository의 findBy.. 메소드가 정확히 1번 호출되었는지 검증합니다.
         verify(workspaceRepository, times(1))
@@ -304,5 +308,135 @@ class WorkspaceServiceTest {
         // 2. (중요) 예외가 발생하기 전에, Repository의 findBy.. 메소드가 정확히 1번 호출되었는지 검증합니다.
         verify(workspaceRepository, times(1))
                 .findByWorkspaceIdAndUser_UserId(nonExistingWorkspaceId, userId);
+    }
+
+    @Test
+    @DisplayName("워크스페이스 수정 성공 테스트")
+    void updateWorkspace_Success_Test() {
+        // given
+        Integer userId = 1;
+        Integer workspaceId = 1;
+        User mockUser = mock(User.class);
+
+        WorkspaceRequest.UpdateDTO updateDTO = WorkspaceRequest.UpdateDTO.builder()
+                .newWorkspaceName("수정된 워크스페이스")
+                .newWorkspaceUrl("updated-unique-url")
+                .newRepresenterName("수정된 대표")
+                .newRepresenterPhoneNumber("010-9999-8888")
+                .newCompanyName("수정된 회사")
+                .build();
+
+        Workspace existingWorkspace = Workspace.builder()
+                .workspaceName("원본 워크스페이스")
+                .workspaceUrl("original-url")
+                .representerName("원본 대표")
+                .representerPhoneNumber("010-1111-2222")
+                .companyName("원본 회사")
+                .user(mockUser)
+                .build();
+
+        // Mockito 행동 정의
+        when(workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId))
+                .thenReturn(Optional.of(existingWorkspace));
+        when(workspaceRepository.existsByWorkspaceUrl(updateDTO.getNewWorkspaceUrl()))
+                .thenReturn(false);
+
+        // when
+        WorkspaceResponse.DetailDTO result = workspaceService.updateWorkspace(updateDTO, workspaceId,
+                userId);
+
+        // then
+        assertNotNull(result);
+        // DTO의 값이 updateDTO의 값으로 잘 변경되었는지 확인
+        assertEquals("수정된 워크스페이스", result.getWorkspaceName());
+        assertEquals("updated-unique-url", result.getWorkspaceUrl());
+
+        // 실제 엔티티의 값이 잘 변경되었는지도 확인
+        assertEquals("수정된 워크스페이스", existingWorkspace.getWorkspaceName());
+        assertEquals("updated-unique-url", existingWorkspace.getWorkspaceUrl());
+
+        // updatedAt 관련 검증은 제거합니다.
+        // 이 검증은 JPA Auditing 기능에 의존하므로 통합 테스트에서 수행하는 것이 더 적합합니다.
+
+        // Repository 메소드 호출 횟수 검증
+        verify(workspaceRepository, times(1)).findByWorkspaceIdAndUser_UserId(workspaceId, userId);
+        verify(workspaceRepository, times(1)).existsByWorkspaceUrl(updateDTO.getNewWorkspaceUrl());
+    }
+
+    @Test
+    @DisplayName("워크스페이스 수정 실패 테스트 - 존재하지 않거나 권한이 없는 워크스페이스")
+    void updateWorkspace_Fail_NotFoundOrUnauthorized_Test() {
+        // given
+        // 1. 테스트에 사용할 ID와 요청 DTO를 준비합니다. DTO의 내용은 중요하지 않습니다.
+        Integer userId = 1;
+        Integer nonExistingWorkspaceId = 999;
+        WorkspaceRequest.UpdateDTO updateDTO = new WorkspaceRequest.UpdateDTO();
+
+        // Mockito 행동 정의: Repository가 이 ID로 조회 시 "결과 없음"을 의미하는
+        //    비어있는 Optional을 반환하도록 설정합니다.
+        when(workspaceRepository.findByWorkspaceIdAndUser_UserId(nonExistingWorkspaceId, userId))
+                .thenReturn(Optional.empty());
+
+        // when
+        // 1. 서비스 메소드를 호출했을 때 특정 예외가 발생하는지 검증합니다.
+        //    assertThrows는 예외가 발생하면 그 예외 객체를 반환하고, 발생하지 않으면 테스트를 실패시킵니다.
+        Throwable thrown = assertThrows(IllegalArgumentException.class, () ->
+                workspaceService.updateWorkspace(updateDTO, nonExistingWorkspaceId, userId));
+
+        // then
+        // 1. 발생한 예외의 메시지가 예상과 정확히 일치하는지 확인합니다.
+        assertEquals("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + nonExistingWorkspaceId,
+                thrown.getMessage());
+
+        // 2. (중요) 로직이 초반에 중단되었으므로, URL 중복을 체크하는 로직은 절대 호출되면 안됩니다.
+        //    이를 verify와 never()를 통해 검증합니다.
+        verify(workspaceRepository, never()).existsByWorkspaceUrl(anyString());
+    }
+
+    @Test
+    @DisplayName("워크스페이스 수정 실패 테스트 - 중복된 URL")
+    void updateWorkspace_Fail_DuplicateUrl_Test() {
+        // given
+        // 1. 테스트에 사용할 ID와 요청 DTO를 준비합니다.
+        Integer userId = 1;
+        Integer workspaceId = 1;
+
+        // Mock User 객체 생성 추가
+        User mockUser = mock(User.class);
+
+        WorkspaceRequest.UpdateDTO updateDTO = WorkspaceRequest.UpdateDTO.builder()
+                .newWorkspaceName("수정된 워크스페이스")
+                .newWorkspaceUrl("duplicate-url")
+                .newRepresenterName("수정된 대표")
+                .newRepresenterPhoneNumber("010-9999-8888")
+                .newCompanyName("수정된 회사")
+                .build();
+
+        // 2. 수정 대상이 될 원본 워크스페이스 객체를 준비합니다.
+        Workspace existingWorkspace = Workspace.builder()
+                .workspaceName("원본 워크스페이스")
+                .workspaceUrl("original-url")
+                .representerName("원본 대표")
+                .representerPhoneNumber("010-1111-2222")
+                .companyName("원본 회사")
+                .user(mockUser)
+                .build();
+
+        // Mockito 행동 정의 (2단계로 이루어짐)
+        //  1. 첫 번째 조회(findByWorkspaceIdAndUser_UserId)는 성공해야 하므로, 위에서 만든 원본 객체를 반환하도록 설정합니다.
+        when(workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId))
+                .thenReturn(Optional.of(existingWorkspace));
+        //  2. 두 번째 조회(existsByWorkspaceUrl)는 실패해야 하므로, URL이 이미 존재한다는 의미로 true를 반환하도록 설정합니다.
+                when(workspaceRepository.existsByWorkspaceUrl(updateDTO.getNewWorkspaceUrl()))
+                .thenReturn(true);
+
+        // when
+        // 서비스 메소드를 호출했을 때 예외가 발생하는지 검증하고, 발생한 예외를 캡처합니다.
+        Throwable thrown = assertThrows(IllegalArgumentException.class, () ->
+                workspaceService.updateWorkspace(updateDTO, workspaceId, userId));
+
+        // then
+        // 발생한 예외의 메시지가 "URL 중복" 관련 메시지와 일치하는지 확인합니다.
+        assertEquals("이미 사용 중인 URL입니다. 다른 URL을 입력해주세요.", thrown.getMessage());
     }
 }

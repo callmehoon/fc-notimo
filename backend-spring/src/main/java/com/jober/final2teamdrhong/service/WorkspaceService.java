@@ -105,4 +105,45 @@ public class WorkspaceService {
         // Optional에서 꺼낸 Workspace 엔티티를 DTO 생성자에 전달
         return new WorkspaceResponse.DetailDTO(workspaceDetail);
     }
+
+    /**
+     * 특정 워크스페이스의 정보를 수정합니다.
+     * <p>
+     * 요청한 사용자가 해당 워크스페이스의 소유자인지 확인하는 인가 과정이 포함되며,
+     * 수정하려는 워크스페이스 URL의 중복 여부도 검증합니다.
+     *
+     * @param updateDTO   워크스페이스 수정을 위한 요청 데이터
+     * @param workspaceId 수정할 워크스페이스의 ID
+     * @param userId      수정을 요청한 사용자의 ID (현재 인증된 사용자)
+     * @return 수정된 워크스페이스의 상세 정보(DetailDTO)
+     * @throws IllegalArgumentException 해당 워크스페이스가 존재하지 않거나, 사용자가 소유자가 아니거나, 수정하려는
+    URL이 이미 사용 중일 경우 발생
+     */
+    @Transactional
+    public WorkspaceResponse.DetailDTO updateWorkspace(WorkspaceRequest.UpdateDTO updateDTO, Integer workspaceId, Integer userId) {
+        // 1. 기존 워크스페이스 조회 (소유권 검증 포함)
+        Workspace existingWorkspace = workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId)
+                .orElseThrow(() -> new IllegalArgumentException("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + workspaceId));
+
+        // 2. URL 중복 체크 (현재 워크스페이스 제외)
+        if (!existingWorkspace.getWorkspaceUrl().equals(updateDTO.getNewWorkspaceUrl()) &&
+                workspaceRepository.existsByWorkspaceUrl(updateDTO.getNewWorkspaceUrl())) {
+            throw new IllegalArgumentException("이미 사용 중인 URL입니다. 다른 URL을 입력해주세요.");
+        }
+
+        // 3. 기존 객체 필드 수정 (Dirty Checking으로 자동 UPDATE)
+        existingWorkspace.setWorkspaceName(updateDTO.getNewWorkspaceName());
+        existingWorkspace.setWorkspaceSubname(updateDTO.getNewWorkspaceSubname());
+        existingWorkspace.setWorkspaceAddress(updateDTO.getNewWorkspaceAddress());
+        existingWorkspace.setWorkspaceDetailAddress(updateDTO.getNewWorkspaceDetailAddress());
+        existingWorkspace.setWorkspaceUrl(updateDTO.getNewWorkspaceUrl());
+        existingWorkspace.setRepresenterName(updateDTO.getNewRepresenterName());
+        existingWorkspace.setRepresenterPhoneNumber(updateDTO.getNewRepresenterPhoneNumber());
+        existingWorkspace.setRepresenterEmail(updateDTO.getNewRepresenterEmail());
+        existingWorkspace.setCompanyName(updateDTO.getNewCompanyName());
+        existingWorkspace.setCompanyRegisterNumber(updateDTO.getNewCompanyRegisterNumber());
+        existingWorkspace.update();
+
+        return new WorkspaceResponse.DetailDTO(existingWorkspace);
+    }
 }
