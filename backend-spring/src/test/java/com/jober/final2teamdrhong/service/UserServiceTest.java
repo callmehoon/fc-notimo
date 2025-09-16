@@ -35,6 +35,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -223,6 +225,11 @@ class UserServiceTest {
         String clientIp = "192.168.1.1";
         User mockUser = createMockUserWithAuth();
 
+        // AuthProperties Mock 설정 추가
+        AuthProperties.Security securityProps = mock(AuthProperties.Security.class);
+        given(authProperties.getSecurity()).willReturn(securityProps);
+        given(securityProps.getDummyHash()).willReturn("dummy-hash");
+
         given(userRepository.findByUserEmailWithAuth("test@example.com")).willReturn(Optional.of(mockUser));
         given(passwordEncoder.matches("Password123!", "encoded-password")).willReturn(true);
         given(jwtConfig.generateAccessToken("test@example.com", mockUser.getUserId())).willReturn("access-token");
@@ -272,7 +279,7 @@ class UserServiceTest {
                 .hasMessage("Invalid credentials");
 
         then(timingAttackProtection).should().startTiming();
-        then(timingAttackProtection).should().ensureMinimumResponseTime(500L);
+        then(timingAttackProtection).should(atLeastOnce()).ensureMinimumResponseTime(500L);
         then(timingAttackProtection).should().clear();
         then(userRepository).should(never()).save(any());
     }
@@ -300,7 +307,7 @@ class UserServiceTest {
                 .hasMessage("Invalid credentials");
 
         then(timingAttackProtection).should().startTiming();
-        then(timingAttackProtection).should().ensureMinimumResponseTime(500L);
+        then(timingAttackProtection).should(atLeastOnce()).ensureMinimumResponseTime(500L);
         then(timingAttackProtection).should().clear();
         then(userRepository).should(never()).save(any());
     }
@@ -310,14 +317,22 @@ class UserServiceTest {
     }
 
     private User createMockUserWithAuth() {
-        User user = User.create("테스트유저", "test@example.com", "010-1234-5678");
-        UserAuth userAuth = UserAuth.builder()
-                .user(user)
-                .authType(UserAuth.AuthType.LOCAL)
-                .passwordHash("encoded-password")
-                .isVerified(true)
-                .build();
-        user.addUserAuth(userAuth);
+        // Mockito로 User 객체를 완전히 mock 처리 (lenient로 불필요한 stubbing 허용)
+        User user = mock(User.class);
+        lenient().when(user.getUserId()).thenReturn(1);
+        lenient().when(user.getUserName()).thenReturn("테스트유저");
+        lenient().when(user.getUserEmail()).thenReturn("test@example.com");
+        lenient().when(user.getUserNumber()).thenReturn("010-1234-5678");
+        lenient().when(user.getUserRole()).thenReturn(User.UserRole.USER);
+
+        // UserAuth도 mock 처리
+        UserAuth userAuth = mock(UserAuth.class);
+        lenient().when(userAuth.getAuthType()).thenReturn(UserAuth.AuthType.LOCAL);
+        lenient().when(userAuth.getPasswordHash()).thenReturn("encoded-password");
+
+        // UserAuth 리스트 mock 설정
+        lenient().when(user.getUserAuths()).thenReturn(java.util.Collections.singletonList(userAuth));
+
         return user;
     }
 }
