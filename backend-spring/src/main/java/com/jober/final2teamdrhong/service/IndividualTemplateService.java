@@ -2,7 +2,6 @@ package com.jober.final2teamdrhong.service;
 
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateResponse;
 import com.jober.final2teamdrhong.entity.IndividualTemplate;
-import com.jober.final2teamdrhong.entity.User;
 import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.WorkspaceRepository;
@@ -30,12 +29,13 @@ public class IndividualTemplateService {
      * 비어있는 템플릿 생성 (title/content/button 전부 "")
      * 요청의 문자열 필드는 무시하고 workspaceId만 사용함.
      */
-    public void validateWorkspaceOwnership(Integer workspaceId, User user) {
-        boolean exists = workspaceRepo.existsByWorkspaceIdAndUser_UserId(workspaceId, user.getUserId());
+    public void validateWorkspaceOwnership(Integer workspaceId, Integer userId) {
+        if (userId == null)
+            throw new AccessDeniedException("인증이 필요합니다.");
 
-        if (!exists) {
-            throw new AccessDeniedException("해당 워크스페이스에 접근할 권한이 없거나 존재하지 않습니다.");
-        }
+        boolean exists = workspaceRepo.existsByWorkspaceIdAndUser_UserId(workspaceId, userId);
+        if(!exists)
+            throw new AccessDeniedException("해당 워크스페이스에 접근 권한이 없습니다.");
     }
 
     @Transactional

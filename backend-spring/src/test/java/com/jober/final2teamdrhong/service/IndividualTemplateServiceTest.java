@@ -10,8 +10,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -47,7 +52,55 @@ class IndividualTemplateServiceTest {
 
     @BeforeEach
     void setUp() {
+        // Workspace 엔티티의 실제 생성 방식을 모르는 상황이므로, 안전하게 mock 처리
         workspaceMock = mock(Workspace.class);
+    }
+
+    @Nested
+    @DisplayName("validateWorkspaceOwnership")
+    class ValidateWorkspaceOwnership {
+
+        @Test
+        @DisplayName("userId가 null이면 AccessDeniedException이 발생한다")
+        void validateWorkspaceOwnership_nullUserId() {
+            // when & then
+            assertThatThrownBy(() -> service.validateWorkspaceOwnership(1, null))
+                    .isInstanceOf(AccessDeniedException.class)
+                    .hasMessage("인증이 필요합니다.");
+
+            verifyNoInteractions(workspaceRepo);
+        }
+
+        @Test
+        @DisplayName("워크스페이스 소유권이 없으면 AccessDeniedException이 발생한다")
+        void validateWorkspaceOwnership_noOwnership() {
+            // given
+            when(workspaceRepo.existsByWorkspaceIdAndUser_UserId(1, 100))
+                    .thenReturn(false);
+
+            // when & then
+            assertThatThrownBy(() -> service.validateWorkspaceOwnership(1, 100))
+                    .isInstanceOf(AccessDeniedException.class)
+                    .hasMessage("해당 워크스페이스에 접근 권한이 없습니다.");
+
+            verify(workspaceRepo, times(1)).existsByWorkspaceIdAndUser_UserId(1, 100);
+            verifyNoMoreInteractions(workspaceRepo);
+        }
+
+        @Test
+        @DisplayName("워크스페이스 소유권이 있으면 정상적으로 통과한다")
+        void validateWorkspaceOwnership_hasOwnership() {
+            // given
+            when(workspaceRepo.existsByWorkspaceIdAndUser_UserId(1, 100))
+                    .thenReturn(true);
+
+            // when & then
+            assertThatCode(() -> service.validateWorkspaceOwnership(1, 100))
+                    .doesNotThrowAnyException();
+
+            verify(workspaceRepo, times(1)).existsByWorkspaceIdAndUser_UserId(1, 100);
+            verifyNoMoreInteractions(workspaceRepo);
+        }
     }
 
     @Nested
@@ -61,6 +114,7 @@ class IndividualTemplateServiceTest {
             when(workspaceMock.getWorkspaceId()).thenReturn(1);
             when(workspaceRepo.findById(1)).thenReturn(Optional.of(workspaceMock));
 
+            // save()가 반환할 "저장된 엔티티" 모킹
             LocalDateTime now = LocalDateTime.now();
             IndividualTemplate savedMock = mock(IndividualTemplate.class);
             when(savedMock.getIndividualTemplateId()).thenReturn(1);
@@ -90,8 +144,7 @@ class IndividualTemplateServiceTest {
             // then
             IndividualTemplate toSave = captor.getValue();
             assertThat(toSave).isNotNull();
-            // ❗ 잘못된 비교 수정: 객체 동일성 대신 ID 비교
-            assertThat(toSave.getWorkspace().getWorkspaceId()).isEqualTo(1);
+            assertThat(toSave.getWorkspace()).isSameAs(workspaceMock);
             assertThat(toSave.getIndividualTemplateTitle()).isNull();
             assertThat(toSave.getIndividualTemplateContent()).isNull();
             assertThat(toSave.getButtonTitle()).isNull();
@@ -114,8 +167,10 @@ class IndividualTemplateServiceTest {
         @Test
         @DisplayName("존재하지 않는 workspaceId면 IllegalArgumentException이 발생한다")
         void createTemplate_invalidWorkspace() {
+            // given
             when(workspaceRepo.findById(999)).thenReturn(Optional.empty());
 
+            // when & then
             assertThatThrownBy(() -> service.createTemplate(999))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("유효하지 않은 workspaceId");
@@ -132,6 +187,7 @@ class IndividualTemplateServiceTest {
         @Test
         @DisplayName("@Async 메서드는 CompletableFuture로 동일한 결과를 반환한다")
         void createTemplateAsync_success() throws Exception {
+            // given
             when(workspaceMock.getWorkspaceId()).thenReturn(1);
             when(workspaceRepo.findById(1)).thenReturn(Optional.of(workspaceMock));
 
@@ -148,16 +204,20 @@ class IndividualTemplateServiceTest {
 
             when(individualTemplateRepo.save(any(IndividualTemplate.class))).thenReturn(savedMock);
 
+            // when
             CompletableFuture<IndividualTemplateResponse> future = service.createTemplateAsync(1);
 
+            // then - 여러 번 future.get() 호출 시 성능 이슈를 피하기 위해 한 번만 호출
+            IndividualTemplateResponse res = future.get(2, TimeUnit.SECONDS);
+
             log.info("[비동기] 생성된 IndividualTemplateResponse 정보:");
-            log.info("  -> IndividualTemplate ID: {}", future.get().getIndividualTemplateId());
-            log.info("  -> Workspace ID: {}", future.get().getWorkspaceId());
-            log.info("  -> 템플릿 제목: {}", future.get().getIndividualTemplateTitle());
-            log.info("  -> 템플릿 내용: {}", future.get().getIndividualTemplateContent());
-            log.info("  -> 버튼 제목: {}", future.get().getButtonTitle());
-            log.info("  -> 생성일: {}", future.get().getCreatedAt());
-            log.info("  -> 수정일: {}", future.get().getUpdatedAt());
+            log.info("  -> IndividualTemplate ID: {}", res.getIndividualTemplateId());
+            log.info("  -> Workspace ID: {}", res.getWorkspaceId());
+            log.info("  -> 템플릿 제목: {}", res.getIndividualTemplateTitle());
+            log.info("  -> 템플릿 내용: {}", res.getIndividualTemplateContent());
+            log.info("  -> 버튼 제목: {}", res.getButtonTitle());
+            log.info("  -> 생성일: {}", res.getCreatedAt());
+            log.info("  -> 수정일: {}", res.getUpdatedAt());
 
             IndividualTemplateResponse res = future.get(2, TimeUnit.SECONDS);
             assertThat(res.getIndividualTemplateId()).isEqualTo(456);

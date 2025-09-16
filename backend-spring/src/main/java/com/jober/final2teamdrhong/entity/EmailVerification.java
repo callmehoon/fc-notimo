@@ -38,9 +38,11 @@ public class EmailVerification extends BaseEntity {
     // 2. 필드에 직접 초기화 로직 할당
     private LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(DEFAULT_VALIDITY_MINUTES);
 
+    @Builder.Default
     @Column(name = "attempts", nullable = false)
     private Integer attempts = 0;
 
+    @Builder.Default
     @Column(name = "is_used", nullable = false)
     private Boolean isUsed = false;
 
