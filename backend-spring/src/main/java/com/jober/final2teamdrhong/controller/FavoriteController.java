@@ -1,20 +1,15 @@
 package com.jober.final2teamdrhong.controller;
 
+import com.jober.final2teamdrhong.dto.favorite.FavoritePageRequest;
+import com.jober.final2teamdrhong.dto.favorite.FavoriteResponse;
 import com.jober.final2teamdrhong.dto.favorite.IndividualTemplateFavoriteRequest;
 import com.jober.final2teamdrhong.dto.favorite.PublicTemplateFavoriteRequest;
 import com.jober.final2teamdrhong.service.FavoriteService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
-
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
@@ -27,7 +22,7 @@ public class FavoriteController {
      * @param request workspaceId와 templateId를 포함한 DTO
      * @return 성공 시 HTTP 200 OK
      */
-    @PostMapping("/individual/fav")
+    @PostMapping("/individual/favorite")
     public ResponseEntity<Void> createIndividualTemplateFavorite(@Valid @RequestBody IndividualTemplateFavoriteRequest request) {
             favoriteService.createIndividualTemplateFavorite(request);
             return ResponseEntity.ok().build();
@@ -38,12 +33,11 @@ public class FavoriteController {
      * @param request workspaceId와 templateId를 포함한 DTO
      * @return 성공 시 HTTP 200 OK
      */
-    @PostMapping("/public/fav")
+    @PostMapping("/public/favorite")
     public ResponseEntity<Void> createPublicTemplateFavorite(@Valid @RequestBody PublicTemplateFavoriteRequest request) {
         favoriteService.createPublicTemplateFavorite(request);
         return ResponseEntity.ok().build();
     }
-
 
 
     /**
@@ -52,19 +46,16 @@ public class FavoriteController {
      * 있으면 해당 타입의 템플릿만 페이징하여 반환합니다.
      * @param workspaceId 조회의 기준이 되는 워크스페이스 ID
      * @param templateType 템플릿 유형 (public 또는 individual, optional)
-     * @param pageable 페이징 정보 (templateType이 있을 경우에만 유효)
+     * @param favoritePageRequest 페이징 정보
      * @return 즐겨찾기 목록 (List 또는 Page)과 HTTP 200 OK
      */
     @GetMapping("/favorites")
-    public ResponseEntity<?> getFavoritesByWorkspace(@RequestParam("workspaceId") Integer workspaceId,
-                                                     @RequestParam(value = "templateType", required = false) String templateType,
-                                                     @PageableDefault(size = 10, sort = "favoriteId", direction = Sort.Direction.DESC) Pageable pageable) {
-        // templateType 파라미터가 없는 경우 전체 목록 조회
-        if (!StringUtils.hasText(templateType)) {
-            return ResponseEntity.ok(favoriteService.getFavoritesByWorkspace(workspaceId));
-        }
+    public ResponseEntity<Page<FavoriteResponse>> getFavoritesByWorkspace(
+            @RequestParam("workspaceId") Integer workspaceId,
+            @RequestParam(value = "templateType", required = false) FavoriteService.TemplateType templateType,
+            @ModelAttribute FavoritePageRequest favoritePageRequest) {
 
-        // templateType 파라미터가 있는 경우 페이징 조회
-        return ResponseEntity.ok(favoriteService.getFavoritesByWorkspace(workspaceId, templateType, pageable));
+        Page<FavoriteResponse> favorites = favoriteService.getFavoritesByWorkspace(workspaceId, templateType, favoritePageRequest);
+        return ResponseEntity.ok(favorites);
     }
 }
