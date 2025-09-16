@@ -12,6 +12,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
 @RestController
 @RequiredArgsConstructor
 public class FavoriteController {
@@ -24,9 +28,9 @@ public class FavoriteController {
      * @return 성공 시 HTTP 200 OK
      */
     @PostMapping("/individual/fav")
-    public ResponseEntity<?> createIndividualTemplateFavorite(@Valid @RequestBody IndividualTemplateFavoriteRequest request) {
-        favoriteService.createIndividualTemplateFavorite(request);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<Void> createIndividualTemplateFavorite(@Valid @RequestBody IndividualTemplateFavoriteRequest request) {
+            favoriteService.createIndividualTemplateFavorite(request);
+            return ResponseEntity.ok().build();
     }
 
     /**
@@ -35,10 +39,12 @@ public class FavoriteController {
      * @return 성공 시 HTTP 200 OK
      */
     @PostMapping("/public/fav")
-    public ResponseEntity<?> createPublicTemplateFavorite(@Valid @RequestBody PublicTemplateFavoriteRequest request) {
+    public ResponseEntity<Void> createPublicTemplateFavorite(@Valid @RequestBody PublicTemplateFavoriteRequest request) {
         favoriteService.createPublicTemplateFavorite(request);
         return ResponseEntity.ok().build();
     }
+
+
 
     /**
      * 특정 워크스페이스에 속한 즐겨찾기 목록을 조회(read)합니다.

@@ -31,6 +31,22 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Integer> {
      */
     Optional<Favorite> findByWorkspaceAndPublicTemplate(Workspace workspace, PublicTemplate publicTemplate);
 
+    default void validateIndividualTemplateNotExists(Workspace workspace, IndividualTemplate individualTemplate) {
+        findByWorkspaceAndIndividualTemplate(workspace, individualTemplate)
+                .ifPresent(f -> {
+                    throw new IllegalArgumentException("이미 즐겨찾기된 개인 템플릿입니다.");
+                });
+    }
+
+    default void validatePublicTemplateNotExists(Workspace workspace, PublicTemplate publicTemplate) {
+        findByWorkspaceAndPublicTemplate(workspace, publicTemplate)
+                .ifPresent(f -> {
+                    throw new IllegalArgumentException("이미 즐겨찾기된 공용 템플릿입니다.");
+                });
+    }
+
+
+
     /**
      * 특정 워크스페이스에 속한 모든 즐겨찾기 목록을 페이징 없이 최신순으로 조회합니다.
      * @param workspace 조회의 기준이 되는 워크스페이스

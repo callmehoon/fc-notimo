@@ -1,119 +1,75 @@
 package com.jober.final2teamdrhong.exception;
 
-import com.jober.final2teamdrhong.dto.UserSignupResponse;
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.http.converter.HttpMessageNotReadableException;
 
-import java.util.ArrayList;
-import java.util.List;
-
-/**
- * 글로벌 예외 처리기 - Spring Boot 3.5.5 호환성 개선
- * 
- * Rate Limiting 기능 추가:
- * - RateLimitExceededException: HTTP 429 + Retry-After 헤더
- */
 @RestControllerAdvice
-@Slf4j
 public class GlobalExceptionHandler {
 
     // 1. @Valid 검증 실패 시 발생하는 예외를 처리하는 메서드
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<?> handleValidationExceptions(MethodArgumentNotValidException ex, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex) {
         // 실패한 검증의 첫 번째 에러 메시지를 가져옴
-        List<String> errorMessages = new ArrayList<>();
-        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
-            errorMessages.add(error.getDefaultMessage());
-        }
-        String errorMessage = errorMessages.isEmpty() ? "검증 오류가 발생했습니다." : errorMessages.get(0);
+        String errorMessage = ex.getBindingResult().getAllErrors().getFirst().getDefaultMessage();
 
-        // Auth API인지 확인하여 적절한 응답 타입 반환
-        if (isAuthApi(request)) {
-            log.warn("Auth API 검증 실패: path={}, error={}", request.getRequestURI(), errorMessage);
-            return ResponseEntity.badRequest().body(
-                UserSignupResponse.failure(errorMessage)
-            );
-        }
+        // 우리가 만든 ErrorResponse DTO에 메시지를 담음
+        ErrorResponse response = new ErrorResponse(errorMessage);
 
-        // 다른 API는 기존 ErrorResponse 사용
-        return ResponseEntity.badRequest().body(new ErrorResponse(errorMessage));
+        // 400 Bad Request 상태 코드와 함께 응답
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
     // 2. 서비스 계층 등에서 비즈니스 로직상 발생하는 예외를 처리하는 메서드
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<?> handleIllegalArgumentException(IllegalArgumentException ex, HttpServletRequest request) {
-        // Auth API인지 확인하여 적절한 응답 타입 반환
-        if (isAuthApi(request)) {
-            log.warn("Auth API 비즈니스 로직 오류: path={}, error={}", request.getRequestURI(), ex.getMessage());
-            return ResponseEntity.badRequest().body(
-                UserSignupResponse.failure(ex.getMessage())
-            );
-        }
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
+        ErrorResponse response = new ErrorResponse(ex.getMessage());
 
-        // 다른 API는 기존 ErrorResponse 사용
-        return ResponseEntity.badRequest().body(new ErrorResponse(ex.getMessage()));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
-    // 3. Rate Limiting 예외 처리 - Auth API에서는 UserSignupResponseDto 반환
-    @ExceptionHandler(RateLimitExceededException.class)
-    public ResponseEntity<?> handleRateLimitExceededException(RateLimitExceededException ex, HttpServletRequest request) {
-        log.warn("Rate limit exceeded: path={}, message={}, retry after {} seconds", 
-                request.getRequestURI(), ex.getMessage(), ex.getRetryAfterSeconds());
-        
-        // Auth API인지 확인하여 적절한 응답 타입 반환
-        if (isAuthApi(request)) {
-            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                    .header("Retry-After", String.valueOf(ex.getRetryAfterSeconds()))
-                    .body(UserSignupResponse.failure(ex.getMessage()));
-        }
-
-        // 다른 API는 기존 ErrorResponse 사용
-        ErrorResponse response = new ErrorResponse(ex.getMessage(), ex.getRetryAfterSeconds());
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .header("Retry-After", String.valueOf(ex.getRetryAfterSeconds()))
-                .body(response);
-    }
-
-    // 4. JSON 파싱 오류 처리
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<?> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex, HttpServletRequest request) {
-        log.warn("JSON 파싱 오류: path={}, error={}", request.getRequestURI(), ex.getMessage());
-        
-        // Auth API인지 확인하여 적절한 응답 타입 반환
-        if (isAuthApi(request)) {
-            return ResponseEntity.badRequest().body(
-                UserSignupResponse.failure("잘못된 요청 형식입니다.")
-            );
-        }
-
-        // 다른 API는 기존 ErrorResponse 사용
-        return ResponseEntity.badRequest().body(new ErrorResponse("잘못된 요청 형식입니다."));
-    }
-
-    // 4. 위에서 처리하지 못한 모든 나머지 예외를 처리하는 최후의 보루
+    // 3. 위에서 처리하지 못한 모든 나머지 예외를 처리하는 최후의 보루
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleException(Exception ex, HttpServletRequest request) {
-        // 보안을 위해 상세한 예외 정보는 로그에만 기록하고, 클라이언트에는 일반적인 메시지만 반환
-        log.error("Unexpected error occurred at {}: {}", request.getRequestURI(), ex.getClass().getSimpleName());
-        log.debug("Exception details", ex); // 디버그 레벨로 스택트레이스 로깅
-        
+    public ResponseEntity<ErrorResponse> handleException(Exception ex) {
+        // 실제 운영에서는 여기서 에러 로그를 기록하는 것이 중요합니다 (e.g., log.error(...))
         ErrorResponse response = new ErrorResponse("서버 내부 오류가 발생했습니다. 관리자에게 문의해주세요.");
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
+
+    // ==================== 인증/인가 관련 예외 처리 (로그인/회원가입 전용) ====================
     
-    /**
-     * Auth API인지 확인하는 헬퍼 메서드
-     */
-    private boolean isAuthApi(HttpServletRequest request) {
-        String path = request.getRequestURI();
-        return path != null && path.startsWith("/auth/");
+    // 4. 인증 실패 예외 처리 (로그인/회원가입 전용)
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex) {
+        ErrorResponse response = new ErrorResponse(ex.getMessage());
+        
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    }
+    
+    // 5. 중복 리소스 예외 처리 (회원가입 시 이메일 중복)
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateResourceException(DuplicateResourceException ex) {
+        ErrorResponse response = new ErrorResponse(ex.getMessage());
+        
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+    
+    // 6. 비즈니스 로직 예외 처리 (인증 코드 만료 등)
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException ex) {
+        ErrorResponse response = new ErrorResponse(ex.getMessage());
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+    
+    // 7. Rate Limiting 예외 처리 (너무 많은 요청)
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ErrorResponse> handleRateLimitExceededException(RateLimitExceededException ex) {
+        ErrorResponse response = new ErrorResponse(ex.getMessage());
+        
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(response);
     }
 }

@@ -1,23 +1,27 @@
 package com.jober.final2teamdrhong.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.SQLRestriction;
 
-@Data
+@Getter
 @Entity
 @Table(name = "favorite", uniqueConstraints = {
         // 스페이스와 템플릿들의 조합을 UNIQUE로 설정. 데이터 중복 방지
         @UniqueConstraint(columnNames = {"workspace_id", "public_template_id"})
 })
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Favorite {
+@SuperBuilder
+@SQLRestriction("is_deleted = false")
+public class Favorite extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "favorite_id")
     private Integer favoriteId;
-
-
 
     // ===== 관계 필드 =====
     @ManyToOne(fetch = FetchType.LAZY)
@@ -31,13 +35,4 @@ public class Favorite {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "individual_template_id")
     private IndividualTemplate individualTemplate;
-
-
-
-    @Builder
-    public Favorite(Workspace workspace, PublicTemplate publicTemplate, IndividualTemplate individualTemplate) {
-        this.workspace = workspace;
-        this.publicTemplate = publicTemplate;
-        this.individualTemplate = individualTemplate;
-    }
 }
