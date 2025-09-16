@@ -23,7 +23,7 @@ public class FavoriteController {
      * @param request workspaceId와 templateId를 포함한 DTO
      * @return 성공 시 HTTP 200 OK
      */
-    @PostMapping("/individual/fav")
+    @PostMapping("/individual/favorite")
     public ResponseEntity<Void> createIndividualTemplateFavorite(@Valid @RequestBody IndividualTemplateFavoriteRequest request) {
             favoriteService.createIndividualTemplateFavorite(request);
             return ResponseEntity.ok().build();
@@ -34,7 +34,7 @@ public class FavoriteController {
      * @param request workspaceId와 templateId를 포함한 DTO
      * @return 성공 시 HTTP 200 OK
      */
-    @PostMapping("/public/fav")
+    @PostMapping("/public/favorite")
     public ResponseEntity<Void> createPublicTemplateFavorite(@Valid @RequestBody PublicTemplateFavoriteRequest request) {
         favoriteService.createPublicTemplateFavorite(request);
         return ResponseEntity.ok().build();
