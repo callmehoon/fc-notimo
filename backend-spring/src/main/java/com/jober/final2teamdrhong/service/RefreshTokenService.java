@@ -96,6 +96,15 @@ public class RefreshTokenService {
         User user = userRepository.findByUserEmail(email)
                 .orElseThrow(() -> new AuthenticationException(authProperties.getMessages().getUserNotFound()));
 
+        // 5-1. 사용자 인증 상태 확인 (이메일 인증 완료 여부)
+        boolean isVerified = user.getUserAuths().stream()
+                .anyMatch(auth -> Boolean.TRUE.equals(auth.getIsVerified()));
+        
+        if (!isVerified) {
+            log.warn("미인증 사용자의 토큰 갱신 시도: userId={}", userId);
+            throw new AuthenticationException("이메일 인증이 완료되지 않은 사용자입니다.");
+        }
+
         // 6. 새로운 토큰 쌍 생성
         String newAccessToken = jwtConfig.generateAccessToken(email, userId);
         String newRefreshToken = jwtConfig.generateRefreshToken(email, userId);
