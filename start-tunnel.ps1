@@ -5,7 +5,27 @@
 # 1. SSH 터널을 통해 AWS RDS MySQL에 연결 (포트 3307)
 # 2. Docker Compose를 통해 Redis 컨테이너 시작 (포트 6379)
 # 3. 개발에 필요한 모든 인프라 서비스를 한 번에 시작
+#
+# 사용법:
+# 1. PowerShell을 관리자 권한으로 실행
+# 2. 실행 정책 설정 (최초 1회): Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+# 3. 스크립트 실행: .\start-tunnel.ps1
+#
+# 필요 조건:
+# - OpenSSH Client (Windows 10 1809+ 기본 포함)
+# - Docker Desktop for Windows
+# - .env 파일에 DRHONG_PEM_KEY_PATH 설정
 # =====================================================
+
+# PowerShell 실행 정책 확인
+$currentPolicy = Get-ExecutionPolicy -Scope CurrentUser
+if ($currentPolicy -eq "Restricted") {
+    Write-Host "[경고] PowerShell 실행 정책이 제한되어 있습니다." -ForegroundColor Yellow
+    Write-Host "다음 명령어를 관리자 권한 PowerShell에서 실행하세요:" -ForegroundColor Yellow
+    Write-Host "Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser" -ForegroundColor Cyan
+    Write-Host ""
+    Read-Host "실행 정책을 변경한 후 Enter 키를 눌러 계속하세요"
+}
 
 Write-Host "=== Final-2team-DrHong 개발 환경 시작 ===" -ForegroundColor Green
 
