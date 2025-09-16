@@ -3,7 +3,9 @@ package com.jober.final2teamdrhong.config;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 
 /**
  * 인증 관련 설정 프로퍼티
@@ -65,17 +67,17 @@ public class AuthProperties {
         /**
          * Access Token 유효 시간 (초)
          */
-        private long accessTokenValiditySeconds = 15 * 60; // 15분
+        private long accessTokenValiditySeconds;
         
         /**
          * Refresh Token 유효 시간 (초)
          */
-        private long refreshTokenValiditySeconds = 7 * 24 * 60 * 60; // 7일
+        private long refreshTokenValiditySeconds;
         
         /**
          * Token 갱신 가능 시간 (초) - 만료 전 이 시간 내에서만 갱신 가능
          */
-        private long refreshThresholdSeconds = 5 * 60; // 5분
+        private long refreshThresholdSeconds;
     }
 
     @Getter
