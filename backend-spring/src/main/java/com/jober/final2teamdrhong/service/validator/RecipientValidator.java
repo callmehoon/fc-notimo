@@ -15,8 +15,8 @@ public class RecipientValidator {
      * 특정 워크스페이스에 해당 수신자가 존재하는지 검증합니다.
      * 검증에 성공하면 수신자 엔티티를 반환하고, 실패하면 예외를 발생시킵니다.
      *
-     * @param recipientId 검증할 수신자의 ID
      * @param workspaceId 수신자가 속한 워크스페이스의 ID
+     * @param recipientId 검증할 수신자의 ID
      * @return 검증에 성공한 Recipient 엔티티
      * @throws IllegalArgumentException 해당 워크스페이스에 수신자가 존재하지 않을 경우
      */
