@@ -5,6 +5,8 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDateTime;
 
@@ -16,12 +18,14 @@ import java.time.LocalDateTime;
 @Table(name = "email_verification")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class EmailVerification {
+@SuperBuilder
+@SQLRestriction("is_deleted = false")
+public class EmailVerification extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "verification_id")
-    private Long verificationId;
+    private Integer verificationId;
 
     @Column(name = "email", unique = true, nullable = false)
     private String email;
@@ -29,27 +33,18 @@ public class EmailVerification {
     @Column(name = "verification_code", nullable = false)
     private String verificationCode;
 
-    @Column(name = "expires_at", nullable = false)
-    private LocalDateTime expiresAt;
+    @Builder.Default // 1. 빌더를 위한 기본값 설정을 추가
+    @Column(name = "expires_at", nullable = false, columnDefinition = "TIMESTAMP")
+    // 2. 필드에 직접 초기화 로직 할당
+    private LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(DEFAULT_VALIDITY_MINUTES);
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
+    @Builder.Default
     @Column(name = "attempts", nullable = false)
     private Integer attempts = 0;
 
+    @Builder.Default
     @Column(name = "is_used", nullable = false)
     private Boolean isUsed = false;
-
-    // Builder 패턴을 위한 생성자
-    @Builder
-    private EmailVerification(String email, String verificationCode, LocalDateTime expiresAt) {
-        this.email = email;
-        this.verificationCode = verificationCode;
-        this.expiresAt = expiresAt != null ? expiresAt : LocalDateTime.now().plusMinutes(DEFAULT_VALIDITY_MINUTES);
-        this.createdAt = LocalDateTime.now();
-
-    }
 
     // 정적 팩토리 메서드
     public static EmailVerification create(String email, String verificationCode, int validMinutes) {
@@ -59,6 +54,7 @@ public class EmailVerification {
                 .expiresAt(LocalDateTime.now().plusMinutes(validMinutes))
                 .build();
     }
+
     // 기본 유효시간으로 생성하는 팩토리 메서드
     public static EmailVerification create(String email, String verificationCode) {
         return create(email, verificationCode, DEFAULT_VALIDITY_MINUTES);
@@ -97,6 +93,4 @@ public class EmailVerification {
     public boolean isValid() {
         return !isExpired() && !isUsed && !isMaxAttemptsExceeded();
     }
-
-
 }
