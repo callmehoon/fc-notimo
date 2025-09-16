@@ -6,6 +6,7 @@ import com.jober.final2teamdrhong.dto.workspace.WorkspaceResponse;
 import com.jober.final2teamdrhong.exception.ErrorResponse;
 import com.jober.final2teamdrhong.service.WorkspaceService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -17,10 +18,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 워크스페이스 관련 HTTP 요청을 처리하는 컨트롤러입니다.
@@ -62,5 +62,66 @@ public class WorkspaceController {
         WorkspaceResponse.SimpleDTO createdWorkspace = workspaceService.createWorkspace(createDTO, currentUserId);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(createdWorkspace);
+    }
+
+    /**
+     * 현재 인증된 사용자가 속한 모든 워크스페이스 목록을 조회합니다.
+     * <p>
+     * API 호출 시 전달된 JWT 토큰의 인증 정보를 기반으로, 해당 사용자가 접근 가능한 워크스페이스의 간략한 정보 목록을 반환합니다.
+     *
+     * @param jwtClaims {@link AuthenticationPrincipal}을 통해 SecurityContext에서 직접 주입받는 현재 로그인된 사용자의 JWT 정보 객체
+     * @return 상태 코드 200 (OK)와 함께 조회된 워크스페이스 간략 정보(SimpleDTO) 리스트를 담은 ResponseEntity
+     */
+    @Operation(summary = "워크스페이스 목록 조회", description = "현재 로그인된 사용자가 접근 가능한 모든 워크스페이스의 목록을 조회합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "워크스페이스 목록 조회 성공",
+                    content = @Content(mediaType = "application/json",
+                    array = @ArraySchema(schema = @Schema(implementation = WorkspaceResponse.SimpleDTO.class)))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청: 해당 사용자를 찾을 수 없음",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "인증 실패 (로그인 필요)",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping
+    public ResponseEntity<List<WorkspaceResponse.SimpleDTO>> readWorkspaces(@AuthenticationPrincipal JwtClaims jwtClaims) {
+        Integer currentUserId = jwtClaims.getUserId();
+        List<WorkspaceResponse.SimpleDTO> workspaceList = workspaceService.readWorkspaces(currentUserId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(workspaceList);
+    }
+
+    /**
+     * 특정 워크스페이스의 상세 정보를 조회하는 API
+     * <p>
+     * 경로 변수(PathVariable)로 받은 ID를 사용하여 특정 워크스페이스의 상세 정보를 조회합니다.
+     * 요청한 사용자가 해당 워크스페이스에 접근 권한이 있는지 확인하는 인가 과정이 포함됩니다.
+     *
+     * @param workspaceId 조회할 워크스페이스의 ID
+     * @param jwtClaims {@link AuthenticationPrincipal}을 통해 SecurityContext에서 직접 주입받는 현재 로그인된 사용자의 JWT 정보 객체
+     * @return 상태 코드 200 (OK)와 함께 조회된 워크스페이스 상세 정보(DetailDTO)를 담은 ResponseEntity
+     */
+    @Operation(summary = "워크스페이스 상세 조회", description = "특정 워크스페이스의 상세 정보를 조회합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "워크스페이스 상세 조회 성공",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = WorkspaceResponse.DetailDTO.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청: 워크스페이스를 찾을 수 없거나 접근 권한이 없음",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "인증 실패 (로그인 필요)",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/{workspaceId}")
+    public ResponseEntity<WorkspaceResponse.DetailDTO> readWorkspaceDetail(@PathVariable Integer workspaceId,
+                                                                           @AuthenticationPrincipal JwtClaims jwtClaims) {
+        Integer currentUserId = jwtClaims.getUserId();
+        WorkspaceResponse.DetailDTO workspaceDetail = workspaceService.readWorkspaceDetail(workspaceId, currentUserId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(workspaceDetail);
     }
 }
