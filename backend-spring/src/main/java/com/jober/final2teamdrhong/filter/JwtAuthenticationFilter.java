@@ -160,10 +160,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      * 공개 엔드포인트 여부 확인 헬퍼 메서드
      */
     private boolean isPublicEndpoint(String requestURI) {
-        return requestURI.startsWith("/auth/") ||
-               requestURI.startsWith("/swagger-ui") ||
-               requestURI.startsWith("/v3/api-docs") ||
-               requestURI.startsWith("/swagger-resources") ||
-               requestURI.startsWith("/webjars");
+        return requestURI.startsWith("/api/auth/") ||
+               requestURI.startsWith("/api/swagger-ui") ||
+               requestURI.startsWith("/api/v3/api-docs") ||
+               requestURI.startsWith("/api/swagger-resources") ||
+               requestURI.startsWith("/api/webjars");
     }
 }
