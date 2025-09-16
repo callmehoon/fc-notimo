@@ -55,8 +55,9 @@ public class UserAuth extends BaseEntity {
     @Column(name = "is_primary", nullable = false)
     private Boolean isPrimary = true;
 
+    @Builder.Default
     @Column(name = "is_verified", nullable = false)
-    private Boolean isVerified;
+    private Boolean isVerified = false;
 
     @Builder.Default
     @Column(name = "linked_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMP")
