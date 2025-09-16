@@ -99,25 +99,4 @@ public class FavoriteService {
         Page<Favorite> favorites = favoriteRepository.findFavorites(workspace, templateType, pageable);
         return favorites.map(FavoriteResponse::convertToFavoriteResponse);
     }
-
-    /**
-     * 공용 템플릿을 즐겨찾기에 추가(create)
-     * @param request 즐겨찾기 생성을 위한 정보 (workspaceId, templateId)
-     * @throws IllegalArgumentException 워크스페이스, 템플릿이 존재하지 않거나 이미 즐겨찾기로 등록되었을 경우 발생
-     */
-    @Transactional
-    public void createPublicTemplateFavorite(PublicTemplateFavoriteRequest request) {
-        Workspace workspace = workspaceRepository.findById(request.getWorkspaceId())
-                .orElseThrow(() -> new IllegalArgumentException("해당 워크스페이스를 찾을 수 없습니다."));
-
-        PublicTemplate publicTemplate = publicTemplateRepository.findById(request.getPublicTemplateId())
-                .orElseThrow(() -> new IllegalArgumentException("해당 템플릿을 찾을 수 없습니다."));
-
-        favoriteRepository.findByWorkspaceAndPublicTemplate(workspace, publicTemplate)
-                .ifPresent(f -> {throw new IllegalArgumentException("이미 즐겨찾기된 템플릿입니다.");});
-
-        Favorite favorite = new Favorite(workspace, publicTemplate, null);
-        favoriteRepository.save(favorite);
-    }
-
 }
