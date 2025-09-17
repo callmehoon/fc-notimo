@@ -1,9 +1,11 @@
 package com.jober.final2teamdrhong.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jober.final2teamdrhong.dto.favorite.FavoritePageRequest;
 import com.jober.final2teamdrhong.dto.favorite.FavoriteResponse;
 import com.jober.final2teamdrhong.dto.favorite.IndividualTemplateFavoriteRequest;
 import com.jober.final2teamdrhong.dto.favorite.PublicTemplateFavoriteRequest;
+import com.jober.final2teamdrhong.filter.JwtAuthenticationFilter;
 import com.jober.final2teamdrhong.service.FavoriteService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -11,13 +13,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.Collections;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -40,6 +41,12 @@ class FavoriteControllerTest {
     @MockBean
     private FavoriteService favoriteService;
 
+    @MockBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @MockBean
+    private JpaMetamodelMappingContext jpaMetamodelMappingContext;
+
 
     // ====================== Create ======================
     /**
@@ -53,7 +60,7 @@ class FavoriteControllerTest {
 
         doNothing().when(favoriteService).createIndividualTemplateFavorite(any(IndividualTemplateFavoriteRequest.class));
 
-        mockMvc.perform(post("/individual/fav")
+        mockMvc.perform(post("/individual/favorite")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isOk());
@@ -67,7 +74,7 @@ class FavoriteControllerTest {
         IndividualTemplateFavoriteRequest request = new IndividualTemplateFavoriteRequest(null, 10);
         String requestBody = objectMapper.writeValueAsString(request);
 
-        mockMvc.perform(post("/individual/fav")
+        mockMvc.perform(post("/individual/favorite")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isBadRequest());
@@ -81,7 +88,7 @@ class FavoriteControllerTest {
         IndividualTemplateFavoriteRequest request = new IndividualTemplateFavoriteRequest(1, null);
         String requestBody = objectMapper.writeValueAsString(request);
 
-        mockMvc.perform(post("/individual/fav")
+        mockMvc.perform(post("/individual/favorite")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isBadRequest());
@@ -102,7 +109,7 @@ class FavoriteControllerTest {
 
         doNothing().when(favoriteService).createPublicTemplateFavorite(any(PublicTemplateFavoriteRequest.class));
 
-        mockMvc.perform(post("/public/fav")
+        mockMvc.perform(post("/public/favorite")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isOk());
@@ -116,7 +123,7 @@ class FavoriteControllerTest {
         PublicTemplateFavoriteRequest request = new PublicTemplateFavoriteRequest(null, 100);
         String requestBody = objectMapper.writeValueAsString(request);
 
-        mockMvc.perform(post("/public/fav")
+        mockMvc.perform(post("/public/favorite")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isBadRequest());
@@ -132,7 +139,7 @@ class FavoriteControllerTest {
         String requestBody = objectMapper.writeValueAsString(request);
 
         // when & then
-        mockMvc.perform(post("/public/fav")
+        mockMvc.perform(post("/public/favorite")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isBadRequest());
@@ -150,38 +157,22 @@ class FavoriteControllerTest {
      * 즐겨찾기 목록 조회 테스트
      */
     @Test
-    @DisplayName("성공(단위): 즐겨찾기 전체 목록 조회 (페이징 없음)")
-    void getFavorites_noTemplateType_requestsList() throws Exception {
-        // given
-        when(favoriteService.getFavoritesByWorkspace(any(Integer.class)))
-                .thenReturn(Collections.emptyList());
-
-        // when & then
-        mockMvc.perform(get("/favorites")
-                        .param("workspaceId", "1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray());
-
-        verify(favoriteService).getFavoritesByWorkspace(any(Integer.class));
-        verify(favoriteService, never()).getFavoritesByWorkspace(any(Integer.class), anyString(), any(Pageable.class));
-    }
-
-    @Test
     @DisplayName("성공(단위): 즐겨찾기 목록 페이징 조회")
     void getFavorites_withTemplateType_requestsPage() throws Exception {
         // given
         Page<FavoriteResponse> mockPage = new PageImpl<>(List.of());
-        when(favoriteService.getFavoritesByWorkspace(any(Integer.class), anyString(), any(Pageable.class)))
+        when(favoriteService.getFavoritesByWorkspace(any(Integer.class), any(), any(FavoritePageRequest.class)))
                 .thenReturn(mockPage);
 
         // when & then
         mockMvc.perform(get("/favorites")
                         .param("workspaceId", "1")
-                        .param("templateType", "public"))
+                        .param("templateType", "PUBLIC")
+                        .param("page", "0")
+                        .param("size", "10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").exists());
 
-        verify(favoriteService, never()).getFavoritesByWorkspace(any(Integer.class));
-        verify(favoriteService).getFavoritesByWorkspace(any(Integer.class), anyString(), any(Pageable.class));
+        verify(favoriteService).getFavoritesByWorkspace(any(Integer.class), any(), any(FavoritePageRequest.class));
     }
 }
