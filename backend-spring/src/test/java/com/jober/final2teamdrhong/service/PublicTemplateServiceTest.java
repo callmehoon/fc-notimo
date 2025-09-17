@@ -13,7 +13,6 @@ import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import com.jober.final2teamdrhong.entity.PublicTemplate;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
-import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,7 +27,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
 import java.util.List;
-import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)
 class PublicTemplateServiceTest {
@@ -81,7 +79,7 @@ class PublicTemplateServiceTest {
                 .individualTemplateContent("원본 내용")
                 .buttonTitle("원본 버튼")
                 .build();
-        when(individualTemplateRepository.findById(individualTemplateId)).thenReturn(Optional.of(source));
+        when(individualTemplateRepository.findByIdOrThrow(individualTemplateId)).thenReturn(source);
 
         // save 호출 시 전달된 엔티티를 그대로 반환하도록 설정
         when(publicTemplateRepository.save(any(PublicTemplate.class)))
@@ -98,7 +96,7 @@ class PublicTemplateServiceTest {
 
         // then: 저장된 엔티티 필드도 원본과 동일하게 복사되었는지 검증
         ArgumentCaptor<PublicTemplate> captor = ArgumentCaptor.forClass(PublicTemplate.class);
-        verify(individualTemplateRepository).findById(individualTemplateId);
+        verify(individualTemplateRepository).findByIdOrThrow(individualTemplateId);
         verify(publicTemplateRepository).save(captor.capture());
         PublicTemplate savedEntity = captor.getValue();
         assertThat(savedEntity.getPublicTemplateTitle()).isEqualTo("원본 제목");
@@ -107,16 +105,16 @@ class PublicTemplateServiceTest {
     }
 
     @Test
-    @DisplayName("createPublicTemplate는 개인 템플릿이 없으면 EntityNotFoundException을 던진다")
+    @DisplayName("createPublicTemplate는 개인 템플릿이 없으면 IllegalArgumentException을 던진다")
     void createPublicTemplate_NotFound() {
         // given
-        when(individualTemplateRepository.findById(999999)).thenReturn(Optional.empty());
+        when(individualTemplateRepository.findByIdOrThrow(999999)).thenThrow(new IllegalArgumentException("해당 개인 템플릿을 찾을 수 없습니다."));
 
         // when & then
         assertThatThrownBy(() -> publicTemplateService
                 .createPublicTemplate(new PublicTemplateCreateRequest(999999)))
-                .isInstanceOf(EntityNotFoundException.class)
-                .hasMessageContaining("IndividualTemplate not found");
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("해당 개인 템플릿을 찾을 수 없습니다.");
 
         // 저장 로직은 호출되지 않아야 한다
         verify(publicTemplateRepository, never()).save(any(PublicTemplate.class));
