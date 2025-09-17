@@ -5,6 +5,7 @@ import com.jober.final2teamdrhong.dto.favorite.FavoriteResponse;
 import com.jober.final2teamdrhong.dto.favorite.IndividualTemplateFavoriteRequest;
 import com.jober.final2teamdrhong.dto.favorite.PublicTemplateFavoriteRequest;
 import com.jober.final2teamdrhong.entity.Favorite;
+import com.jober.final2teamdrhong.entity.Favorite.TemplateType;
 import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import com.jober.final2teamdrhong.entity.PublicTemplate;
 import com.jober.final2teamdrhong.entity.Workspace;
@@ -24,8 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class FavoriteService {
-
-    public enum TemplateType {INDIVIDUAL, PUBLIC}
 
     private final FavoriteRepository favoriteRepository;
     private final WorkspaceRepository workspaceRepository;
@@ -75,7 +74,6 @@ public class FavoriteService {
 
 
     // ========== read ==========
-
     /**
      * 특정 워크스페이스에 속한 모든 즐겨찾기 목록을 페이징 없이 조회합니다.
      *
@@ -86,27 +84,16 @@ public class FavoriteService {
         Workspace workspace = workspaceRepository.findByIdOrThrow(workspaceId);
         Pageable pageable = PageRequest.of(favoritePageRequest.getPage(), favoritePageRequest.getSize(), Sort.by(Sort.Direction.DESC, "favoriteId"));
 
-        if (templateType == null) {
-            Page<Favorite> favorites = favoriteRepository.findAllByWorkspaceOrderByFavoriteIdDesc(workspace, pageable);
-            return favorites.map(favorite -> {
-                if (favorite.getPublicTemplate() != null) {
-                    return FavoriteResponse.fromPublicTemplate(favorite);
-                } else {
-                    return FavoriteResponse.fromIndividualTemplate(favorite);
-                }
-            });
-        } else {
-            switch (templateType) {
-                case PUBLIC:
-                    Page<Favorite> publicFavorites = favoriteRepository.findByWorkspaceAndPublicTemplateIsNotNull(workspace, pageable);
-                    return publicFavorites.map(FavoriteResponse::fromPublicTemplate);
-                case INDIVIDUAL:
-                    Page<Favorite> individualFavorites = favoriteRepository.findByWorkspaceAndIndividualTemplateIsNotNull(workspace, pageable);
-                    return individualFavorites.map(FavoriteResponse::fromIndividualTemplate);
-                default:
-                    return Page.empty(pageable);
-            }
+        Page<Favorite> favorites = favoriteRepository.findFavorites(workspace, templateType, pageable);
+        return favorites.map(this::convertToFavoriteResponse);
+    }
+
+    // getFavoritesByWorkspace 메서드를 위한 Favorite 엔티티 -> DTO 변환 메서드
+    private FavoriteResponse convertToFavoriteResponse(Favorite favorite) {
+        if (favorite.getPublicTemplate() != null) {
+            return FavoriteResponse.fromPublicTemplate(favorite);
         }
+        return FavoriteResponse.fromIndividualTemplate(favorite);
     }
 
 }
