@@ -1,27 +1,23 @@
 package com.jober.final2teamdrhong.controller;
 
+import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplatePageableRequest;
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateResponse;
 import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
+import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import com.jober.final2teamdrhong.service.IndividualTemplateService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -92,10 +88,12 @@ public class IndividualTemplateController {
     public ResponseEntity<Page<IndividualTemplateResponse>> getAllTemplates(
             @Parameter(description = "워크스페이스 ID", example = "1")
             @PathVariable Integer workspaceId,
-            @RequestParam(defaultValue = "latest") String sortType, // latest | title
-            @ParameterObject
-            @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(individualTemplateService.getAllTemplates(workspaceId, sortType, pageable));
+            @Valid @ParameterObject IndividualTemplatePageableRequest individualTemplatePageableRequest) {
+        Page<IndividualTemplateResponse> page = individualTemplateService.getAllTemplates(
+                workspaceId,
+                individualTemplatePageableRequest.toPageable()
+        );
+        return ResponseEntity.ok(page);
     }
 
     // 전체 조회 (비동기)
@@ -104,10 +102,9 @@ public class IndividualTemplateController {
     public CompletableFuture<ResponseEntity<Page<IndividualTemplateResponse>>> getAllTemplatesAsync(
             @Parameter(description = "워크스페이스 ID", example = "1")
             @PathVariable Integer workspaceId,
-            @RequestParam(defaultValue = "latest") String sortType,
-            @ParameterObject
-            @PageableDefault(size = 20) Pageable pageable) {
-        return individualTemplateService.getAllTemplatesAsync(workspaceId, sortType, pageable)
+            @Valid @ParameterObject IndividualTemplatePageableRequest individualTemplatePageableRequest) {
+        return individualTemplateService.getAllTemplatesAsync(workspaceId,
+                        individualTemplatePageableRequest.toPageable())
                 .thenApply(ResponseEntity::ok);
     }
 
@@ -124,14 +121,13 @@ public class IndividualTemplateController {
             @Parameter(description = "워크스페이스 ID", example = "1")
             @PathVariable Integer workspaceId,
             @Parameter(description = "조회할 템플릿 상태", example = "DRAFT")
-            @PathVariable IndividualTemplate.Status status,
+            @RequestParam(value = "status", required = false) IndividualTemplate.Status status,
             @Parameter(description = "정렬 타입: latest | title", example = "latest")
-            @RequestParam(defaultValue = "latest") String sortType,
-            @ParameterObject
-            @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(
-                individualTemplateService.getIndividualTemplateByStatus(workspaceId, status, sortType, pageable)
-        );
+            @Valid @ParameterObject IndividualTemplatePageableRequest individualTemplatePageableRequest) {
+        Page<IndividualTemplateResponse> page = (status == null)
+                ? individualTemplateService.getAllTemplates(workspaceId, individualTemplatePageableRequest.toPageable())
+                : individualTemplateService.getIndividualTemplateByStatus(workspaceId, status, individualTemplatePageableRequest.toPageable());
+        return ResponseEntity.ok(page);
     }
 
     // 상태별 조회 (비동기)
@@ -140,14 +136,15 @@ public class IndividualTemplateController {
     public CompletableFuture<ResponseEntity<Page<IndividualTemplateResponse>>> getTemplatesByStatusAsync(
             @Parameter(description = "워크스페이스 ID", example = "1")
             @PathVariable Integer workspaceId,
-            @Parameter(description = "조회할 템플릿 상태", example = "APPROVED")
-            @PathVariable("status") IndividualTemplate.Status status,
+            @Parameter(description = "조회할 템플릿 상태", example = "DRAFT")
+            @RequestParam(value = "status", required = false) IndividualTemplate.Status status,
             @Parameter(description = "정렬 타입: latest | title", example = "title")
-            @RequestParam(defaultValue = "latest") String sortType,
-            @ParameterObject
-            @PageableDefault(size = 20) Pageable pageable) {
-        return individualTemplateService.getIndividualTemplateByStatusAsync(workspaceId, status, sortType, pageable)
-                .thenApply(ResponseEntity::ok);
+            @Valid @ParameterObject IndividualTemplatePageableRequest individualTemplatePageableRequest) {
+        CompletableFuture<Page<IndividualTemplateResponse>> fut =
+                (status == null)
+                        ? individualTemplateService.getAllTemplatesAsync(workspaceId, individualTemplatePageableRequest.toPageable())
+                        : individualTemplateService.getIndividualTemplateByStatusAsync(workspaceId, status, individualTemplatePageableRequest.toPageable());
+        return fut.thenApply(ResponseEntity::ok);
     }
 
     // 단일 조회 (동기)

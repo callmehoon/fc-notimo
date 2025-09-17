@@ -5,16 +5,15 @@ import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.WorkspaceRepository;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Service;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.concurrent.CompletableFuture;
 
 @Service
@@ -61,7 +60,8 @@ public class IndividualTemplateService {
                 saved.getWorkspace().getWorkspaceId(),
                 saved.getCreatedAt(),
                 saved.getUpdatedAt(),
-                saved.getIsDeleted()
+                saved.getIsDeleted(),
+                saved.getStatus()
         );
     }
 
@@ -78,23 +78,12 @@ public class IndividualTemplateService {
     /**
      * 개인 템플릿 전체 조회
      */
-    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    @Transactional(readOnly = true)
     public Page<IndividualTemplateResponse> getAllTemplates(
             Integer workspaceId,
-            String sortType,
             Pageable pageable) {
 
-        Sort sort = "title".equalsIgnoreCase(sortType)
-                ? Sort.by("IndividualTemplateTitle").ascending()
-                : Sort.by("createdAt").descending();
-
-        Pageable sortedPageable = PageRequest.of(
-                pageable.getPageNumber(),
-                pageable.getPageSize(),
-                sort
-        );
-
-        return individualTemplateRepo.findByWorkspace_WorkspaceIdAndIsDeletedFalse(workspaceId, sortedPageable)
+        return individualTemplateRepo.findByWorkspace_WorkspaceIdAndIsDeletedFalse(workspaceId, pageable)
                 .map(saved -> new IndividualTemplateResponse(
                         saved.getIndividualTemplateId(),
                         saved.getIndividualTemplateTitle(),
@@ -103,52 +92,31 @@ public class IndividualTemplateService {
                         saved.getWorkspace().getWorkspaceId(),
                         saved.getCreatedAt(),
                         saved.getUpdatedAt(),
-                        saved.getIsDeleted()
+                        saved.getIsDeleted(),
+                        saved.getStatus()
                 ));
     }
 
-    /**
-     * 정렬 기준 기본값(최신순)을 사용 하는 전체 조회
-     */
-    @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public Page<IndividualTemplateResponse> getAllTemplates(
-            Integer workspaceId,
-            Pageable pageable) {
-        return getAllTemplates(workspaceId, "latest", pageable);
-    }
-
     @Async
-    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    @Transactional(readOnly = true)
     public CompletableFuture<Page<IndividualTemplateResponse>> getAllTemplatesAsync(
             Integer workspaceId,
-            String sortType,
             Pageable pageable) {
         log.info("[@Async] thread={}, isVirtual={}", Thread.currentThread().getName(), Thread.currentThread().isVirtual());
-        return CompletableFuture.completedFuture(getAllTemplates(workspaceId, sortType, pageable));
+        return CompletableFuture.completedFuture(getAllTemplates(workspaceId, pageable));
     }
 
     /**
      * 개인 템플릿 상태별 조회
      */
-    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    @Transactional(readOnly = true)
     public Page<IndividualTemplateResponse> getIndividualTemplateByStatus(
             Integer workspaceId,
             IndividualTemplate.Status status,
-            String sortType,
             Pageable pageable) {
 
-        Sort sort = "title".equalsIgnoreCase(sortType)
-                ? Sort.by("individualTemplateTitle").ascending()
-                : Sort.by("createdAt").descending();
-
-        Pageable sortedPageable = PageRequest.of(
-                pageable.getPageNumber(),
-                pageable.getPageSize(),
-                sort
-        );
-
         return individualTemplateRepo
-                .findByWorkspace_WorkspaceIdAndIsDeletedFalseAndStatus(workspaceId, status, sortedPageable)
+                .findByWorkspace_WorkspaceIdAndIsDeletedFalseAndStatus(workspaceId, status, pageable)
                 .map(saved -> new IndividualTemplateResponse(
                         saved.getIndividualTemplateId(),
                         saved.getIndividualTemplateTitle(),
@@ -157,26 +125,26 @@ public class IndividualTemplateService {
                         saved.getWorkspace().getWorkspaceId(),
                         saved.getCreatedAt(),
                         saved.getUpdatedAt(),
-                        saved.getIsDeleted()
+                        saved.getIsDeleted(),
+                        saved.getStatus()
                 ));
     }
 
     @Async
-    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    @Transactional(readOnly = true)
     public CompletableFuture<Page<IndividualTemplateResponse>> getIndividualTemplateByStatusAsync(
             Integer workspaceId,
             IndividualTemplate.Status status,
-            String sortType,
             Pageable pageable) {
 
         log.info("[@Async] thread={}, isVirtual={}", Thread.currentThread().getName(), Thread.currentThread().isVirtual());
-        return CompletableFuture.completedFuture(getIndividualTemplateByStatus(workspaceId, status, sortType, pageable));
+        return CompletableFuture.completedFuture(getIndividualTemplateByStatus(workspaceId, status, pageable));
     }
 
     /**
      * 개인 템플릿 단일 조회
      */
-    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    @Transactional(readOnly = true)
     public IndividualTemplateResponse getIndividualTemplate(Integer workspaceId, Integer individualTemplateId) {
         IndividualTemplate saved = individualTemplateRepo
                 .findByIndividualTemplateIdAndWorkspace_WorkspaceIdAndIsDeletedFalse(individualTemplateId, workspaceId)
@@ -190,12 +158,13 @@ public class IndividualTemplateService {
                 saved.getWorkspace().getWorkspaceId(),
                 saved.getCreatedAt(),
                 saved.getUpdatedAt(),
-                saved.getIsDeleted()
+                saved.getIsDeleted(),
+                saved.getStatus()
         );
     }
 
     @Async
-    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    @Transactional(readOnly = true)
     public CompletableFuture<IndividualTemplateResponse> getIndividualTemplateAsync(Integer workspaceId, Integer individualTemplateId) {
         log.info("[@Async] thread={}, isVirtual={}", Thread.currentThread().getName(), Thread.currentThread().isVirtual());
         return CompletableFuture.completedFuture(getIndividualTemplate(workspaceId, individualTemplateId));
