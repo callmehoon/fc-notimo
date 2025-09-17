@@ -261,7 +261,6 @@ class FavoriteIntegrationTest {
                 .publicTemplate(savedPublicTemplate)
                 .build());
         Integer favoriteId = favoriteToDelete.getFavoriteId();
-        long initialCount = favoriteRepository.count();
 
         // when: 삭제 API 호출
         mockMvc.perform(delete("/favorites/{favoriteId}", favoriteId))
