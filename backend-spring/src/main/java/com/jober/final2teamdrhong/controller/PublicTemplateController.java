@@ -25,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
+@RequestMapping("/public-templates")
 @Tag(name = "공용템플릿 관리 API", description = "공용 템플릿 생성, 조회, 삭제 기능을 제공합니다")
 public class PublicTemplateController {
     private final PublicTemplateService publicTemplateService;
@@ -86,7 +87,7 @@ public class PublicTemplateController {
             )
         )
     })
-    @GetMapping("/public-templates")
+    @GetMapping
     public Page<PublicTemplateResponse> getPublicTemplates(
         @ParameterObject @Valid PublicTemplatePageableRequest request
     ) {
@@ -142,7 +143,7 @@ public class PublicTemplateController {
             )
         )
     })
-    @PostMapping("/public-templates")
+    @PostMapping
     public ResponseEntity<PublicTemplateResponse> createPublicTemplate(
         @Valid @RequestBody PublicTemplateCreateRequest request
     ) {
