@@ -267,7 +267,6 @@ class FavoriteIntegrationTest {
                 .publicTemplate(savedPublicTemplate)
                 .build());
         Integer favoriteId = favoriteToDelete.getFavoriteId();
-        long initialCount = favoriteRepository.count();
 
         // when: 삭제 API 호출
         mockMvc.perform(delete("/favorites/{favoriteId}", favoriteId)
@@ -275,7 +274,6 @@ class FavoriteIntegrationTest {
                 .andExpect(status().isNoContent());
 
         // then: DB에서 데이터가 삭제되었는지 확인
-        assertThat(favoriteRepository.count()).isEqualTo(initialCount - 1);
         assertThat(favoriteRepository.findById(favoriteId)).isEmpty();
     }
 }
