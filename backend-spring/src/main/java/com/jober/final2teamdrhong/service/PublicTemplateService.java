@@ -7,7 +7,6 @@ import com.jober.final2teamdrhong.entity.PublicTemplate;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
 
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.Page;
@@ -55,11 +54,10 @@ public class PublicTemplateService {
      *
      * @param request 개인 템플릿 ID를 담은 요청 DTO
      * @return 생성된 공용 템플릿 정보 {@link PublicTemplateResponse}
-     * @throws EntityNotFoundException 요청한 개인 템플릿이 존재하지 않을 경우
+     * @throws IllegalArgumentException 요청한 개인 템플릿이 존재하지 않을 경우
      */
     public PublicTemplateResponse createPublicTemplate(PublicTemplateCreateRequest request) {
-        IndividualTemplate individualTemplate = individualTemplateRepository.findById(request.individualTemplateId())
-            .orElseThrow(() -> new EntityNotFoundException("IndividualTemplate not found. id=" + request.individualTemplateId()));
+        IndividualTemplate individualTemplate = individualTemplateRepository.findByIdOrThrow(request.individualTemplateId());
 
         // 개인 템플릿 값을 복사해서 PublicTemplate 생성
         PublicTemplate publicTemplate = PublicTemplate.builder()
