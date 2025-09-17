@@ -323,17 +323,17 @@ class PublicTemplateControllerTest {
     }
 
     @Test
-    @DisplayName("공용 템플릿 생성 실패 - 개인 템플릿 없음 404")
-    void createPublicTemplate_NotFound_ReturnsNotFound() throws Exception {
+    @DisplayName("공용 템플릿 생성 실패 - 개인 템플릿 없음 400")
+    void createPublicTemplate_NotFound_ReturnsBadRequest() throws Exception {
         // given
         when(publicTemplateService.createPublicTemplate(any(PublicTemplateCreateRequest.class)))
-                .thenThrow(new jakarta.persistence.EntityNotFoundException("not found"));
+                .thenThrow(new IllegalArgumentException("해당 개인 템플릿을 찾을 수 없습니다."));
 
         // when & then
         mockMvc.perform(post("/public-templates")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"individualTemplateId\": 999}"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isBadRequest());
 
         verify(publicTemplateService, times(1)).createPublicTemplate(any(PublicTemplateCreateRequest.class));
     }
