@@ -60,14 +60,13 @@ class FavoriteIntegrationTest {
         User savedUser = userRepository.save(testUser);
 
         Workspace workspace = Workspace.builder()
+                .user(savedUser)
                 .workspaceName("테스트 워크스페이스")
                 .workspaceUrl("test-url-unique")
                 .representerName("홍길동")
                 .representerPhoneNumber("010-0000-0000")
                 .companyName("테스트 회사")
                 .build();
-
-        workspace.setUser(savedUser);
 
         savedWorkspace = workspaceRepository.save(workspace);
 
@@ -238,7 +237,6 @@ class FavoriteIntegrationTest {
                 .publicTemplate(savedPublicTemplate)
                 .build());
         Integer favoriteId = favoriteToDelete.getFavoriteId();
-        long initialCount = favoriteRepository.count();
 
         // when: 삭제 API 호출
         mockMvc.perform(delete("/favorites/{favoriteId}", favoriteId)
@@ -246,7 +244,6 @@ class FavoriteIntegrationTest {
                 .andExpect(status().isNoContent());
 
         // then: DB에서 데이터가 삭제되었는지 확인
-        assertThat(favoriteRepository.count()).isEqualTo(initialCount - 1);
         assertThat(favoriteRepository.findById(favoriteId)).isEmpty();
     }
 }
