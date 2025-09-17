@@ -51,7 +51,12 @@ class FavoriteIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        User savedUser = userRepository.save(new User("테스트유저", "test@example.com", "010-1111-1111", User.UserRole.USER));
+        User testUser = User.builder()
+                .userName("테스트유저")
+                .userEmail("test@example.com")
+                .userNumber("010-1111-1111")
+                .build();
+        User savedUser = userRepository.save(testUser);
 
         Workspace workspace = Workspace.builder()
                 .workspaceName("테스트 워크스페이스")
@@ -66,7 +71,7 @@ class FavoriteIntegrationTest {
         savedWorkspace = workspaceRepository.save(workspace);
 
         IndividualTemplate individualTemplate = IndividualTemplate.builder()
-                .workspaceId(savedWorkspace)
+                .workspace(savedWorkspace)
                 .individualTemplateTitle("테스트 개인 템플릿")
                 .individualTemplateContent("테스트 내용입니다.")
                 .buttonTitle("확인")
@@ -180,7 +185,7 @@ class FavoriteIntegrationTest {
      * 즐겨찾기 조회 통합 테스트
      */
     @Test
-    @DisplayName("성공(통합) : 특정 워크스페이스의 모든 즐겨찾기 목록 조회 (페이징 없음)")
+    @DisplayName("성공(통합) : 특정 워크스페이스의 모든 즐겨찾기 목록 조회")
     @WithMockUser
     void readAllFavorites_Success() throws Exception {
         // given
@@ -191,8 +196,8 @@ class FavoriteIntegrationTest {
         mockMvc.perform(get("/favorites")
                         .param("workspaceId", savedWorkspace.getWorkspaceId().toString()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(2));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(2));
     }
 
     @Test
@@ -206,7 +211,7 @@ class FavoriteIntegrationTest {
         // when & then
         mockMvc.perform(get("/favorites")
                         .param("workspaceId", savedWorkspace.getWorkspaceId().toString())
-                        .param("templateType", "public")
+                        .param("templateType", "PUBLIC")
                         .param("size", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
