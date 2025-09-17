@@ -313,14 +313,14 @@ class  FavoriteServiceTest {
         Integer favoriteId = 1;
         Favorite mockFavorite = mock(Favorite.class);
         when(favoriteRepository.findById(favoriteId)).thenReturn(Optional.of(mockFavorite));
-        doNothing().when(favoriteRepository).delete(mockFavorite);
+        doNothing().when((CrudRepository<Favorite, Integer>) favoriteRepository).delete(mockFavorite);
 
         // when
         favoriteService.deleteFavorite(favoriteId);
 
         // then
         verify(favoriteRepository, times(1)).findById(favoriteId);
-        verify(favoriteRepository, times(1)).delete(mockFavorite);
+        verify((CrudRepository<Favorite, Integer>) favoriteRepository, times(1)).delete(mockFavorite);
     }
 
     @Test
@@ -335,6 +335,6 @@ class  FavoriteServiceTest {
                 () -> favoriteService.deleteFavorite(favoriteId));
 
         assertEquals("해당 즐겨찾기를 찾을 수 없습니다.", exception.getMessage());
-        verify(favoriteRepository, never()).delete(any());
+        verify((CrudRepository<Favorite, Integer>) favoriteRepository, never()).delete(any(Favorite.class));
     }
 }
