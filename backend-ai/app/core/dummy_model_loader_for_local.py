@@ -13,7 +13,7 @@ class DummyModelLoader:
     @classmethod
     def load_cls_model(cls):
         """분류 모델 로드를 모킹하는 함수"""
-        print("더미 생성 모델 로드 완료")
+        print("더미 분류 모델 로드 완료")
         dummy_cls_model = "dummy_cls_model"
         dummy_cls_tokenizer = "dummy_cls_tokenizer"
         cls.models["cls"] = dummy_cls_model, dummy_cls_tokenizer
