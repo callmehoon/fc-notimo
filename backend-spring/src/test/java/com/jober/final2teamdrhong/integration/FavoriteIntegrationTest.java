@@ -84,6 +84,8 @@ class FavoriteCreationIntegrationTest {
                 .companyName("테스트 회사")
                 .build();
 
+        workspace.setUser(savedUser);
+
         savedWorkspace = workspaceRepository.save(workspace);
 
         IndividualTemplate individualTemplate = IndividualTemplate.builder()
