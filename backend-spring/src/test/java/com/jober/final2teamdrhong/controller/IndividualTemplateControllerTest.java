@@ -1,316 +1,232 @@
 package com.jober.final2teamdrhong.controller;
 
-import com.jober.final2teamdrhong.config.ExTestSecurityConfig;
+import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplatePageableRequest;
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateResponse;
-import com.jober.final2teamdrhong.entity.IndividualTemplate;
+import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
+import com.jober.final2teamdrhong.entity.User.UserRole;
 import com.jober.final2teamdrhong.service.IndividualTemplateService;
-import jakarta.persistence.EntityNotFoundException;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Import;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import static org.mockito.Mockito.doThrow;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.anyString;
-
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
-import static org.mockito.ArgumentMatchers.anyInt;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import com.jober.final2teamdrhong.entity.IndividualTemplate;
+import static org.mockito.ArgumentMatchers.any;
 
-@WebMvcTest(controllers = IndividualTemplateController.class)
-@Import({IndividualTemplateControllerTest.TestExceptionHandler.class,
-        ExTestSecurityConfig.class}) // 테스트용 시큐리티: permitAll / CSRF off
+@ExtendWith(MockitoExtension.class)
 class IndividualTemplateControllerTest {
 
-    @Autowired
-    MockMvc mvc;
-
-    @MockBean
+    @Mock
     IndividualTemplateService individualTemplateService;
 
+    @InjectMocks
+    IndividualTemplateController controller;
+
     @Test
-    void createEmptyTemplate_200과_JSON반환() throws Exception {
-        // 응답 DTO 인스턴스 생성 (필드 직접 주입)
-        IndividualTemplateResponse resp = new IndividualTemplateResponse(); // @NoArgsConstructor 가정
-        ReflectionTestUtils.setField(resp, "individualTemplateId", 1);
-        ReflectionTestUtils.setField(resp, "workspaceId", 99);
+    void createEmptyTemplate_정상_호출() {
+        // given
+        JwtClaims mockClaims = createMockJwtClaims(1, "test@test.com");
 
-        given(individualTemplateService.createTemplate(99)).willReturn(resp);
+        IndividualTemplateResponse expectedResponse = new IndividualTemplateResponse();
+        ReflectionTestUtils.setField(expectedResponse, "individualTemplateId", 1);
+        ReflectionTestUtils.setField(expectedResponse, "workspaceId", 99);
 
-        mvc.perform(post("/templates/{workspaceId}", 99))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith("application/json"))
-                .andExpect(jsonPath("$.individualTemplateId").value(1))
-                .andExpect(jsonPath("$.workspaceId").value(99));
+        given(individualTemplateService.createTemplate(99)).willReturn(expectedResponse);
 
+        // when
+        ResponseEntity<IndividualTemplateResponse> result =
+                controller.createEmptyTemplate(99, mockClaims);
+
+        // then
+        assertThat(result.getStatusCodeValue()).isEqualTo(200);
+        assertThat(result.getBody()).isNotNull();
+        assertThat(result.getBody().getIndividualTemplateId()).isEqualTo(1);
+        assertThat(result.getBody().getWorkspaceId()).isEqualTo(99);
+
+        verify(individualTemplateService).validateWorkspaceOwnership(99, 1);
         verify(individualTemplateService).createTemplate(99);
     }
 
     @Test
-    void createEmptyTemplateAsync_200과_JSON반환() throws Exception {
-        IndividualTemplateResponse resp = new IndividualTemplateResponse();
-        ReflectionTestUtils.setField(resp, "individualTemplateId", 2);
-        ReflectionTestUtils.setField(resp, "workspaceId", 77);
+    void createEmptyTemplateAsync_정상_호출() throws ExecutionException, InterruptedException {
+        // given
+        JwtClaims mockClaims = createMockJwtClaims(2, "test@test.com");
+
+        IndividualTemplateResponse expectedResponse = new IndividualTemplateResponse();
+        ReflectionTestUtils.setField(expectedResponse, "individualTemplateId", 2);
+        ReflectionTestUtils.setField(expectedResponse, "workspaceId", 77);
 
         given(individualTemplateService.createTemplateAsync(77))
-                .willReturn(CompletableFuture.completedFuture(resp));
+                .willReturn(CompletableFuture.completedFuture(expectedResponse));
 
-        // 1차: 비동기 시작 확인
-        MvcResult mvcResult = mvc.perform(post("/templates/{workspaceId}/async", 77))
-                .andExpect(request().asyncStarted())
-                .andReturn();
+        // when
+        CompletableFuture<ResponseEntity<IndividualTemplateResponse>> result =
+                controller.createEmptyTemplateAsync(77, mockClaims);
 
-        // 2차: async 결과 디스패치 후 본검증
-        mvc.perform(asyncDispatch(mvcResult))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith("application/json"))
-                .andExpect(jsonPath("$.individualTemplateId").value(2))
-                .andExpect(jsonPath("$.workspaceId").value(77));
+        // then
+        ResponseEntity<IndividualTemplateResponse> response = result.get();
+        assertThat(response.getStatusCodeValue()).isEqualTo(200);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getIndividualTemplateId()).isEqualTo(2);
+        assertThat(response.getBody().getWorkspaceId()).isEqualTo(77);
 
+        verify(individualTemplateService).validateWorkspaceOwnership(77, 2);
         verify(individualTemplateService).createTemplateAsync(77);
     }
 
-    // ----------------------
-    // READ: 전체 목록 조회 (동기)
-    // ----------------------
+    private JwtClaims createMockJwtClaims(Integer userId, String email) {
+        return JwtClaims.builder()
+                .userId(userId)
+                .email(email)
+                .userName("testUser")
+                .userRole(UserRole.USER) // UserRole enum import 필요
+                .tokenType("access")
+                .jti("test-jti-123")
+                .expiresAt(LocalDateTime.now().plusHours(1))
+                .build();
+    }
     @Test
-    void getAllTemplates_200과_Page_JSON반환() throws Exception {
+    void getTemplate_정상_호출() {
         // given
-        IndividualTemplateResponse r1 = new IndividualTemplateResponse();
-        ReflectionTestUtils.setField(r1, "individualTemplateId", 10);
-        ReflectionTestUtils.setField(r1, "workspaceId", 1);
+        Integer workspaceId = 7;
+        Integer individualTemplateId = 10;
 
-        IndividualTemplateResponse r2 = new IndividualTemplateResponse();
-        ReflectionTestUtils.setField(r2, "individualTemplateId", 11);
-        ReflectionTestUtils.setField(r2, "workspaceId", 1);
+        IndividualTemplateResponse expectedResponse = new IndividualTemplateResponse();
+        ReflectionTestUtils.setField(expectedResponse, "individualTemplateId", individualTemplateId);
+        ReflectionTestUtils.setField(expectedResponse, "workspaceId", workspaceId);
+        ReflectionTestUtils.setField(expectedResponse, "individualTemplateTitle", "Single Template");
+        ReflectionTestUtils.setField(expectedResponse, "individualTemplateContent", "Template Content");
+        ReflectionTestUtils.setField(expectedResponse, "status", IndividualTemplate.Status.DRAFT);
 
-        Page<IndividualTemplateResponse> page =
-                new PageImpl<>(List.of(r1, r2)); // 기본 페이지 메타: size/content 등 생성
+        given(individualTemplateService.getIndividualTemplate(workspaceId, individualTemplateId))
+                .willReturn(expectedResponse);
 
-        given(individualTemplateService.getAllTemplates(anyInt(), anyString(), any(Pageable.class)))
-                .willReturn(page);
+        // when
+        ResponseEntity<IndividualTemplateResponse> result =
+                controller.getTemplate(workspaceId, individualTemplateId);
 
-        // when & then
-        mvc.perform(get("/{workspaceId}/templates", 1)
-                        // 페이지 파라미터를 임의로 전달(미전달 시 @PageableDefault 동작)
-                        .param("page", "0")
-                        .param("size", "20")
-                        .param("sort", "createdAt,desc")
-                        .param("sortType", "latest"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith("application/json"))
-                // Page 응답 구조 검증
-                .andExpect(jsonPath("$.content[0].individualTemplateId").value(10))
-                .andExpect(jsonPath("$.content[0].workspaceId").value(1))
-                .andExpect(jsonPath("$.content[1].individualTemplateId").value(11))
-                .andExpect(jsonPath("$.content[1].workspaceId").value(1))
-                .andExpect(jsonPath("$.size").value(2)) // PageImpl의 size(=content size)
-                .andExpect(jsonPath("$.number").value(0)); // 요청한 page
+        // then
+        assertThat(result.getStatusCodeValue()).isEqualTo(200);
+        assertThat(result.getBody()).isNotNull();
+        assertThat(result.getBody().getIndividualTemplateId()).isEqualTo(individualTemplateId);
+        assertThat(result.getBody().getWorkspaceId()).isEqualTo(workspaceId);
+        assertThat(result.getBody().getIndividualTemplateTitle()).isEqualTo("Single Template");
+        assertThat(result.getBody().getIndividualTemplateContent()).isEqualTo("Template Content");
+        assertThat(result.getBody().getStatus()).isEqualTo(IndividualTemplate.Status.DRAFT);
 
-        verify(individualTemplateService).getAllTemplates(eq(1), eq("latest"), any(Pageable.class));
+        verify(individualTemplateService).getIndividualTemplate(workspaceId, individualTemplateId);
     }
 
     @Test
-    void getAllTemplates_기본값_sortType_사용() throws Exception {
+    void getTemplateAsync_정상_호출() throws ExecutionException, InterruptedException {
         // given
-        IndividualTemplateResponse r1 = new IndividualTemplateResponse();
-        ReflectionTestUtils.setField(r1, "individualTemplateId", 10);
-        ReflectionTestUtils.setField(r1, "workspaceId", 1);
+        Integer workspaceId = 8;
+        Integer individualTemplateId = 11;
 
-        Page<IndividualTemplateResponse> page = new PageImpl<>(List.of(r1));
+        IndividualTemplateResponse expectedResponse = new IndividualTemplateResponse();
+        ReflectionTestUtils.setField(expectedResponse, "individualTemplateId", individualTemplateId);
+        ReflectionTestUtils.setField(expectedResponse, "workspaceId", workspaceId);
+        ReflectionTestUtils.setField(expectedResponse, "individualTemplateTitle", "Async Single Template");
+        ReflectionTestUtils.setField(expectedResponse, "status", IndividualTemplate.Status.APPROVED);
 
-        given(individualTemplateService.getAllTemplates(anyInt(), anyString(), any(Pageable.class)))
-                .willReturn(page);
+        given(individualTemplateService.getIndividualTemplateAsync(workspaceId, individualTemplateId))
+                .willReturn(CompletableFuture.completedFuture(expectedResponse));
 
-        // when & then - sortType 파라미터를 전달하지 않음 (기본값 "latest" 사용)
-        mvc.perform(get("/{workspaceId}/templates", 1))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith("application/json"))
-                .andExpect(jsonPath("$.content[0].individualTemplateId").value(10));
+        // when
+        CompletableFuture<ResponseEntity<IndividualTemplateResponse>> result =
+                controller.getTemplateAsync(workspaceId, individualTemplateId);
 
-        verify(individualTemplateService).getAllTemplates(eq(1), eq("latest"), any(Pageable.class));
+        // then
+        ResponseEntity<IndividualTemplateResponse> response = result.get();
+        assertThat(response.getStatusCodeValue()).isEqualTo(200);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getIndividualTemplateId()).isEqualTo(individualTemplateId);
+        assertThat(response.getBody().getWorkspaceId()).isEqualTo(workspaceId);
+        assertThat(response.getBody().getIndividualTemplateTitle()).isEqualTo("Async Single Template");
+        assertThat(response.getBody().getStatus()).isEqualTo(IndividualTemplate.Status.APPROVED);
+
+        verify(individualTemplateService).getIndividualTemplateAsync(workspaceId, individualTemplateId);
     }
 
-    // ----------------------
-    // READ: 전체 목록 조회 (비동기)
-    // ----------------------
     @Test
-    void getAllTemplatesAsync_200과_Page_JSON반환() throws Exception {
-        IndividualTemplateResponse r1 = new IndividualTemplateResponse();
-        ReflectionTestUtils.setField(r1, "individualTemplateId", 20);
-        ReflectionTestUtils.setField(r1, "workspaceId", 2);
-
-        Page<IndividualTemplateResponse> page = new PageImpl<>(List.of(r1));
-
-        given(individualTemplateService.getAllTemplatesAsync(anyInt(), anyString(), any(Pageable.class)))
-                .willReturn(CompletableFuture.completedFuture(page));
-
-        MvcResult mvcResult = mvc.perform(get("/{workspaceId}/templates/async", 2)
-                        .param("page", "0")
-                        .param("size", "20")
-                        .param("sortType", "title"))
-                .andExpect(request().asyncStarted())
-                .andReturn();
-
-        mvc.perform(asyncDispatch(mvcResult))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith("application/json"))
-                .andExpect(jsonPath("$.content[0].individualTemplateId").value(20))
-                .andExpect(jsonPath("$.content[0].workspaceId").value(2));
-
-        verify(individualTemplateService).getAllTemplatesAsync(eq(2), eq("title"), any(Pageable.class));
-    }
-
-    // ----------------------
-    // READ: 상태별 조회 (동기)
-    // ----------------------
-    @Test
-    void getTemplatesByStatus_200과_Page_JSON반환() throws Exception {
+    void getAllTemplates_정상_호출() {
         // given
-        IndividualTemplateResponse r1 = new IndividualTemplateResponse();
-        ReflectionTestUtils.setField(r1, "individualTemplateId", 30);
-        ReflectionTestUtils.setField(r1, "workspaceId", 3);
+        Integer workspaceId = 1;
+        IndividualTemplatePageableRequest request = new IndividualTemplatePageableRequest();
 
-        Page<IndividualTemplateResponse> page = new PageImpl<>(List.of(r1));
+        IndividualTemplateResponse templateResponse = new IndividualTemplateResponse();
+        ReflectionTestUtils.setField(templateResponse, "individualTemplateId", 1);
+        ReflectionTestUtils.setField(templateResponse, "workspaceId", workspaceId);
+        ReflectionTestUtils.setField(templateResponse, "individualTemplateTitle", "Test Template");
 
-        given(individualTemplateService.getIndividualTemplateByStatus(
-                anyInt(), any(IndividualTemplate.Status.class), anyString(), any(Pageable.class)))
-                .willReturn(page);
+        Page<IndividualTemplateResponse> expectedPage = new PageImpl<>(
+                List.of(templateResponse), PageRequest.of(0, 10), 1);
 
-        // when & then
-        mvc.perform(get("/{workspaceId}/templates/status/{status}", 3, "DRAFT")
-                        .param("page", "0")
-                        .param("size", "20")
-                        .param("sortType", "latest"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith("application/json"))
-                .andExpect(jsonPath("$.content[0].individualTemplateId").value(30))
-                .andExpect(jsonPath("$.content[0].workspaceId").value(3));
+        given(individualTemplateService.getAllTemplates(eq(workspaceId), any(Pageable.class)))
+                .willReturn(expectedPage);
 
-        verify(individualTemplateService).getIndividualTemplateByStatus(
-                eq(3), eq(IndividualTemplate.Status.DRAFT), eq("latest"), any(Pageable.class));
+        // when
+        ResponseEntity<Page<IndividualTemplateResponse>> result =
+                controller.getAllTemplates(workspaceId, request);
+
+        // then
+        assertThat(result.getStatusCodeValue()).isEqualTo(200);
+        assertThat(result.getBody()).isNotNull();
+        assertThat(result.getBody().getContent()).hasSize(1);
+        assertThat(result.getBody().getContent().get(0).getIndividualTemplateId()).isEqualTo(1);
+        assertThat(result.getBody().getContent().get(0).getWorkspaceId()).isEqualTo(workspaceId);
+        assertThat(result.getBody().getContent().get(0).getIndividualTemplateTitle()).isEqualTo("Test Template");
+
+        verify(individualTemplateService).getAllTemplates(eq(workspaceId), any(Pageable.class));
     }
 
     @Test
-    void getTemplatesByStatus_기본값_sortType_사용() throws Exception {
+    void getTemplatesByStatus_DRAFT_정상_호출() {
         // given
-        IndividualTemplateResponse r1 = new IndividualTemplateResponse();
-        ReflectionTestUtils.setField(r1, "individualTemplateId", 31);
-        ReflectionTestUtils.setField(r1, "workspaceId", 3);
+        Integer workspaceId = 3;
+        IndividualTemplate.Status status = IndividualTemplate.Status.DRAFT;
+        IndividualTemplatePageableRequest request = new IndividualTemplatePageableRequest();
 
-        Page<IndividualTemplateResponse> page = new PageImpl<>(List.of(r1));
+        IndividualTemplateResponse templateResponse = new IndividualTemplateResponse();
+        ReflectionTestUtils.setField(templateResponse, "individualTemplateId", 3);
+        ReflectionTestUtils.setField(templateResponse, "workspaceId", workspaceId);
+        ReflectionTestUtils.setField(templateResponse, "status", status);
 
-        given(individualTemplateService.getIndividualTemplateByStatus(
-                anyInt(), any(IndividualTemplate.Status.class), anyString(), any(Pageable.class)))
-                .willReturn(page);
+        Page<IndividualTemplateResponse> expectedPage = new PageImpl<>(
+                List.of(templateResponse), PageRequest.of(0, 10), 1);
 
-        // when & then - sortType 파라미터 미전달 (기본값 "latest" 사용)
-        mvc.perform(get("/{workspaceId}/templates/status/{status}", 3, "APPROVED"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith("application/json"))
-                .andExpect(jsonPath("$.content[0].individualTemplateId").value(31));
+        given(individualTemplateService.getIndividualTemplateByStatus(eq(workspaceId), eq(status), any(Pageable.class)))
+                .willReturn(expectedPage);
 
-        verify(individualTemplateService).getIndividualTemplateByStatus(
-                eq(3), eq(IndividualTemplate.Status.APPROVED), eq("latest"), any(Pageable.class));
-    }
+        // when
+        ResponseEntity<Page<IndividualTemplateResponse>> result =
+                controller.getTemplatesByStatus(workspaceId, status, request);
 
-    // ----------------------
-    // READ: 상태별 조회 (비동기)
-    // ----------------------
-    @Test
-    void getTemplatesByStatusAsync_200과_Page_JSON반환() throws Exception {
-        IndividualTemplateResponse r1 = new IndividualTemplateResponse();
-        ReflectionTestUtils.setField(r1, "individualTemplateId", 40);
-        ReflectionTestUtils.setField(r1, "workspaceId", 4);
+        // then
+        assertThat(result.getStatusCodeValue()).isEqualTo(200);
+        assertThat(result.getBody()).isNotNull();
+        assertThat(result.getBody().getContent()).hasSize(1);
+        assertThat(result.getBody().getContent().get(0).getIndividualTemplateId()).isEqualTo(3);
+        assertThat(result.getBody().getContent().get(0).getWorkspaceId()).isEqualTo(workspaceId);
+        assertThat(result.getBody().getContent().get(0).getStatus()).isEqualTo(status);
 
-        Page<IndividualTemplateResponse> page = new PageImpl<>(List.of(r1));
-
-        given(individualTemplateService.getIndividualTemplateByStatusAsync(
-                anyInt(), any(IndividualTemplate.Status.class), anyString(), any(Pageable.class)))
-                .willReturn(CompletableFuture.completedFuture(page));
-
-        MvcResult mvcResult = mvc.perform(get("/{workspaceId}/templates/status/{status}/async", 4, "APPROVED")
-                        .param("page", "0")
-                        .param("size", "20")
-                        .param("sortType", "title"))
-                .andExpect(request().asyncStarted())
-                .andReturn();
-
-        mvc.perform(asyncDispatch(mvcResult))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith("application/json"))
-                .andExpect(jsonPath("$.content[0].individualTemplateId").value(40))
-                .andExpect(jsonPath("$.content[0].workspaceId").value(4));
-
-        verify(individualTemplateService).getIndividualTemplateByStatusAsync(
-                eq(4), eq(IndividualTemplate.Status.APPROVED), eq("title"), any(Pageable.class));
-    }
-
-    // ----------------------
-    // READ: 단일 조회 (동기)
-    // ----------------------
-    @Test
-    void getTemplate_200과_JSON반환() throws Exception {
-        // given
-        IndividualTemplateResponse resp = new IndividualTemplateResponse();
-        ReflectionTestUtils.setField(resp, "individualTemplateId", 33);
-        ReflectionTestUtils.setField(resp, "workspaceId", 3);
-
-        given(individualTemplateService.getIndividualTemplate(3, 33))
-                .willReturn(resp);
-
-        // when & then
-        mvc.perform(get("/{workspaceId}/templates/{individualTemplateId}", 3, 33))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith("application/json"))
-                .andExpect(jsonPath("$.individualTemplateId").value(33))
-                .andExpect(jsonPath("$.workspaceId").value(3));
-
-        verify(individualTemplateService).getIndividualTemplate(3, 33);
-    }
-
-    // ----------------------
-    // READ: 단일 조회 (비동기)
-    // ----------------------
-    @Test
-    void getTemplateAsync_200과_JSON반환() throws Exception {
-        IndividualTemplateResponse resp = new IndividualTemplateResponse();
-        ReflectionTestUtils.setField(resp, "individualTemplateId", 44);
-        ReflectionTestUtils.setField(resp, "workspaceId", 4);
-
-        given(individualTemplateService.getIndividualTemplateAsync(4, 44))
-                .willReturn(CompletableFuture.completedFuture(resp));
-
-        MvcResult mvcResult = mvc.perform(get("/{workspaceId}/templates/{individualTemplateId}/async", 4, 44))
-                .andExpect(request().asyncStarted())
-                .andReturn();
-
-        mvc.perform(asyncDispatch(mvcResult))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith("application/json"))
-                .andExpect(jsonPath("$.individualTemplateId").value(44))
-                .andExpect(jsonPath("$.workspaceId").value(4));
-
-        verify(individualTemplateService).getIndividualTemplateAsync(4, 44);
+        verify(individualTemplateService).getIndividualTemplateByStatus(eq(workspaceId), eq(status), any(Pageable.class));
     }
 
     // ----------------------

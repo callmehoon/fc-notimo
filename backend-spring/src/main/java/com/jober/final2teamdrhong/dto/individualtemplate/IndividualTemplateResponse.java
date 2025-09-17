@@ -1,5 +1,6 @@
 package com.jober.final2teamdrhong.dto.individualtemplate;
 
+import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,4 +19,5 @@ public class IndividualTemplateResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private boolean isDeleted;
+    private IndividualTemplate.Status status;
 }
