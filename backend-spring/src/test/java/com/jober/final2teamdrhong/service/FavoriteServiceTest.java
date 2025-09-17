@@ -188,7 +188,6 @@ class FavoriteServiceTest {
         // given
         Integer workspaceId = 1;
         FavoritePageRequest pageRequest = new FavoritePageRequest();
-        Pageable pageable = PageRequest.of(pageRequest.getPage(), pageRequest.getSize());
         Workspace workspace = mock(Workspace.class);
 
         PublicTemplate publicTemplate = mock(PublicTemplate.class);
@@ -201,10 +200,10 @@ class FavoriteServiceTest {
 
         Favorite publicFavorite = Favorite.builder().workspace(workspace).publicTemplate(publicTemplate).build();
         Favorite individualFavorite = Favorite.builder().workspace(workspace).individualTemplate(individualTemplate).build();
-        Page<Favorite> mockPage = new PageImpl<>(List.of(publicFavorite, individualFavorite), pageable, 2);
+        Page<Favorite> mockPage = new PageImpl<>(List.of(publicFavorite, individualFavorite));
 
         when(workspaceRepository.findByIdOrThrow(workspaceId)).thenReturn(workspace);
-        when(favoriteRepository.findAllByWorkspaceOrderByFavoriteIdDesc(eq(workspace), any(Pageable.class))).thenReturn(mockPage);
+        when(favoriteRepository.findFavorites(eq(workspace), eq(null), any(Pageable.class))).thenReturn(mockPage);
 
         // when
         Page<FavoriteResponse> result = favoriteService.getFavoritesByWorkspace(workspaceId, null, pageRequest);
@@ -213,6 +212,7 @@ class FavoriteServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getTotalElements()).isEqualTo(2);
         assertThat(result.getContent().size()).isEqualTo(2);
+        verify(favoriteRepository).findFavorites(eq(workspace), eq(null), any(Pageable.class));
     }
 
     @Test
@@ -221,7 +221,6 @@ class FavoriteServiceTest {
         // given
         Integer workspaceId = 1;
         FavoritePageRequest pageRequest = new FavoritePageRequest();
-        Pageable pageable = PageRequest.of(pageRequest.getPage(), pageRequest.getSize());
         Workspace workspace = mock(Workspace.class);
 
         PublicTemplate publicTemplate = mock(PublicTemplate.class);
@@ -229,13 +228,13 @@ class FavoriteServiceTest {
         when(publicTemplate.getPublicTemplateTitle()).thenReturn("공용 제목");
 
         Favorite publicFavorite = Favorite.builder().workspace(workspace).publicTemplate(publicTemplate).build();
-        Page<Favorite> mockPage = new PageImpl<>(List.of(publicFavorite), pageable, 1);
+        Page<Favorite> mockPage = new PageImpl<>(List.of(publicFavorite));
 
         when(workspaceRepository.findByIdOrThrow(workspaceId)).thenReturn(workspace);
-                when(favoriteRepository.findByWorkspaceAndPublicTemplateIsNotNull(eq(workspace), any(Pageable.class))).thenReturn(mockPage);
+        when(favoriteRepository.findFavorites(eq(workspace), eq(Favorite.TemplateType.PUBLIC), any(Pageable.class))).thenReturn(mockPage);
 
         // when
-        Page<FavoriteResponse> result = favoriteService.getFavoritesByWorkspace(workspaceId, FavoriteService.TemplateType.PUBLIC, pageRequest);
+        Page<FavoriteResponse> result = favoriteService.getFavoritesByWorkspace(workspaceId, Favorite.TemplateType.PUBLIC, pageRequest);
 
         // then
         assertThat(result).isNotNull();
@@ -244,6 +243,7 @@ class FavoriteServiceTest {
         assertThat(response.getTemplateType()).isEqualTo("PUBLIC");
         assertThat(response.getTemplateId()).isEqualTo(publicTemplate.getPublicTemplateId());
         assertThat(response.getTemplateTitle()).isEqualTo(publicTemplate.getPublicTemplateTitle());
+        verify(favoriteRepository).findFavorites(eq(workspace), eq(Favorite.TemplateType.PUBLIC), any(Pageable.class));
     }
 
     @Test
@@ -252,7 +252,6 @@ class FavoriteServiceTest {
         // given
         Integer workspaceId = 1;
         FavoritePageRequest pageRequest = new FavoritePageRequest();
-        Pageable pageable = PageRequest.of(pageRequest.getPage(), pageRequest.getSize());
         Workspace workspace = mock(Workspace.class);
 
         IndividualTemplate individualTemplate = mock(IndividualTemplate.class);
@@ -260,13 +259,13 @@ class FavoriteServiceTest {
         when(individualTemplate.getIndividualTemplateTitle()).thenReturn("개인 제목");
 
         Favorite individualFavorite = Favorite.builder().workspace(workspace).individualTemplate(individualTemplate).build();
-        Page<Favorite> mockPage = new PageImpl<>(List.of(individualFavorite), pageable, 1);
+        Page<Favorite> mockPage = new PageImpl<>(List.of(individualFavorite));
 
         when(workspaceRepository.findByIdOrThrow(workspaceId)).thenReturn(workspace);
-                when(favoriteRepository.findByWorkspaceAndIndividualTemplateIsNotNull(eq(workspace), any(Pageable.class))).thenReturn(mockPage);
+        when(favoriteRepository.findFavorites(eq(workspace), eq(Favorite.TemplateType.INDIVIDUAL), any(Pageable.class))).thenReturn(mockPage);
 
         // when
-        Page<FavoriteResponse> result = favoriteService.getFavoritesByWorkspace(workspaceId, FavoriteService.TemplateType.INDIVIDUAL, pageRequest);
+        Page<FavoriteResponse> result = favoriteService.getFavoritesByWorkspace(workspaceId, Favorite.TemplateType.INDIVIDUAL, pageRequest);
 
         // then
         assertThat(result).isNotNull();
@@ -275,5 +274,6 @@ class FavoriteServiceTest {
         assertThat(response.getTemplateType()).isEqualTo("INDIVIDUAL");
         assertThat(response.getTemplateId()).isEqualTo(individualTemplate.getIndividualTemplateId());
         assertThat(response.getTemplateTitle()).isEqualTo(individualTemplate.getIndividualTemplateTitle());
+        verify(favoriteRepository).findFavorites(eq(workspace), eq(Favorite.TemplateType.INDIVIDUAL), any(Pageable.class));
     }
 }
