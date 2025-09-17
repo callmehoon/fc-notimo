@@ -1,18 +1,21 @@
 package com.jober.final2teamdrhong.repository;
 
 import com.jober.final2teamdrhong.entity.Favorite;
+import com.jober.final2teamdrhong.entity.Favorite.TemplateType;
 import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import com.jober.final2teamdrhong.entity.PublicTemplate;
 import com.jober.final2teamdrhong.entity.Workspace;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
 @Repository
-public interface FavoriteRepository extends JpaRepository<Favorite, Integer> {
+public interface FavoriteRepository extends JpaRepository<Favorite, Integer>, JpaSpecificationExecutor<Favorite> {
 
     /**
      * 특정 워크스페이스와 개인 템플릿으로 즐겨찾기 정보를 조회합니다.
@@ -47,25 +50,24 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Integer> {
 
 
     /**
-     * 특정 워크스페이스에 속한 모든 즐겨찾기 목록을 페이징 하여 최신순으로 조회합니다.
-     * @param workspace 조회의 기준이 되는 워크스페이스
-     * @return 페이징된 즐겨찾기 목록
+     * 동적 조건에 따라 즐겨찾기 목록을 조회하는 default 메서드
+     * 서비스 레이어에서는 이 메서드만 호출하면 됩니다.
      */
-    Page<Favorite> findAllByWorkspaceOrderByFavoriteIdDesc(Workspace workspace, Pageable pageable);
+    default Page<Favorite> findFavorites(Workspace workspace, TemplateType templateType, Pageable pageable) {
+        Specification<Favorite> spec = hasWorkspace(workspace);
 
-    /**
-     * 특정 워크스페이스에 속한 공용 템플릿 즐겨찾기 목록을 페이징하여 조회합니다.
-     * @param workspace 조회의 기준이 되는 워크스페이스
-     * @param pageable 페이징 정보 (정렬 포함)
-     * @return 페이징된 즐겨찾기 목록
-     */
-    Page<Favorite> findByWorkspaceAndPublicTemplateIsNotNull(Workspace workspace, Pageable pageable);
+        if (templateType != null) {
+            spec = spec.and(isTemplateType(templateType));
+        }
+        return findAll(spec, pageable);
+    }
 
-    /**
-     * 특정 워크스페이스에 속한 개인 템플릿 즐겨찾기 목록을 페이징하여 조회합니다.
-     * @param workspace 조회의 기준이 되는 워크스페이스
-     * @param pageable 페이징 정보 (정렬 포함)
-     * @return 페이징된 즐겨찾기 목록
-     */
-    Page<Favorite> findByWorkspaceAndIndividualTemplateIsNotNull(Workspace workspace, Pageable pageable);
+    private static Specification<Favorite> hasWorkspace(Workspace workspace) {
+        return (root, query, cb) -> cb.equal(root.get("workspace"), workspace);
+    }
+
+    private static Specification<Favorite> isTemplateType(TemplateType templateType) {
+        String fieldName = (templateType == TemplateType.PUBLIC) ? "publicTemplate" : "individualTemplate";
+        return (root, query, cb) -> cb.isNotNull(root.get(fieldName));
+    }
 }
