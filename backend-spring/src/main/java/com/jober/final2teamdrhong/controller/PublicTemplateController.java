@@ -1,6 +1,5 @@
 package com.jober.final2teamdrhong.controller;
 
-import jakarta.persistence.EntityNotFoundException;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
+@RequestMapping("/public-templates")
 @Tag(name = "공용템플릿 관리 API", description = "공용 템플릿 생성, 조회, 삭제 기능을 제공합니다")
 public class PublicTemplateController {
     private final PublicTemplateService publicTemplateService;
@@ -87,7 +87,7 @@ public class PublicTemplateController {
             )
         )
     })
-    @GetMapping("/public-templates")
+    @GetMapping
     public Page<PublicTemplateResponse> getPublicTemplates(
         @ParameterObject @Valid PublicTemplatePageableRequest request
     ) {
@@ -101,7 +101,7 @@ public class PublicTemplateController {
      *
      * @param request 공용 템플릿 생성 요청 DTO (individualTemplateId 필수)
      * @return 생성된 공용 템플릿 정보 {@link PublicTemplateResponse}
-     * @throws EntityNotFoundException 요청한 개인 템플릿이 존재하지 않을 경우
+     * @throws IllegalArgumentException 요청한 개인 템플릿이 존재하지 않을 경우
      */
     @Operation(
         summary = "공용 템플릿 생성",
@@ -120,7 +120,7 @@ public class PublicTemplateController {
         ),
         @ApiResponse(
             responseCode = "400",
-            description = "잘못된 요청 - individualTemplateId가 null이거나 유효하지 않은 값인 경우",
+            description = "잘못된 요청 - 존재하지 않는 개인 템플릿 ID",
             content = @Content(
                 mediaType = "application/json",
                 schema = @Schema(implementation = ErrorResponse.class)
@@ -135,14 +135,6 @@ public class PublicTemplateController {
             )
         ),
         @ApiResponse(
-            responseCode = "404",
-            description = "개인 템플릿을 찾을 수 없음",
-            content = @Content(
-                mediaType = "application/json",
-                schema = @Schema(implementation = ErrorResponse.class)
-            )
-        ),
-        @ApiResponse(
             responseCode = "500",
             description = "서버 내부 오류",
             content = @Content(
@@ -151,7 +143,7 @@ public class PublicTemplateController {
             )
         )
     })
-    @PostMapping("/public-templates")
+    @PostMapping
     public ResponseEntity<PublicTemplateResponse> createPublicTemplate(
         @Valid @RequestBody PublicTemplateCreateRequest request
     ) {
