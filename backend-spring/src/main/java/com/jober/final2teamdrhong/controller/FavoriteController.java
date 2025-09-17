@@ -4,6 +4,7 @@ import com.jober.final2teamdrhong.dto.favorite.FavoritePageRequest;
 import com.jober.final2teamdrhong.dto.favorite.FavoriteResponse;
 import com.jober.final2teamdrhong.dto.favorite.IndividualTemplateFavoriteRequest;
 import com.jober.final2teamdrhong.dto.favorite.PublicTemplateFavoriteRequest;
+import com.jober.final2teamdrhong.entity.Favorite.TemplateType;
 import com.jober.final2teamdrhong.service.FavoriteService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -52,7 +53,7 @@ public class FavoriteController {
     @GetMapping("/favorites")
     public ResponseEntity<Page<FavoriteResponse>> getFavoritesByWorkspace(
             @RequestParam("workspaceId") Integer workspaceId,
-            @RequestParam(value = "templateType", required = false) FavoriteService.TemplateType templateType,
+            @RequestParam(value = "templateType", required = false) TemplateType templateType,
             @ModelAttribute FavoritePageRequest favoritePageRequest) {
 
         Page<FavoriteResponse> favorites = favoriteService.getFavoritesByWorkspace(workspaceId, templateType, favoritePageRequest);
