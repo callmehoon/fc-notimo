@@ -4,8 +4,9 @@ import com.jober.final2teamdrhong.dto.workspace.WorkspaceRequest;
 import com.jober.final2teamdrhong.dto.workspace.WorkspaceResponse;
 import com.jober.final2teamdrhong.entity.User;
 import com.jober.final2teamdrhong.entity.Workspace;
-import com.jober.final2teamdrhong.repository.UserRepository;
 import com.jober.final2teamdrhong.repository.WorkspaceRepository;
+import com.jober.final2teamdrhong.service.validator.UserValidator;
+import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,7 +22,8 @@ import java.util.List;
 public class WorkspaceService {
 
     private final WorkspaceRepository workspaceRepository;
-    private final UserRepository userRepository;
+    private final UserValidator userValidator;
+    private final WorkspaceValidator workspaceValidator;
 
     /**
      * 인증된 사용자를 위해 새로운 워크스페이스를 생성합니다.
@@ -36,13 +38,10 @@ public class WorkspaceService {
     @Transactional
     public WorkspaceResponse.SimpleDTO createWorkspace(WorkspaceRequest.CreateDTO createDTO, Integer userId) {
         // User 조회 및 예외 처리 로직
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 사용자를 찾을 수 없습니다. ID: " + userId));
+        User user = userValidator.validateAndGetUser(userId);
 
         // workspaceUrl unique 조건 확인 로직
-        if (workspaceRepository.existsByWorkspaceUrl(createDTO.getWorkspaceUrl())) {
-            throw new IllegalArgumentException("이미 사용 중인 URL입니다. 다른 URL을 입력해주세요.");
-        }
+        workspaceValidator.validateUrlOnCreate(createDTO.getWorkspaceUrl());
 
         Workspace workspace = Workspace.builder()
                 .workspaceName(createDTO.getWorkspaceName())
@@ -74,8 +73,7 @@ public class WorkspaceService {
      */
     public List<WorkspaceResponse.SimpleDTO> readWorkspaces(Integer userId) {
         // User 조회 및 예외 처리 로직, create와 다르게 존재하는지 확인만 하면 되므로, 'User user =' 는 불필요
-        userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 사용자를 찾을 수 없습니다. ID: " + userId));
+        userValidator.validateAndGetUser(userId);
 
         List<Workspace> workspaceList = workspaceRepository.findAllByUser_UserId(userId);
 
@@ -99,8 +97,7 @@ public class WorkspaceService {
         // 예외 메세지에, userId는 안넣는 이유:
         // 워크스페이스가 원래부터 없어서 에러가 난 건지 유저에게 권한이 없어서 에러가 난 건지
         // 공격자 입장에서는 이 두 가지 상황을 전혀 구분할 수 없기 때문에 보안상 더 안전함
-        Workspace workspaceDetail = workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + workspaceId));
+        Workspace workspaceDetail = workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
 
         // Optional에서 꺼낸 Workspace 엔티티를 DTO 생성자에 전달
         return new WorkspaceResponse.DetailDTO(workspaceDetail);
@@ -122,14 +119,10 @@ public class WorkspaceService {
     @Transactional
     public WorkspaceResponse.DetailDTO updateWorkspace(WorkspaceRequest.UpdateDTO updateDTO, Integer workspaceId, Integer userId) {
         // 1. 기존 워크스페이스 조회 (소유권 검증 포함)
-        Workspace existingWorkspace = workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + workspaceId));
+        Workspace existingWorkspace = workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
 
         // 2. URL 중복 체크 (현재 워크스페이스 제외)
-        if (!existingWorkspace.getWorkspaceUrl().equals(updateDTO.getNewWorkspaceUrl()) &&
-                workspaceRepository.existsByWorkspaceUrl(updateDTO.getNewWorkspaceUrl())) {
-            throw new IllegalArgumentException("이미 사용 중인 URL입니다. 다른 URL을 입력해주세요.");
-        }
+        workspaceValidator.validateUrlOnUpdate(existingWorkspace, updateDTO.getNewWorkspaceUrl());
 
         // 3. 기존 객체 필드 수정 (Dirty Checking으로 자동 UPDATE)
         existingWorkspace.setWorkspaceName(updateDTO.getNewWorkspaceName());
@@ -145,5 +138,29 @@ public class WorkspaceService {
         existingWorkspace.update();
 
         return new WorkspaceResponse.DetailDTO(existingWorkspace);
+    }
+
+    /**
+     * 특정 워크스페이스를 삭제합니다 (소프트 딜리트).
+     * <p>
+     * 요청한 사용자가 해당 워크스페이스의 소유자인지 확인하는 인가 과정이 포함되며,
+     * 실제 데이터베이스에서 삭제되지 않고 is_deleted 플래그를 true로 변경하고 deleted_at에 현재 시간을 설정합니다.
+     * <p>
+     * JPA의 Dirty Checking 기능을 통해 변경사항이 자동으로 데이터베이스에 UPDATE됩니다.
+     *
+     * @param workspaceId 삭제할 워크스페이스의 ID
+     * @param userId      삭제를 요청한 사용자의 ID (현재 인증된 사용자)
+     * @return 삭제 처리된 워크스페이스의 간략 정보 (SimpleDTO)
+     * @throws IllegalArgumentException 해당 워크스페이스가 존재하지 않거나, 사용자가 소유자가 아닐 경우 발생
+     */
+    @Transactional
+    public WorkspaceResponse.SimpleDTO deleteWorkspace(Integer workspaceId, Integer userId) {
+        // 1. 기존 워크스페이스 조회 (소유권 검증 포함)
+        Workspace existingWorkspace = workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
+
+        // 2. 소프트 딜리트 처리
+        existingWorkspace.softDelete();
+
+        return new WorkspaceResponse.SimpleDTO(existingWorkspace);
     }
 }

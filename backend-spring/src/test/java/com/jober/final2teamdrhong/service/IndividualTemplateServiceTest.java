@@ -10,8 +10,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -21,9 +26,6 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @ExtendWith(MockitoExtension.class)
 class IndividualTemplateServiceTest {
@@ -45,6 +47,53 @@ class IndividualTemplateServiceTest {
     void setUp() {
         // Workspace 엔티티의 실제 생성 방식을 모르는 상황이므로, 안전하게 mock 처리
         workspaceMock = mock(Workspace.class);
+    }
+
+    @Nested
+    @DisplayName("validateWorkspaceOwnership")
+    class ValidateWorkspaceOwnership {
+
+        @Test
+        @DisplayName("userId가 null이면 AccessDeniedException이 발생한다")
+        void validateWorkspaceOwnership_nullUserId() {
+            // when & then
+            assertThatThrownBy(() -> service.validateWorkspaceOwnership(1, null))
+                    .isInstanceOf(AccessDeniedException.class)
+                    .hasMessage("인증이 필요합니다.");
+
+            verifyNoInteractions(workspaceRepo);
+        }
+
+        @Test
+        @DisplayName("워크스페이스 소유권이 없으면 AccessDeniedException이 발생한다")
+        void validateWorkspaceOwnership_noOwnership() {
+            // given
+            when(workspaceRepo.existsByWorkspaceIdAndUser_UserId(1, 100))
+                    .thenReturn(false);
+
+            // when & then
+            assertThatThrownBy(() -> service.validateWorkspaceOwnership(1, 100))
+                    .isInstanceOf(AccessDeniedException.class)
+                    .hasMessage("해당 워크스페이스에 접근 권한이 없습니다.");
+
+            verify(workspaceRepo, times(1)).existsByWorkspaceIdAndUser_UserId(1, 100);
+            verifyNoMoreInteractions(workspaceRepo);
+        }
+
+        @Test
+        @DisplayName("워크스페이스 소유권이 있으면 정상적으로 통과한다")
+        void validateWorkspaceOwnership_hasOwnership() {
+            // given
+            when(workspaceRepo.existsByWorkspaceIdAndUser_UserId(1, 100))
+                    .thenReturn(true);
+
+            // when & then
+            assertThatCode(() -> service.validateWorkspaceOwnership(1, 100))
+                    .doesNotThrowAnyException();
+
+            verify(workspaceRepo, times(1)).existsByWorkspaceIdAndUser_UserId(1, 100);
+            verifyNoMoreInteractions(workspaceRepo);
+        }
     }
 
     @Nested
@@ -148,17 +197,18 @@ class IndividualTemplateServiceTest {
             // when
             CompletableFuture<IndividualTemplateResponse> future = service.createTemplateAsync(1);
 
-            log.info("[비동기] 생성된 IndividualTemplateResponse 정보:");
-            log.info("  -> IndividualTemplate ID: {}", future.get().getIndividualTemplateId());
-            log.info("  -> Workspace ID: {}", future.get().getWorkspaceId());
-            log.info("  -> 템플릿 제목: {}", future.get().getIndividualTemplateTitle());
-            log.info("  -> 템플릿 내용: {}", future.get().getIndividualTemplateContent());
-            log.info("  -> 버튼 제목: {}", future.get().getButtonTitle());
-            log.info("  -> 생성일: {}", future.get().getCreatedAt());
-            log.info("  -> 수정일: {}", future.get().getUpdatedAt());
-
-            // then
+            // then - 여러 번 future.get() 호출 시 성능 이슈를 피하기 위해 한 번만 호출
             IndividualTemplateResponse res = future.get(2, TimeUnit.SECONDS);
+
+            log.info("[비동기] 생성된 IndividualTemplateResponse 정보:");
+            log.info("  -> IndividualTemplate ID: {}", res.getIndividualTemplateId());
+            log.info("  -> Workspace ID: {}", res.getWorkspaceId());
+            log.info("  -> 템플릿 제목: {}", res.getIndividualTemplateTitle());
+            log.info("  -> 템플릿 내용: {}", res.getIndividualTemplateContent());
+            log.info("  -> 버튼 제목: {}", res.getButtonTitle());
+            log.info("  -> 생성일: {}", res.getCreatedAt());
+            log.info("  -> 수정일: {}", res.getUpdatedAt());
+
             assertThat(res.getIndividualTemplateId()).isEqualTo(456);
             assertThat(res.getWorkspaceId()).isEqualTo(1);
             assertThat(res.getIndividualTemplateTitle()).isNull();
