@@ -1,12 +1,13 @@
 package com.jober.final2teamdrhong.entity;
 
 import jakarta.persistence.*;
-import jakarta.persistence.Table;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
-import org.hibernate.annotations.*;
+import org.hibernate.annotations.SQLRestriction;
 
-@Data
+@Getter
 @Entity
 @Table(name = "chat_session")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
