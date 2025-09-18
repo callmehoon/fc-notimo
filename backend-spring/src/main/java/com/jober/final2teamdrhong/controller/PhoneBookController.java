@@ -3,6 +3,7 @@ package com.jober.final2teamdrhong.controller;
 import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
 import com.jober.final2teamdrhong.dto.phonebook.PhoneBookRequest;
 import com.jober.final2teamdrhong.dto.phonebook.PhoneBookResponse;
+import com.jober.final2teamdrhong.dto.recipient.RecipientResponse;
 import com.jober.final2teamdrhong.exception.ErrorResponse;
 import com.jober.final2teamdrhong.service.PhoneBookService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,10 +15,16 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 주소록(PhoneBook) 관련 HTTP 요청을 처리하는 컨트롤러입니다.
@@ -97,5 +104,75 @@ public class PhoneBookController {
         PhoneBookResponse.ModifiedRecipientsDTO addedRecipients = phoneBookService.addRecipientsToPhoneBook(recipientIdListDTO, workspaceId, phoneBookId, currentUserId);
 
         return ResponseEntity.status(HttpStatus.OK).body(addedRecipients);
+    }
+
+    /**
+     * 특정 워크스페이스에 속한 모든 주소록 목록을 조회하는 API
+     * <p>
+     * 요청한 사용자가 해당 워크스페이스에 대한 접근 권한이 있는지 확인 후, 주소록 목록을 반환합니다.
+     *
+     * @param workspaceId 주소록 목록을 조회할 워크스페이스의 ID
+     * @param jwtClaims {@link AuthenticationPrincipal}을 통해 SecurityContext에서 직접 주입받는 현재 로그인된 사용자의 JWT 정보 객체
+     * @return 상태 코드 200 (OK)와 함께 해당 워크스페이스의 모든 주소록 정보를 담은 ResponseEntity
+     */
+    @Operation(summary = "워크스페이스별 주소록 목록 조회", description = "특정 워크스페이스에 속한 모든 주소록 목록을 조회합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "주소록 목록 조회 성공",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = PhoneBookResponse.SimpleDTO.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청: 존재하지 않는 워크스페이스 또는 접근 권한 없음",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "인증 실패 (로그인 필요)",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping
+    public ResponseEntity<List<PhoneBookResponse.SimpleDTO>> readPhoneBooks(@PathVariable Integer workspaceId,
+                                                                            @AuthenticationPrincipal JwtClaims jwtClaims) {
+        Integer currentUserId = jwtClaims.getUserId();
+        List<PhoneBookResponse.SimpleDTO> phoneBookList = phoneBookService.readPhoneBooks(workspaceId, currentUserId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(phoneBookList);
+    }
+
+    /**
+     * 특정 주소록에 포함된 수신자 목록을 페이징하여 조회하는 API
+     * <p>
+     * 요청한 사용자가 해당 워크스페이스와 주소록에 대한 접근 권한이 있는지 확인 후,
+     * 수신자의 생성 시간(createdAt) 내림차순으로 정렬된 수신자 목록을 페이징하여 반환합니다.
+     *
+     * @param workspaceId 주소록이 속한 워크스페이스의 ID
+     * @param phoneBookId 수신자 목록을 조회할 주소록의 ID
+     * @param pageable 페이징 및 정렬 정보 (기본값: 페이지 크기 50, 수신자 생성 시간 내림차순 정렬)
+     * @param jwtClaims {@link AuthenticationPrincipal}을 통해 SecurityContext에서 직접 주입받는 현재 로그인된 사용자의 JWT 정보 객체
+     * @return 상태 코드 200 (OK)와 함께 페이징된 수신자 정보 목록을 담은 ResponseEntity
+     */
+    @Operation(summary = "주소록별 수신자 목록 조회", description = "특정 주소록에 포함된 수신자 목록을 페이징하여 조회합니다. 수신자 생성 시간 내림차순으로 정렬됩니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "수신자 목록 조회 성공",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = Page.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청: 존재하지 않는 ID(워크스페이스, 주소록) 또는 접근 권한 없음",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "인증 실패 (로그인 필요)",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/{phoneBookId}/recipients")
+    public ResponseEntity<Page<RecipientResponse.SimpleDTO>> readRecipientsInPhoneBook(@PathVariable Integer workspaceId,
+                                                                                       @PathVariable Integer phoneBookId,
+                                                                                       @PageableDefault(size = 50,
+                                                                                               sort = "createdAt",
+                                                                                               direction = Sort.Direction.DESC)
+                                                                                           Pageable pageable,
+                                                                                       @AuthenticationPrincipal JwtClaims jwtClaims) {
+        Integer currentUserId = jwtClaims.getUserId();
+        Page<RecipientResponse.SimpleDTO> recipientsInPhoneBookPage = phoneBookService.readRecipientsInPhoneBook(workspaceId, phoneBookId, currentUserId, pageable);
+
+        return ResponseEntity.status(HttpStatus.OK).body(recipientsInPhoneBookPage);
     }
 }
