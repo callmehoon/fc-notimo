@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.cache.CacheManager;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.http.MediaType;
 
@@ -15,7 +17,11 @@ import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
 import java.time.LocalDateTime;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+import com.jober.final2teamdrhong.entity.IndividualTemplate;
+import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
@@ -26,77 +32,90 @@ class PublicTemplateIntegrationTest {
     @Autowired
     private PublicTemplateRepository repository;
 
+    @Autowired
+    private IndividualTemplateRepository individualTemplateRepository;
+
+    // Redis 관련 서비스들을 Mock으로 처리
+    @MockitoBean
+    private com.jober.final2teamdrhong.service.BlacklistService blacklistService;
+
+    @MockitoBean
+    private com.jober.final2teamdrhong.service.RefreshTokenService refreshTokenService;
+
+    @MockitoBean
+    private com.jober.final2teamdrhong.service.storage.RedisVerificationStorage redisVerificationStorage;
+
+    @MockitoBean
+    private com.jober.final2teamdrhong.service.storage.FallbackVerificationStorage fallbackVerificationStorage;
+
+    // CacheManager Mock 처리
+    @MockitoBean
+    private CacheManager cacheManager;
+
     @BeforeEach
     void setUp() {
         // 매 테스트마다 DB 초기화
         repository.deleteAll();
+        individualTemplateRepository.deleteAll();
 
         // 정렬 테스트를 위한 다양한 데이터 생성
         PublicTemplate t1 = PublicTemplate.builder()
                 .publicTemplateTitle("가나다")
                 .publicTemplateContent("Content1")
                 .buttonTitle("버튼1")
+                .shareCount(5)
+                .viewCount(20)
+                .createdAt(LocalDateTime.now().minusDays(3))
+                .updatedAt(LocalDateTime.now().minusDays(3))
                 .build();
-        setFieldValue(t1, "shareCount", 5);
-        setFieldValue(t1, "viewCount", 20);
-        setFieldValue(t1, "createdAt", LocalDateTime.now().minusDays(3));
 
         PublicTemplate t2 = PublicTemplate.builder()
                 .publicTemplateTitle("나다라")
                 .publicTemplateContent("Content2")
                 .buttonTitle("버튼2")
+                .shareCount(15)
+                .viewCount(10)
+                .createdAt(LocalDateTime.now().minusDays(2))
+                .updatedAt(LocalDateTime.now().minusDays(2))
                 .build();
-        setFieldValue(t2, "shareCount", 15);
-        setFieldValue(t2, "viewCount", 10);
-        setFieldValue(t2, "createdAt", LocalDateTime.now().minusDays(2));
 
         PublicTemplate t3 = PublicTemplate.builder()
                 .publicTemplateTitle("다라마")
                 .publicTemplateContent("Content3")
                 .buttonTitle("버튼3")
+                .shareCount(8)
+                .viewCount(30)
+                .createdAt(LocalDateTime.now().minusDays(1))
+                .updatedAt(LocalDateTime.now().minusDays(1))
                 .build();
-        setFieldValue(t3, "shareCount", 8);
-        setFieldValue(t3, "viewCount", 30);
-        setFieldValue(t3, "createdAt", LocalDateTime.now().minusDays(1));
 
         PublicTemplate t4 = PublicTemplate.builder()
                 .publicTemplateTitle("라마바")
                 .publicTemplateContent("Content4")
                 .buttonTitle("버튼4")
+                .shareCount(12)
+                .viewCount(25)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
                 .build();
-        setFieldValue(t4, "shareCount", 12);
-        setFieldValue(t4, "viewCount", 25);
-        setFieldValue(t4, "createdAt", LocalDateTime.now());
 
         // 삭제된 템플릿
         PublicTemplate deletedTemplate = PublicTemplate.builder()
                 .publicTemplateTitle("삭제된템플릿")
                 .publicTemplateContent("Deleted Content")
                 .buttonTitle("삭제된버튼")
+                .shareCount(100)
+                .viewCount(100)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
                 .build();
-        setFieldValue(deletedTemplate, "shareCount", 100);
-        setFieldValue(deletedTemplate, "viewCount", 100);
-        setFieldValue(deletedTemplate, "createdAt", LocalDateTime.now());
-        setFieldValue(deletedTemplate, "isDeleted", true);
+        deletedTemplate.softDelete();
 
         repository.save(t1);
         repository.save(t2);
         repository.save(t3);
         repository.save(t4);
         repository.save(deletedTemplate);
-    }
-
-    /**
-     * 리플렉션을 사용하여 private 필드에 값을 설정하는 헬퍼 메소드
-     */
-    private void setFieldValue(Object obj, String fieldName, Object value) {
-        try {
-            java.lang.reflect.Field field = obj.getClass().getDeclaredField(fieldName);
-            field.setAccessible(true);
-            field.set(obj, value);
-        } catch (Exception e) {
-            throw new RuntimeException("필드 설정 실패: " + fieldName, e);
-        }
     }
 
     @Test
@@ -276,5 +295,48 @@ class PublicTemplateIntegrationTest {
                 .andExpect(jsonPath("$.totalPages").value(2))
                 .andExpect(jsonPath("$.number").value(1))
                 .andExpect(jsonPath("$.size").value(2));
+    }
+
+    @Test
+    @DisplayName("공용 템플릿 생성 성공 - 개인 템플릿에서 복사")
+    void testCreatePublicTemplate_Success() throws Exception {
+        // given: 개인 템플릿 생성
+        IndividualTemplate it = IndividualTemplate.builder()
+                .individualTemplateTitle("원본 제목")
+                .individualTemplateContent("원본 내용")
+                .buttonTitle("원본 버튼")
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+        it = individualTemplateRepository.save(it);
+
+        // when & then
+        mockMvc.perform(post("/public-templates")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"individualTemplateId\": " + it.getIndividualTemplateId() + "}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.publicTemplateTitle").value("원본 제목"))
+                .andExpect(jsonPath("$.publicTemplateContent").value("원본 내용"))
+                .andExpect(jsonPath("$.buttonTitle").value("원본 버튼"));
+    }
+
+    @Test
+    @DisplayName("공용 템플릿 생성 실패 - 존재하지 않는 개인 템플릿 404")
+    void testCreatePublicTemplate_NotFound() throws Exception {
+        mockMvc.perform(post("/public-templates")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"individualTemplateId\": 999999}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    @DisplayName("공용 템플릿 생성 실패 - 유효성 검증 400")
+    void testCreatePublicTemplate_ValidationError() throws Exception {
+        mockMvc.perform(post("/public-templates")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").exists());
     }
 }
