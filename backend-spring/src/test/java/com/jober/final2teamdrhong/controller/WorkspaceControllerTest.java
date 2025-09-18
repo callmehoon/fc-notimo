@@ -2,9 +2,11 @@ package com.jober.final2teamdrhong.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jober.final2teamdrhong.dto.workspace.WorkspaceRequest;
+import com.jober.final2teamdrhong.entity.User;
 import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.UserRepository;
 import com.jober.final2teamdrhong.repository.WorkspaceRepository;
+import jakarta.persistence.EntityManager;
 import com.jober.final2teamdrhong.util.test.WithMockJwtClaims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -13,12 +15,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import com.jober.final2teamdrhong.entity.User;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -43,6 +45,9 @@ class WorkspaceControllerTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private EntityManager entityManager;
+
     private User testUser;
     private User anotherUser;
 
@@ -51,6 +56,7 @@ class WorkspaceControllerTest {
         // 기존 데이터 완전 삭제 및 H2 시퀀스 리셋
         workspaceRepository.deleteAll();
         userRepository.deleteAll();
+        jdbcTemplate.execute("ALTER TABLE workspace ALTER COLUMN workspace_id RESTART WITH 1");
         jdbcTemplate.execute("ALTER TABLE users ALTER COLUMN users_id RESTART WITH 1");
 
         // 이제 testUser가 ID=1로 생성됨 (컨트롤러의 하드코딩된 userId=1과 일치)
@@ -100,8 +106,11 @@ class WorkspaceControllerTest {
         // then
         resultActions
                 .andExpect(status().isCreated()) // HTTP 상태 코드가 201 Created 인지 확인
-                .andExpect(jsonPath("$.workspaceName").value("성공 테스트 워크스페이스"));
-        // 응답 JSON의 data.workspaceName 필드 값이 일치하는지 확인
+                .andExpect(jsonPath("$.workspaceId").exists())
+                .andExpect(jsonPath("$.workspaceName").value("성공 테스트 워크스페이스"))
+                .andExpect(jsonPath("$.createdAt").isNotEmpty())
+                .andExpect(jsonPath("$.updatedAt").isNotEmpty())
+                .andExpect(jsonPath("$.deletedAt").isEmpty());
     }
 
     @Test
@@ -141,25 +150,22 @@ class WorkspaceControllerTest {
     void readWorkspaces_Success_Test() throws Exception {
         // given
         // 1. @BeforeEach에서 생성된 testUser의 소유로 워크스페이스 2개를 DB에 미리 저장합니다.
-        Workspace testWorkspace1 = Workspace.builder()
+        workspaceRepository.save(Workspace.builder()
                 .workspaceName("테스트 워크스페이스1")
                 .workspaceUrl("test-url-1")
                 .representerName("테스트대표1")
                 .representerPhoneNumber("010-1111-1111")
                 .companyName("테스트회사1")
                 .user(testUser)
-                .build();
-        workspaceRepository.save(testWorkspace1);
-
-        Workspace testWorkspace2 = Workspace.builder()
+                .build());
+        workspaceRepository.save(Workspace.builder()
                 .workspaceName("테스트 워크스페이스2")
                 .workspaceUrl("test-url-2")
-                .representerName("테스트대표1")
-                .representerPhoneNumber("010-1111-1111")
+                .representerName("테스트대표2")
+                .representerPhoneNumber("010-2222-2222")
                 .companyName("테스트회사2")
                 .user(testUser)
-                .build();
-        workspaceRepository.save(testWorkspace2);
+                .build());
 
         // when
         // 2. MockMvc를 사용해 GET /api/workspaces API를 호출하고, 그 결과를 ResultActions 객체에 저장합니다.
@@ -173,8 +179,11 @@ class WorkspaceControllerTest {
             .andExpect(status().isOk())
             // 3-2. 응답 Body의 최상위($)가 JSON 배열이고, 그 크기가 2인지 확인합니다.
             .andExpect(jsonPath("$", hasSize(2)))
-            // 3-3. 배열의 요소의 workspaceName 필드 값이 "테스트 워크스페이스1", "테스트 워크스페이스2"과 일치하는지 확인합니다.
+            // 3-3. 배열의 요소의 필드 값들을 검증합니다.
             .andExpect(jsonPath("$[0].workspaceName").value("테스트 워크스페이스1"))
+            .andExpect(jsonPath("$[0].createdAt").isNotEmpty())
+            .andExpect(jsonPath("$[0].updatedAt").isNotEmpty())
+            .andExpect(jsonPath("$[0].deletedAt").isEmpty())
             .andExpect(jsonPath("$[1].workspaceName").value("테스트 워크스페이스2"));
     }
 
@@ -294,7 +303,6 @@ class WorkspaceControllerTest {
         // 1. MockMvc를 사용하여 PUT /workspaces/{workspaceId} 엔드포인트로 API 요청을 보냅니다.
         //    - contentType을 application/json으로 설정합니다.
         //    - content에 위에서 만든 JSON 문자열을 담습니다.
-        //    - with(csrf())를 통해 CSRF 보호를 통과시킵니다.
         ResultActions resultActions = mockMvc.perform(
                 put("/workspaces/" + originalWorkspace.getWorkspaceId())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -360,7 +368,7 @@ class WorkspaceControllerTest {
     @WithMockJwtClaims(userId = 1)
     void updateWorkspace_Fail_Validation_Test() throws Exception {
         // given
-        // 1. 수정 대상 워크스페이스를 하나 생성합니다. 이 테스트에서는 ID만 필요합니다.
+        // 1. 수정 대상 워크스페이스를 하나 생성합니다.
         Workspace targetWorkspace = Workspace.builder()
                 .workspaceName("유효성 검사 대상")
                 .workspaceUrl("validation-target-url")
@@ -392,6 +400,74 @@ class WorkspaceControllerTest {
         // then
         // 1. 컨트롤러의 @Valid 어노테이션에 의해 요청이 서비스 계층으로 전달되기 전에 차단되고,
         //    400 Bad Request가 반환되는지 확인합니다.
+        resultActions.andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("워크스페이스 삭제 성공 테스트")
+    @WithMockJwtClaims(userId = 1)
+    void deleteWorkspace_Success_Test() throws Exception {
+        // given
+        // 1. 삭제 대상이 될 워크스페이스를 DB에 미리 저장합니다.
+        //    이 워크스페이스의 소유자는 @BeforeEach에서 생성된 testUser (ID=1) 입니다.
+        Workspace targetWorkspace = Workspace.builder()
+                .workspaceName("삭제될 워크스페이스")
+                .workspaceUrl("delete-target-url")
+                .representerName("삭제 대표")
+                .representerPhoneNumber("010-1111-1111")
+                .companyName("삭제 회사")
+                .user(testUser)
+                .build();
+        workspaceRepository.save(targetWorkspace);
+
+        // when
+        // MockMvc를 사용하여 DELETE /workspaces/{workspaceId} 엔드포인트로 API 요청을 보냅니다.
+        ResultActions resultActions = mockMvc.perform(
+                delete("/workspaces/" + targetWorkspace.getWorkspaceId())
+        );
+
+        // then
+        // 1. API 호출 결과를 검증합니다.
+        resultActions
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.workspaceId").value(targetWorkspace.getWorkspaceId()))
+                .andExpect(jsonPath("$.workspaceName").value("삭제될 워크스페이스"))
+                .andExpect(jsonPath("$.deletedAt").isNotEmpty()); // deletedAt 필드가 null이 아니거나 비어있지 않은지 확인
+
+        // 2. (중요) DB에서 실제로 소프트 딜리트되었는지 확인합니다.
+        //    영속성 컨텍스트의 1차 캐시를 비워 DB에서 직접 조회하도록 강제합니다.
+        entityManager.flush();
+        entityManager.clear();
+        //    @SQLRestriction("is_deleted = false") 때문에, 삭제된 엔티티는 findById로 조회되지 않아야 합니다.
+        assertFalse(workspaceRepository.findById(targetWorkspace.getWorkspaceId()).isPresent());
+    }
+
+    @Test
+    @DisplayName("워크스페이스 삭제 실패 테스트 - 권한 없음")
+    @WithMockJwtClaims(userId = 1)
+    void deleteWorkspace_Fail_Unauthorized_Test() throws Exception {
+        // given
+        // 1. 다른 사용자(anotherUser) 소유의 워크스페이스를 DB에 저장합니다.
+        //    현재 요청을 보내는 사용자는 testUser(ID=1)이므로, 이 워크스페이스에 대한 삭제 권한이 없습니다.
+        Workspace othersWorkspace = Workspace.builder()
+                .workspaceName("남의 워크스페이스")
+                .workspaceUrl("another-users-workspace")
+                .representerName("김대표")
+                .representerPhoneNumber("010-1111-1111")
+                .companyName("남의 회사")
+                .user(anotherUser)
+                .build();
+        workspaceRepository.save(othersWorkspace);
+
+        // when
+        // 현재 사용자(testUser)가 다른 사람(anotherUser)의 워크스페이스 삭제를 시도합니다.
+        ResultActions resultActions = mockMvc.perform(
+                delete("/workspaces/" + othersWorkspace.getWorkspaceId())
+        );
+
+        // then
+        // 1. 서비스 계층에서 소유권이 없다고 판단하여 예외를 던지고,
+        //    GlobalExceptionHandler에 의해 최종적으로 400 Bad Request가 반환되는지 확인합니다.
         resultActions.andExpect(status().isBadRequest());
     }
 }
