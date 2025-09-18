@@ -159,4 +159,36 @@ public class WorkspaceController {
 
         return ResponseEntity.status(HttpStatus.OK).body(updatedWorkspace);
     }
+
+    /**
+     * 특정 워크스페이스를 삭제하는 API (소프트 딜리트)
+     * <p>
+     * 요청한 사용자가 해당 워크스페이스의 소유자인지 확인하는 인가 과정이 포함되며,
+     * 실제 데이터는 삭제되지 않고 삭제 플래그(is_deleted)만 변경됩니다.
+     *
+     * @param workspaceId 삭제할 워크스페이스의 ID
+     * @param jwtClaims {@link AuthenticationPrincipal}을 통해 SecurityContext에서 직접 주입받는 현재 로그인된 사용자의 JWT 정보 객체
+     * @return 상태 코드 200 (OK)와 함께 삭제된 워크스페이스의 간략 정보를 담은 ResponseEntity
+     */
+    @Operation(summary = "워크스페이스 삭제", description = "특정 워크스페이스를 삭제합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "워크스페이스 삭제 성공",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = WorkspaceResponse.SimpleDTO.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청: 워크스페이스를 찾을 수 없거나 접근 권한이 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "인증 실패 (로그인 필요)",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @DeleteMapping("/{workspaceId}")
+    public ResponseEntity<WorkspaceResponse.SimpleDTO> deleteWorkspace(@PathVariable Integer workspaceId,
+                                                                       @AuthenticationPrincipal JwtClaims jwtClaims) {
+        Integer currentUserId = jwtClaims.getUserId();
+        WorkspaceResponse.SimpleDTO deletedWorkspace = workspaceService.deleteWorkspace(workspaceId, currentUserId);
+
+        return ResponseEntity.ok(deletedWorkspace);
+    }
 }

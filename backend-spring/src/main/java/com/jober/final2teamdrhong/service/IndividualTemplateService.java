@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import org.springframework.security.access.AccessDeniedException;
 import java.util.concurrent.CompletableFuture;
 
 @Service
@@ -25,6 +26,15 @@ public class IndividualTemplateService {
      * 비어있는 템플릿 생성 (title/content/button 전부 "")
      * 요청의 문자열 필드는 무시하고 workspaceId만 사용함.
      */
+    public void validateWorkspaceOwnership(Integer workspaceId, Integer userId) {
+        if (userId == null)
+            throw new AccessDeniedException("인증이 필요합니다.");
+
+        boolean exists = workspaceRepo.existsByWorkspaceIdAndUser_UserId(workspaceId, userId);
+        if(!exists)
+            throw new AccessDeniedException("해당 워크스페이스에 접근 권한이 없습니다.");
+    }
+
     @Transactional
     public IndividualTemplateResponse createTemplate(Integer workspaceId) {
         Workspace workspace = workspaceRepo.findById(workspaceId)
