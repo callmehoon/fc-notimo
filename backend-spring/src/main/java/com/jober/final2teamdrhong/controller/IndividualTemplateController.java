@@ -116,7 +116,7 @@ public class IndividualTemplateController {
             @ApiResponse(responseCode = "400", description = "잘못된 status 값"),
             @ApiResponse(responseCode = "404", description = "해당 조건에 맞는 템플릿 없음")
     })
-    @GetMapping("/{workspaceId}/templates/status/{status}")
+    @GetMapping("/{workspaceId}/templates/status")
     public ResponseEntity<Page<IndividualTemplateResponse>> getTemplatesByStatus(
             @Parameter(description = "워크스페이스 ID", example = "1")
             @PathVariable Integer workspaceId,
@@ -132,7 +132,7 @@ public class IndividualTemplateController {
 
     // 상태별 조회 (비동기)
     @Operation(summary = "워크스페이스 별 개인 템플릿 상태별 조회 (비동기 @Async)")
-    @GetMapping("/{workspaceId}/templates/status/{status}/async")
+    @GetMapping("/{workspaceId}/templates/status/async")
     public CompletableFuture<ResponseEntity<Page<IndividualTemplateResponse>>> getTemplatesByStatusAsync(
             @Parameter(description = "워크스페이스 ID", example = "1")
             @PathVariable Integer workspaceId,
