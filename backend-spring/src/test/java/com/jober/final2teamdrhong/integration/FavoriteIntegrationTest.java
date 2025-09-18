@@ -49,7 +49,14 @@ class FavoriteCreationIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        User savedUser = userRepository.save(new User("테스트유저", "test@example.com", "010-1111-1111", User.UserRole.USER));
+        User savedUser = userRepository.save(
+                User.builder()
+                        .userName("테스트유저")
+                        .userEmail("test@example.com")
+                        .userNumber("010-1111-1111")
+                        .userRole(User.UserRole.USER)
+                        .build()
+        );
 
         Workspace workspace = Workspace.builder()
                 .workspaceName("테스트 워크스페이스")
@@ -64,7 +71,7 @@ class FavoriteCreationIntegrationTest {
         savedWorkspace = workspaceRepository.save(workspace);
 
         IndividualTemplate individualTemplate = IndividualTemplate.builder()
-                .workspaceId(savedWorkspace)
+                .workspace(savedWorkspace)
                 .individualTemplateTitle("테스트 개인 템플릿")
                 .individualTemplateContent("테스트 내용입니다.")
                 .buttonTitle("확인")

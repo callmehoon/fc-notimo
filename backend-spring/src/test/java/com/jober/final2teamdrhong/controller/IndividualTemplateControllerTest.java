@@ -5,6 +5,7 @@ import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateRespo
 import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
 import com.jober.final2teamdrhong.entity.User.UserRole;
 import com.jober.final2teamdrhong.service.IndividualTemplateService;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -15,7 +16,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -43,9 +43,18 @@ class IndividualTemplateControllerTest {
         // given
         JwtClaims mockClaims = createMockJwtClaims(1, "test@test.com");
 
-        IndividualTemplateResponse expectedResponse = new IndividualTemplateResponse();
-        ReflectionTestUtils.setField(expectedResponse, "individualTemplateId", 1);
-        ReflectionTestUtils.setField(expectedResponse, "workspaceId", 99);
+        LocalDateTime now = LocalDateTime.now();
+        IndividualTemplateResponse expectedResponse = new IndividualTemplateResponse(
+                1,                  // individualTemplateId
+                null,               // individualTemplateTitle
+                null,               // individualTemplateContent
+                null,               // buttonTitle
+                99,                 // workspaceId
+                now.minusSeconds(1),// createdAt
+                now,                // updatedAt
+                false,              // isDeleted
+                IndividualTemplate.Status.DRAFT // status
+        );
 
         given(individualTemplateService.createTemplate(99)).willReturn(expectedResponse);
 
@@ -68,9 +77,18 @@ class IndividualTemplateControllerTest {
         // given
         JwtClaims mockClaims = createMockJwtClaims(2, "test@test.com");
 
-        IndividualTemplateResponse expectedResponse = new IndividualTemplateResponse();
-        ReflectionTestUtils.setField(expectedResponse, "individualTemplateId", 2);
-        ReflectionTestUtils.setField(expectedResponse, "workspaceId", 77);
+        LocalDateTime now = LocalDateTime.now();
+        IndividualTemplateResponse expectedResponse = new IndividualTemplateResponse(
+                2,                  // individualTemplateId
+                null,               // individualTemplateTitle
+                null,               // individualTemplateContent
+                null,               // buttonTitle
+                77,                 // workspaceId
+                now.minusSeconds(1),// createdAt
+                now,                // updatedAt
+                false,              // isDeleted
+                IndividualTemplate.Status.DRAFT // status (필요에 따라 변경)
+        );
 
         given(individualTemplateService.createTemplateAsync(77))
                 .willReturn(CompletableFuture.completedFuture(expectedResponse));
@@ -101,131 +119,145 @@ class IndividualTemplateControllerTest {
                 .expiresAt(LocalDateTime.now().plusHours(1))
                 .build();
     }
+    private IndividualTemplateResponse makeResponse(
+            Integer id,
+            String title,
+            String content,
+            String buttonTitle,
+            Integer workspaceId,
+            boolean isDeleted,
+            IndividualTemplate.Status status
+    ) {
+        LocalDateTime now = LocalDateTime.now();
+        // ⚠️ AllArgsConstructor 순서와 정확히 동일해야 함
+        return new IndividualTemplateResponse(
+                id,                     // individualTemplateId
+                title,                  // individualTemplateTitle
+                content,                // individualTemplateContent
+                buttonTitle,            // buttonTitle
+                workspaceId,            // workspaceId
+                now.minusMinutes(1),    // createdAt
+                now,                    // updatedAt
+                isDeleted,              // isDeleted
+                status                  // status
+        );
+    }
+
     @Test
+    @DisplayName("단일 템플릿 조회 성공")
     void getTemplate_정상_호출() {
-        // given
         Integer workspaceId = 7;
         Integer individualTemplateId = 10;
+        Integer userId = 123;
+        JwtClaims claims = createMockJwtClaims(userId, "test@example.com");
 
-        IndividualTemplateResponse expectedResponse = new IndividualTemplateResponse();
-        ReflectionTestUtils.setField(expectedResponse, "individualTemplateId", individualTemplateId);
-        ReflectionTestUtils.setField(expectedResponse, "workspaceId", workspaceId);
-        ReflectionTestUtils.setField(expectedResponse, "individualTemplateTitle", "Single Template");
-        ReflectionTestUtils.setField(expectedResponse, "individualTemplateContent", "Template Content");
-        ReflectionTestUtils.setField(expectedResponse, "status", IndividualTemplate.Status.DRAFT);
+        IndividualTemplateResponse expected =
+                makeResponse(individualTemplateId, "Single Template", "Template Content", null,
+                        workspaceId, false, IndividualTemplate.Status.DRAFT);
 
         given(individualTemplateService.getIndividualTemplate(workspaceId, individualTemplateId))
-                .willReturn(expectedResponse);
+                .willReturn(expected);
 
-        // when
-        ResponseEntity<IndividualTemplateResponse> result =
-                controller.getTemplate(workspaceId, individualTemplateId);
+        ResponseEntity<IndividualTemplateResponse> res =
+                controller.getTemplate(workspaceId, individualTemplateId, claims);
 
-        // then
-        assertThat(result.getStatusCodeValue()).isEqualTo(200);
-        assertThat(result.getBody()).isNotNull();
-        assertThat(result.getBody().getIndividualTemplateId()).isEqualTo(individualTemplateId);
-        assertThat(result.getBody().getWorkspaceId()).isEqualTo(workspaceId);
-        assertThat(result.getBody().getIndividualTemplateTitle()).isEqualTo("Single Template");
-        assertThat(result.getBody().getIndividualTemplateContent()).isEqualTo("Template Content");
-        assertThat(result.getBody().getStatus()).isEqualTo(IndividualTemplate.Status.DRAFT);
+        assertThat(res.getStatusCodeValue()).isEqualTo(200);
+        assertThat(res.getBody()).isNotNull();
+        assertThat(res.getBody().getIndividualTemplateId()).isEqualTo(individualTemplateId);
+        assertThat(res.getBody().getWorkspaceId()).isEqualTo(workspaceId);
+        assertThat(res.getBody().getIndividualTemplateTitle()).isEqualTo("Single Template");
+        assertThat(res.getBody().getIndividualTemplateContent()).isEqualTo("Template Content");
+        assertThat(res.getBody().isDeleted()).isFalse();
+        assertThat(res.getBody().getStatus()).isEqualTo(IndividualTemplate.Status.DRAFT);
 
+        verify(individualTemplateService).validateWorkspaceOwnership(workspaceId, userId);
         verify(individualTemplateService).getIndividualTemplate(workspaceId, individualTemplateId);
     }
 
     @Test
-    void getTemplateAsync_정상_호출() throws ExecutionException, InterruptedException {
-        // given
+    @DisplayName("단일 템플릿 비동기 조회 성공")
+    void getTemplateAsync_정상_호출() throws Exception {
         Integer workspaceId = 8;
         Integer individualTemplateId = 11;
+        Integer userId = 777;
+        JwtClaims claims = createMockJwtClaims(userId, "async@example.com");
 
-        IndividualTemplateResponse expectedResponse = new IndividualTemplateResponse();
-        ReflectionTestUtils.setField(expectedResponse, "individualTemplateId", individualTemplateId);
-        ReflectionTestUtils.setField(expectedResponse, "workspaceId", workspaceId);
-        ReflectionTestUtils.setField(expectedResponse, "individualTemplateTitle", "Async Single Template");
-        ReflectionTestUtils.setField(expectedResponse, "status", IndividualTemplate.Status.APPROVED);
+        IndividualTemplateResponse expected =
+                makeResponse(individualTemplateId, "Async Single Template", null, null,
+                        workspaceId, false, IndividualTemplate.Status.APPROVED);
 
         given(individualTemplateService.getIndividualTemplateAsync(workspaceId, individualTemplateId))
-                .willReturn(CompletableFuture.completedFuture(expectedResponse));
+                .willReturn(CompletableFuture.completedFuture(expected));
 
-        // when
-        CompletableFuture<ResponseEntity<IndividualTemplateResponse>> result =
-                controller.getTemplateAsync(workspaceId, individualTemplateId);
+        CompletableFuture<ResponseEntity<IndividualTemplateResponse>> future =
+                controller.getTemplateAsync(workspaceId, individualTemplateId, claims);
 
-        // then
-        ResponseEntity<IndividualTemplateResponse> response = result.get();
-        assertThat(response.getStatusCodeValue()).isEqualTo(200);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getIndividualTemplateId()).isEqualTo(individualTemplateId);
-        assertThat(response.getBody().getWorkspaceId()).isEqualTo(workspaceId);
-        assertThat(response.getBody().getIndividualTemplateTitle()).isEqualTo("Async Single Template");
-        assertThat(response.getBody().getStatus()).isEqualTo(IndividualTemplate.Status.APPROVED);
+        ResponseEntity<IndividualTemplateResponse> res = future.get();
+        assertThat(res.getStatusCodeValue()).isEqualTo(200);
+        assertThat(res.getBody()).isNotNull();
+        assertThat(res.getBody().getStatus()).isEqualTo(IndividualTemplate.Status.APPROVED);
 
+        verify(individualTemplateService).validateWorkspaceOwnership(workspaceId, userId);
         verify(individualTemplateService).getIndividualTemplateAsync(workspaceId, individualTemplateId);
     }
 
     @Test
+    @DisplayName("전체 템플릿 조회 성공")
     void getAllTemplates_정상_호출() {
-        // given
         Integer workspaceId = 1;
-        IndividualTemplatePageableRequest request = new IndividualTemplatePageableRequest();
+        Integer userId = 42;
+        JwtClaims claims = createMockJwtClaims(userId, "all@example.com");
 
-        IndividualTemplateResponse templateResponse = new IndividualTemplateResponse();
-        ReflectionTestUtils.setField(templateResponse, "individualTemplateId", 1);
-        ReflectionTestUtils.setField(templateResponse, "workspaceId", workspaceId);
-        ReflectionTestUtils.setField(templateResponse, "individualTemplateTitle", "Test Template");
+        IndividualTemplatePageableRequest req = new IndividualTemplatePageableRequest();
 
-        Page<IndividualTemplateResponse> expectedPage = new PageImpl<>(
-                List.of(templateResponse), PageRequest.of(0, 10), 1);
+        IndividualTemplateResponse row =
+                makeResponse(1, "Test Template", null, null, workspaceId, false, IndividualTemplate.Status.DRAFT);
+
+        Page<IndividualTemplateResponse> page =
+                new PageImpl<>(List.of(row), PageRequest.of(0, 10), 1);
 
         given(individualTemplateService.getAllTemplates(eq(workspaceId), any(Pageable.class)))
-                .willReturn(expectedPage);
+                .willReturn(page);
 
-        // when
-        ResponseEntity<Page<IndividualTemplateResponse>> result =
-                controller.getAllTemplates(workspaceId, request);
+        ResponseEntity<Page<IndividualTemplateResponse>> res =
+                controller.getAllTemplates(workspaceId, req, claims);
 
-        // then
-        assertThat(result.getStatusCodeValue()).isEqualTo(200);
-        assertThat(result.getBody()).isNotNull();
-        assertThat(result.getBody().getContent()).hasSize(1);
-        assertThat(result.getBody().getContent().get(0).getIndividualTemplateId()).isEqualTo(1);
-        assertThat(result.getBody().getContent().get(0).getWorkspaceId()).isEqualTo(workspaceId);
-        assertThat(result.getBody().getContent().get(0).getIndividualTemplateTitle()).isEqualTo("Test Template");
+        assertThat(res.getStatusCodeValue()).isEqualTo(200);
+        assertThat(res.getBody()).isNotNull();
+        assertThat(res.getBody().getContent()).hasSize(1);
+        assertThat(res.getBody().getContent().get(0).getIndividualTemplateTitle()).isEqualTo("Test Template");
 
+        verify(individualTemplateService).validateWorkspaceOwnership(workspaceId, userId);
         verify(individualTemplateService).getAllTemplates(eq(workspaceId), any(Pageable.class));
     }
 
     @Test
+    @DisplayName("상태별 템플릿 조회 성공")
     void getTemplatesByStatus_DRAFT_정상_호출() {
-        // given
         Integer workspaceId = 3;
+        Integer userId = 314;
+        JwtClaims claims = createMockJwtClaims(userId, "status@example.com");
+
         IndividualTemplate.Status status = IndividualTemplate.Status.DRAFT;
-        IndividualTemplatePageableRequest request = new IndividualTemplatePageableRequest();
+        IndividualTemplatePageableRequest req = new IndividualTemplatePageableRequest();
 
-        IndividualTemplateResponse templateResponse = new IndividualTemplateResponse();
-        ReflectionTestUtils.setField(templateResponse, "individualTemplateId", 3);
-        ReflectionTestUtils.setField(templateResponse, "workspaceId", workspaceId);
-        ReflectionTestUtils.setField(templateResponse, "status", status);
+        IndividualTemplateResponse row =
+                makeResponse(3, null, null, null, workspaceId, false, status);
 
-        Page<IndividualTemplateResponse> expectedPage = new PageImpl<>(
-                List.of(templateResponse), PageRequest.of(0, 10), 1);
+        Page<IndividualTemplateResponse> page =
+                new PageImpl<>(List.of(row), PageRequest.of(0, 10), 1);
 
         given(individualTemplateService.getIndividualTemplateByStatus(eq(workspaceId), eq(status), any(Pageable.class)))
-                .willReturn(expectedPage);
+                .willReturn(page);
 
-        // when
-        ResponseEntity<Page<IndividualTemplateResponse>> result =
-                controller.getTemplatesByStatus(workspaceId, status, request);
+        ResponseEntity<Page<IndividualTemplateResponse>> res =
+                controller.getTemplatesByStatus(workspaceId, status, req, claims);
 
-        // then
-        assertThat(result.getStatusCodeValue()).isEqualTo(200);
-        assertThat(result.getBody()).isNotNull();
-        assertThat(result.getBody().getContent()).hasSize(1);
-        assertThat(result.getBody().getContent().get(0).getIndividualTemplateId()).isEqualTo(3);
-        assertThat(result.getBody().getContent().get(0).getWorkspaceId()).isEqualTo(workspaceId);
-        assertThat(result.getBody().getContent().get(0).getStatus()).isEqualTo(status);
+        assertThat(res.getStatusCodeValue()).isEqualTo(200);
+        assertThat(res.getBody()).isNotNull();
+        assertThat(res.getBody().getContent().get(0).getStatus()).isEqualTo(status);
 
+        verify(individualTemplateService).validateWorkspaceOwnership(workspaceId, userId);
         verify(individualTemplateService).getIndividualTemplateByStatus(eq(workspaceId), eq(status), any(Pageable.class));
     }
 }
