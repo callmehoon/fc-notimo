@@ -31,23 +31,8 @@ public class PublicTemplateService {
     @Transactional(readOnly = true)
     public Page<PublicTemplateResponse> getTemplates(Pageable pageable) {
         return publicTemplateRepository.findAll(pageable)
-            .map(this::toResponse);
+            .map(PublicTemplateResponse::from);
     }   
-
-    /**
-     * PublicTemplate 엔티티를 PublicTemplateResponse DTO로 변환합니다.
-     *
-     * @param entity 변환할 PublicTemplate 엔티티
-     * @return 변환된 PublicTemplateResponse DTO
-     */
-    private PublicTemplateResponse toResponse(PublicTemplate entity) {
-        return new PublicTemplateResponse(
-            entity.getPublicTemplateId(),
-            entity.getPublicTemplateTitle(),
-            entity.getPublicTemplateContent(),
-            entity.getButtonTitle()
-        );
-    }
 
     /**
      * 개인 템플릿을 기반으로 공용 템플릿을 생성하고, 생성된 공용 템플릿 정보를 반환한다.
@@ -68,6 +53,6 @@ public class PublicTemplateService {
 
         PublicTemplate savedPublicTemplate = publicTemplateRepository.save(publicTemplate);
 
-        return toResponse(savedPublicTemplate);
+        return PublicTemplateResponse.from(savedPublicTemplate);
     }
 } 
