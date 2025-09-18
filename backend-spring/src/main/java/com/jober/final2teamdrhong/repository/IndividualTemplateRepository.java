@@ -10,6 +10,10 @@ import java.util.Optional;
 
 @Repository
 public interface IndividualTemplateRepository extends JpaRepository<IndividualTemplate, Integer> {
+    default IndividualTemplate findByIdOrThrow(Integer templateId) {
+        return findById(templateId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 개인 템플릿을 찾을 수 없습니다."));
+    }
 
     // 개인 템플릿 목록 전체 조회
     Page<IndividualTemplate> findByWorkspace_WorkspaceIdAndIsDeletedFalse(Integer workspaceId, Pageable pageable);
