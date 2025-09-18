@@ -2,7 +2,7 @@ package com.jober.final2teamdrhong.dto.publicTemplate;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
-@Schema(name = "PublicTemplateResponse", description = "공용 템플릿 조회 응답")
+@Schema(name = "PublicTemplateResponse", description = "공용 템플릿 조회/생성 응답")
 public record PublicTemplateResponse(
     @Schema(description = "공용 템플릿 ID", example = "123")
     Integer publicTemplateId,
