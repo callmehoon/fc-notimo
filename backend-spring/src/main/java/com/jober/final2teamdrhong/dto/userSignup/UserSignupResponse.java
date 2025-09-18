@@ -5,7 +5,7 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-@Schema(description = "회원가입 및 이메일 인증 응답 DTO")
+@Schema(description = "회원가입 응답 DTO")
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class UserSignupResponse {
