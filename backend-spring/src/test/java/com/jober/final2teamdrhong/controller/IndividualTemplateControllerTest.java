@@ -5,6 +5,8 @@ import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateRespo
 import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
 import com.jober.final2teamdrhong.entity.User.UserRole;
 import com.jober.final2teamdrhong.service.IndividualTemplateService;
+import jakarta.persistence.EntityNotFoundException;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -23,11 +25,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
 import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class IndividualTemplateControllerTest {
@@ -232,42 +236,39 @@ class IndividualTemplateControllerTest {
     // ----------------------
     // DELETE : 단일 템플릿 삭제
     // ----------------------
-    @RestControllerAdvice
-    static class TestExceptionHandler {
-        @ExceptionHandler(EntityNotFoundException.class)
-        public ResponseEntity<Void> handleNotFound(EntityNotFoundException e) {
-            return ResponseEntity.notFound().build(); // 404
-        }
-    }
-
     @Test
-    @DisplayName("DELETE /{workspaceId}/templates/{individualTemplateId} -> 204 No Content")
-    void deleteTemplate_success_returns204() throws Exception {
+    @DisplayName("DELETE 성공 시 204 No Content (순수 단위 테스트)")
+    void deleteTemplate_success_returns204_withoutMockMvc() {
+        // given
         Integer workspaceId = 1;
         Integer individualTemplateId = 10;
+        doNothing().when(individualTemplateService)
+                .deleteTemplate(individualTemplateId, workspaceId);
 
-        mvc.perform(delete("/{workspaceId}/templates/{individualTemplateId}",
-                workspaceId, individualTemplateId))
-                .andExpect(status().isNoContent());
+        // when
+        ResponseEntity<Void> res =
+                controller.deleteTemplate(workspaceId, individualTemplateId);
 
-        // 서비스가 올바른 ID로 호출되었는지 검증
-        verify(individualTemplateService).deleteTemplate(individualTemplateId);
+        // then
+        assertEquals(204, res.getStatusCodeValue());
+        verify(individualTemplateService).deleteTemplate(individualTemplateId, workspaceId);
     }
 
     @Test
-    @DisplayName("없는 템플릿 삭제 시 404 Not Found")
-    void deleteTemplate_notFound_returns404() throws Exception {
+    @DisplayName("없는 템플릿 삭제 시 컨트롤러는 예외를 그대로 던짐 (404 매핑은 전역어드바이스의 책임)")
+    void deleteTemplate_notFound_throwsException_withoutMockMvc() {
+        // given
         Integer workspaceId = 1;
         Integer missingId = 999;
-
         doThrow(new EntityNotFoundException("not found"))
-                .when(individualTemplateService).deleteTemplate(missingId);
+                .when(individualTemplateService)
+                .deleteTemplate(missingId, workspaceId);
 
         // when & then
-        mvc.perform(delete("/{workspaceId}/templates/{individualTemplateId}",
-                        workspaceId, missingId))
-                .andExpect(status().isNotFound());
+        assertThrows(EntityNotFoundException.class,
+                () -> controller.deleteTemplate(workspaceId, missingId));
 
-        verify(individualTemplateService).deleteTemplate(missingId);
+        verify(individualTemplateService).deleteTemplate(missingId, workspaceId);
     }
+
 }
