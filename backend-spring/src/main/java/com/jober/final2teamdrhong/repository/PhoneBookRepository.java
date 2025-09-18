@@ -4,6 +4,7 @@ import com.jober.final2teamdrhong.entity.PhoneBook;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -20,4 +21,12 @@ public interface PhoneBookRepository extends JpaRepository<PhoneBook, Integer> {
      * @return 주소록 엔티티를 담은 Optional 객체. 해당하는 주소록이 없으면 Optional.empty()를 반환합니다.
      */
     Optional<PhoneBook> findByPhoneBookIdAndWorkspace_WorkspaceId(Integer phoneBookId, Integer workspaceId);
+
+    /**
+     * 특정 워크스페이스 ID에 속한 모든 주소록 목록을 조회합니다.
+     *
+     * @param workspaceId 주소록을 조회할 워크스페이스의 ID
+     * @return 해당 워크스페이스의 모든 주소록 엔티티 리스트. 결과가 없으면 빈 리스트를 반환합니다.
+     */
+    List<PhoneBook> findAllByWorkspace_WorkspaceId(Integer workspaceId);
 }
