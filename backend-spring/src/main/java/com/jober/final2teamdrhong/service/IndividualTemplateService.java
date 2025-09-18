@@ -177,8 +177,8 @@ public class IndividualTemplateService {
      * 워크스페이스 내에 다른 사용자가 템플릿을 먼저 지워버릴 경우를 대비
      */
     @Transactional
-    public void deleteTemplate(Integer individualTemplateId){
-        int updated = individualTemplateRepo.softDeleteByIndividualTemplateId(individualTemplateId);
+    public void deleteTemplate(Integer individualTemplateId, Integer workspaceId){
+        int updated = individualTemplateRepo.softDeleteByIdAndWorkspace(individualTemplateId, workspaceId);
         if(updated == 1){
             log.info("Soft.deleted template id = {}", individualTemplateId);
             return;

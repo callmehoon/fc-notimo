@@ -182,12 +182,14 @@ public class IndividualTemplateController {
             @ApiResponse(responseCode = "204", description = "템플릿 삭제 성공"),
             @ApiResponse(responseCode = "404", description = "해당 ID의 템플릿을 찾을 수 없습니다.")
     })
-    @DeleteMapping("{workspaceId}/templates/{individualTemplateId}")
+    @DeleteMapping("/{workspaceId}/templates/{individualTemplateId}")
     public ResponseEntity<Void> deleteTemplate(
-            @Parameter(description = "워크스페이스 ID", required = true, example = "1")
+            @Parameter(description = "워크스페이스 ID", required = true, example = "10")
+            @PathVariable("workspaceId") Integer workspaceId,
+            @Parameter(description = "개인 템플릿 ID", required = true, example = "5")
             @PathVariable("individualTemplateId") Integer individualTemplateId
     ) {
-        individualTemplateService.deleteTemplate(individualTemplateId);
+        individualTemplateService.deleteTemplate(individualTemplateId, workspaceId);
         return ResponseEntity.noContent().build();
     }
 }
