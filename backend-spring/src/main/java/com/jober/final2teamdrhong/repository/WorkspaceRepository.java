@@ -37,8 +37,11 @@ public interface WorkspaceRepository extends JpaRepository<Workspace, Integer> {
      * @return 조건에 맞는 워크스페이스 엔티티를 Optional로 감싸서 반환합니다. 소유권이 없거나 존재하지 않으면 빈 Optional을 반환합니다.
      */
     Optional<Workspace> findByWorkspaceIdAndUser_UserId(Integer workspaceId, Integer userId);
+
     default Workspace findByIdOrThrow(Integer workspaceId) {
         return findById(workspaceId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 워크스페이스를 찾을 수 없습니다."));
     }
+
+    boolean existsByWorkspaceIdAndUser_UserId(Integer workspaceId, Integer userId);
 }
