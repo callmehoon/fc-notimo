@@ -14,6 +14,10 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -61,5 +65,42 @@ public class RecipientController {
         RecipientResponse.SimpleDTO createdRecipient = recipientService.createRecipient(createDTO, workspaceId, currentUserId);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(createdRecipient);
+    }
+
+    /**
+     * 특정 워크스페이스에 속한 모든 수신자 목록을 페이징하여 조회하는 API
+     * <p>
+     * 요청한 사용자가 해당 워크스페이스에 대한 접근 권한이 있는지 확인 후, 수신자 목록을 반환합니다.
+     *
+     * @param workspaceId 수신자 목록을 조회할 워크스페이스의 ID
+     * @param pageable    페이지 번호, 페이지 크기, 정렬 방법을 담은 객체
+     * @param jwtClaims {@link AuthenticationPrincipal}을 통해 SecurityContext에서 직접 주입받는 현재 로그인된 사용자의 JWT 정보 객체
+     * @return 상태 코드 200 (OK)와 함께 페이징된 수신자 목록 정보를 담은 ResponseEntity
+     */
+    @Operation(summary = "수신자 목록 페이징 조회", description = "특정 워크스페이스에 속한 모든 수신자 목록을 페이징하여 조회합니다. " +
+            "page, size, sort 파라미터를 사용하여 페이징을 제어할 수 있습니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "수신자 목록 조회 성공",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = Page.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청: 존재하지 않거나 권한 없는 워크스페이스 접근",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "인증 실패 (로그인 필요)",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping
+    public ResponseEntity<Page<RecipientResponse.SimpleDTO>> readRecipients(@PathVariable Integer workspaceId,
+                                                                            @PageableDefault(size = 50,
+                                                                                    sort = "createdAt",
+                                                                                    direction = Sort.Direction.DESC)
+                                                                            Pageable pageable,
+                                                                            @AuthenticationPrincipal JwtClaims jwtClaims) {
+        Integer currentUserId = jwtClaims.getUserId();
+        Page<RecipientResponse.SimpleDTO> recipientPage = recipientService.readRecipients(workspaceId, currentUserId, pageable);
+
+        return ResponseEntity.status(HttpStatus.OK).body(recipientPage);
     }
 }
