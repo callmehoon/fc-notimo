@@ -23,7 +23,7 @@ public class PublicTemplateService {
     private final IndividualTemplateRepository individualTemplateRepository;
     
     /**
-     * 삭제되지 않은 공용 템플릿 목록을 페이징하여 조회합니다.
+     * 삭제되지 않은 공용 템플릿 목록을 페이징하여 조회한다.
      *
      * @param pageable 요청으로부터 바인딩된 페이징/정렬 정보
      * @return 페이징된 PublicTemplateResponse 목록
