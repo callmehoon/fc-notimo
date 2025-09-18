@@ -62,4 +62,40 @@ public class PhoneBookController {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(createdPhoneBook);
     }
+
+    /**
+     * 특정 주소록에 다수의 수신자를 추가하는 API
+     * <p>
+     * 요청된 수신자 ID 목록을 받아, 해당 주소록에 일괄적으로 추가합니다.
+     * 이미 주소록에 포함된 수신자는 중복으로 추가되지 않으며, 최종적으로 실제로 추가된 수신자 목록만 반환합니다.
+     *
+     * @param recipientIdListDTO 클라이언트로부터 받은 추가할 수신자 ID 목록을 담은 DTO
+     * @param workspaceId      주소록이 속한 워크스페이스의 ID
+     * @param phoneBookId      수신자를 추가할 주소록의 ID
+     * @param jwtClaims {@link AuthenticationPrincipal}을 통해 SecurityContext에서 직접 주입받는 현재 로그인된 사용자의 JWT 정보 객체
+     * @return 상태 코드 200 (OK)와 함께, 실제로 추가된 수신자 정보를 담은 ResponseEntity
+     */
+    @Operation(summary = "주소록에 수신자 일괄 추가", description = "특정 주소록에 한 명 이상의 수신자를 일괄 추가합니다. 요청된 수신자 중 이미 추가된 멤버는 자동으로 제외됩니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "수신자 추가 성공",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = PhoneBookResponse.ModifiedRecipientsDTO.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청: 요청 데이터 유효성 검사 실패, 존재하지 않는 ID(워크스페이스, 주소록, 수신자) 포함, 또는 기타 비즈니스 규칙 위배",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "인증 실패 (로그인 필요)",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @PostMapping("/{phoneBookId}/recipients")
+    public ResponseEntity<PhoneBookResponse.ModifiedRecipientsDTO> addRecipientsToPhoneBook(@RequestBody PhoneBookRequest.RecipientIdListDTO recipientIdListDTO,
+                                                     @PathVariable Integer workspaceId,
+                                                     @PathVariable Integer phoneBookId,
+                                                     @AuthenticationPrincipal JwtClaims jwtClaims) {
+        Integer currentUserId = jwtClaims.getUserId();
+        PhoneBookResponse.ModifiedRecipientsDTO addedRecipients = phoneBookService.addRecipientsToPhoneBook(recipientIdListDTO, workspaceId, phoneBookId, currentUserId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(addedRecipients);
+    }
 }
