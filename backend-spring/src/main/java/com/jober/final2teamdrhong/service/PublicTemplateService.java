@@ -6,6 +6,7 @@ import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import com.jober.final2teamdrhong.entity.PublicTemplate;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
+import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
 
 import lombok.RequiredArgsConstructor;
 
@@ -21,6 +22,7 @@ public class PublicTemplateService {
 
     private final PublicTemplateRepository publicTemplateRepository;
     private final IndividualTemplateRepository individualTemplateRepository;
+    private final WorkspaceValidator workspaceValidator;
     
     /**
      * 삭제되지 않은 공용 템플릿 목록을 페이징하여 조회한다.
@@ -39,10 +41,13 @@ public class PublicTemplateService {
      *
      * @param request 개인 템플릿 ID를 담은 요청 DTO
      * @return 생성된 공용 템플릿 정보 {@link PublicTemplateResponse}
-     * @throws IllegalArgumentException 요청한 개인 템플릿이 존재하지 않을 경우
+     * @throws IllegalArgumentException 요청한 개인 템플릿이 존재하지 않거나, 해당 개인 템플릿의 워크스페이스가 현재 사용자의 소유가 아닐 경우 발생
      */
-    public PublicTemplateResponse createPublicTemplate(PublicTemplateCreateRequest request) {
+    public PublicTemplateResponse createPublicTemplate(PublicTemplateCreateRequest request, Integer userId) {
         IndividualTemplate individualTemplate = individualTemplateRepository.findByIdOrThrow(request.individualTemplateId());
+
+        // IndividualTemplate의 Workspace가 현재 User의 소유인지 검증
+        workspaceValidator.validateAndGetWorkspace(individualTemplate.getWorkspace().getWorkspaceId(), userId);
 
         // 개인 템플릿 값을 복사해서 PublicTemplate 생성
         PublicTemplate publicTemplate = PublicTemplate.builder()
