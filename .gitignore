@@ -73,8 +73,6 @@ frontend/npm-debug.log*
 frontend/yarn-debug.log*
 frontend/yarn-error.log*
 
-frontend/public
-
 # =================================
 # 루트 Node.js
 # =================================
