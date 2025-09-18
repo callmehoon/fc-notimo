@@ -10,10 +10,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Pageable;
 
-@Getter @Setter
+@Getter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class IndividualTemplatePageableRequest {
 
     @Schema(description = "페이지(0부터 시작)", example = "0")

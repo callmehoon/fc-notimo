@@ -49,19 +49,19 @@ public class IndividualTemplateService {
                 .buttonTitle(null)                       // null 저장
                 .build();
 
-        IndividualTemplate saved = individualTemplateRepo.save(entity);
+        IndividualTemplate individualTemplate = individualTemplateRepo.save(entity);
 
         // save() 직후 createdAt, updatedAt은 Hibernate가 채워주기 때문에 사용 가능
         return new IndividualTemplateResponse(
-                saved.getIndividualTemplateId(),
-                saved.getIndividualTemplateTitle(),
-                saved.getIndividualTemplateContent(),
-                saved.getButtonTitle(),
-                saved.getWorkspace().getWorkspaceId(),
-                saved.getCreatedAt(),
-                saved.getUpdatedAt(),
-                saved.getIsDeleted(),
-                saved.getStatus()
+                individualTemplate.getIndividualTemplateId(),
+                individualTemplate.getIndividualTemplateTitle(),
+                individualTemplate.getIndividualTemplateContent(),
+                individualTemplate.getButtonTitle(),
+                individualTemplate.getWorkspace().getWorkspaceId(),
+                individualTemplate.getCreatedAt(),
+                individualTemplate.getUpdatedAt(),
+                individualTemplate.getIsDeleted(),
+                individualTemplate.getStatus()
         );
     }
 
@@ -84,16 +84,16 @@ public class IndividualTemplateService {
             Pageable pageable) {
 
         return individualTemplateRepo.findByWorkspace_WorkspaceIdAndIsDeletedFalse(workspaceId, pageable)
-                .map(saved -> new IndividualTemplateResponse(
-                        saved.getIndividualTemplateId(),
-                        saved.getIndividualTemplateTitle(),
-                        saved.getIndividualTemplateContent(),
-                        saved.getButtonTitle(),
-                        saved.getWorkspace().getWorkspaceId(),
-                        saved.getCreatedAt(),
-                        saved.getUpdatedAt(),
-                        saved.getIsDeleted(),
-                        saved.getStatus()
+                .map(individualTemplate -> new IndividualTemplateResponse(
+                        individualTemplate.getIndividualTemplateId(),
+                        individualTemplate.getIndividualTemplateTitle(),
+                        individualTemplate.getIndividualTemplateContent(),
+                        individualTemplate.getButtonTitle(),
+                        individualTemplate.getWorkspace().getWorkspaceId(),
+                        individualTemplate.getCreatedAt(),
+                        individualTemplate.getUpdatedAt(),
+                        individualTemplate.getIsDeleted(),
+                        individualTemplate.getStatus()
                 ));
     }
 
@@ -117,16 +117,16 @@ public class IndividualTemplateService {
 
         return individualTemplateRepo
                 .findByWorkspace_WorkspaceIdAndIsDeletedFalseAndStatus(workspaceId, status, pageable)
-                .map(saved -> new IndividualTemplateResponse(
-                        saved.getIndividualTemplateId(),
-                        saved.getIndividualTemplateTitle(),
-                        saved.getIndividualTemplateContent(),
-                        saved.getButtonTitle(),
-                        saved.getWorkspace().getWorkspaceId(),
-                        saved.getCreatedAt(),
-                        saved.getUpdatedAt(),
-                        saved.getIsDeleted(),
-                        saved.getStatus()
+                .map(individualTemplate -> new IndividualTemplateResponse(
+                        individualTemplate.getIndividualTemplateId(),
+                        individualTemplate.getIndividualTemplateTitle(),
+                        individualTemplate.getIndividualTemplateContent(),
+                        individualTemplate.getButtonTitle(),
+                        individualTemplate.getWorkspace().getWorkspaceId(),
+                        individualTemplate.getCreatedAt(),
+                        individualTemplate.getUpdatedAt(),
+                        individualTemplate.getIsDeleted(),
+                        individualTemplate.getStatus()
                 ));
     }
 
@@ -146,20 +146,20 @@ public class IndividualTemplateService {
      */
     @Transactional(readOnly = true)
     public IndividualTemplateResponse getIndividualTemplate(Integer workspaceId, Integer individualTemplateId) {
-        IndividualTemplate saved = individualTemplateRepo
+        IndividualTemplate individualTemplate = individualTemplateRepo
                 .findByIndividualTemplateIdAndWorkspace_WorkspaceIdAndIsDeletedFalse(individualTemplateId, workspaceId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 템플릿이 존재하지 않습니다. id = " + individualTemplateId));
 
         return new IndividualTemplateResponse(
-                saved.getIndividualTemplateId(),
-                saved.getIndividualTemplateTitle(),
-                saved.getIndividualTemplateContent(),
-                saved.getButtonTitle(),
-                saved.getWorkspace().getWorkspaceId(),
-                saved.getCreatedAt(),
-                saved.getUpdatedAt(),
-                saved.getIsDeleted(),
-                saved.getStatus()
+                individualTemplate.getIndividualTemplateId(),
+                individualTemplate.getIndividualTemplateTitle(),
+                individualTemplate.getIndividualTemplateContent(),
+                individualTemplate.getButtonTitle(),
+                individualTemplate.getWorkspace().getWorkspaceId(),
+                individualTemplate.getCreatedAt(),
+                individualTemplate.getUpdatedAt(),
+                individualTemplate.getIsDeleted(),
+                individualTemplate.getStatus()
         );
     }
 

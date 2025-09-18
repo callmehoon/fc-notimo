@@ -88,7 +88,11 @@ public class IndividualTemplateController {
     public ResponseEntity<Page<IndividualTemplateResponse>> getAllTemplates(
             @Parameter(description = "워크스페이스 ID", example = "1")
             @PathVariable Integer workspaceId,
-            @Valid @ParameterObject IndividualTemplatePageableRequest individualTemplatePageableRequest) {
+            @Valid @ParameterObject IndividualTemplatePageableRequest individualTemplatePageableRequest,
+            @AuthenticationPrincipal JwtClaims claims) {
+        Integer userId = claims.getUserId();
+        individualTemplateService.validateWorkspaceOwnership(workspaceId, userId);
+
         Page<IndividualTemplateResponse> page = individualTemplateService.getAllTemplates(
                 workspaceId,
                 individualTemplatePageableRequest.toPageable()
@@ -102,7 +106,11 @@ public class IndividualTemplateController {
     public CompletableFuture<ResponseEntity<Page<IndividualTemplateResponse>>> getAllTemplatesAsync(
             @Parameter(description = "워크스페이스 ID", example = "1")
             @PathVariable Integer workspaceId,
-            @Valid @ParameterObject IndividualTemplatePageableRequest individualTemplatePageableRequest) {
+            @Valid @ParameterObject IndividualTemplatePageableRequest individualTemplatePageableRequest,
+            @AuthenticationPrincipal JwtClaims claims) {
+        Integer userId = claims.getUserId();
+        individualTemplateService.validateWorkspaceOwnership(workspaceId, userId);
+        
         return individualTemplateService.getAllTemplatesAsync(workspaceId,
                         individualTemplatePageableRequest.toPageable())
                 .thenApply(ResponseEntity::ok);
@@ -123,7 +131,11 @@ public class IndividualTemplateController {
             @Parameter(description = "조회할 템플릿 상태", example = "DRAFT")
             @RequestParam(value = "status", required = false) IndividualTemplate.Status status,
             @Parameter(description = "정렬 타입: latest | title", example = "latest")
-            @Valid @ParameterObject IndividualTemplatePageableRequest individualTemplatePageableRequest) {
+            @Valid @ParameterObject IndividualTemplatePageableRequest individualTemplatePageableRequest,
+            @AuthenticationPrincipal JwtClaims claims) {
+        Integer userId = claims.getUserId();
+        individualTemplateService.validateWorkspaceOwnership(workspaceId, userId);
+
         Page<IndividualTemplateResponse> page = (status == null)
                 ? individualTemplateService.getAllTemplates(workspaceId, individualTemplatePageableRequest.toPageable())
                 : individualTemplateService.getIndividualTemplateByStatus(workspaceId, status, individualTemplatePageableRequest.toPageable());
@@ -139,7 +151,11 @@ public class IndividualTemplateController {
             @Parameter(description = "조회할 템플릿 상태", example = "DRAFT")
             @RequestParam(value = "status", required = false) IndividualTemplate.Status status,
             @Parameter(description = "정렬 타입: latest | title", example = "title")
-            @Valid @ParameterObject IndividualTemplatePageableRequest individualTemplatePageableRequest) {
+            @Valid @ParameterObject IndividualTemplatePageableRequest individualTemplatePageableRequest,
+            @AuthenticationPrincipal JwtClaims claims) {
+        Integer userId = claims.getUserId();
+        individualTemplateService.validateWorkspaceOwnership(workspaceId, userId);
+
         CompletableFuture<Page<IndividualTemplateResponse>> fut =
                 (status == null)
                         ? individualTemplateService.getAllTemplatesAsync(workspaceId, individualTemplatePageableRequest.toPageable())
@@ -158,7 +174,11 @@ public class IndividualTemplateController {
             @Parameter(description = "워크스페이스 ID", example = "1")
             @PathVariable Integer workspaceId,
             @Parameter(description = "개인 템플릿 ID", example = "2")
-            @PathVariable Integer individualTemplateId) {
+            @PathVariable Integer individualTemplateId,
+            @AuthenticationPrincipal JwtClaims claims) {
+        Integer userId = claims.getUserId();
+        individualTemplateService.validateWorkspaceOwnership(workspaceId, userId);
+
         return ResponseEntity.ok(individualTemplateService.getIndividualTemplate(workspaceId, individualTemplateId));
     }
 
@@ -169,7 +189,11 @@ public class IndividualTemplateController {
             @Parameter(description = "워크스페이스 ID", example = "1")
             @PathVariable Integer workspaceId,
             @Parameter(description = "개인 템플릿 ID", example = "2")
-            @PathVariable Integer individualTemplateId) {
+            @PathVariable Integer individualTemplateId,
+            @AuthenticationPrincipal JwtClaims claims) {
+        Integer userId = claims.getUserId();
+        individualTemplateService.validateWorkspaceOwnership(workspaceId, userId);
+
         return individualTemplateService.getIndividualTemplateAsync(workspaceId, individualTemplateId)
                 .thenApply(ResponseEntity::ok);
     }
