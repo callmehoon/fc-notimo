@@ -1,11 +1,13 @@
 package com.jober.final2teamdrhong.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.SQLRestriction;
 
-@Data
+@Getter
 @Entity
 @Table(name = "template_modified_history")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
