@@ -28,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/admin")
 @RequiredArgsConstructor
 @Tag(name = "관리자 API", description = "관리자 전용 리소스 관리 및 운영 기능을 제공합니다")
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
     private final PublicTemplateService publicTemplateService;
 
@@ -38,7 +39,6 @@ public class AdminController {
      * @return 204 No Content (본문 없음)
      * @throws IllegalArgumentException 요청한 공용 템플릿이 존재하지 않을 경우
      */
-    @PreAuthorize("hasRole('ADMIN')")
     @Operation(
             summary = "공용 템플릿 삭제",
             description = "ADMIN 권한을 가진 사용자만 공용 템플릿을 삭제할 수 있습니다.",
