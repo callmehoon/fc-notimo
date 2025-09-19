@@ -77,3 +77,11 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
 }
+
+springBoot {
+    mainClass = 'com.jober.final2teamdrhong.Final2teamDrHongApplication'
+}
+
+bootJar {
+    archiveFileName = 'app.jar'
+}

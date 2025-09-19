@@ -24,7 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-class FavoriteCreationIntegrationTest {
+class FavoriteIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -49,24 +49,21 @@ class FavoriteCreationIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        User savedUser = userRepository.save(
-                User.builder()
-                        .userName("테스트유저")
-                        .userEmail("test@example.com")
-                        .userNumber("010-1111-1111")
-                        .userRole(User.UserRole.USER)
-                        .build()
-        );
+        User testUser = User.builder()
+                .userName("테스트유저")
+                .userEmail("test@example.com")
+                .userNumber("010-1111-1111")
+                .build();
+        User savedUser = userRepository.save(testUser);
 
         Workspace workspace = Workspace.builder()
+                .user(savedUser)
                 .workspaceName("테스트 워크스페이스")
                 .workspaceUrl("test-url-unique")
                 .representerName("홍길동")
                 .representerPhoneNumber("010-0000-0000")
                 .companyName("테스트 회사")
                 .build();
-
-        workspace.setUser(savedUser);
 
         savedWorkspace = workspaceRepository.save(workspace);
 
@@ -86,6 +83,7 @@ class FavoriteCreationIntegrationTest {
         savedPublicTemplate = publicTemplateRepository.save(publicTemplate);
     }
 
+    // ====================== Create ======================
     /**
      * 개인 템플릿 즐겨찾기 생성 기능 테스트
      */
@@ -99,7 +97,7 @@ class FavoriteCreationIntegrationTest {
         );
         String requestBody = objectMapper.writeValueAsString(request);
 
-        mockMvc.perform(post("/individual/fav")
+        mockMvc.perform(post("/individual/favorite")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
@@ -122,11 +120,11 @@ class FavoriteCreationIntegrationTest {
         );
         String requestBody = objectMapper.writeValueAsString(request);
 
-        mockMvc.perform(post("/individual/fav")
+        mockMvc.perform(post("/individual/favorite")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
-                .andExpect(status().isConflict()); // <-- 4xx 에러 대신 더 명확한 409 Conflict를 기대
+                .andExpect(status().isBadRequest()); // GlobalExceptionHandler에 따라 400을 기대
     }
 
     /**
@@ -143,7 +141,7 @@ class FavoriteCreationIntegrationTest {
         String requestBody = objectMapper.writeValueAsString(request);
         long initialCount = favoriteRepository.count();
 
-        mockMvc.perform(post("/public/fav")
+        mockMvc.perform(post("/public/favorite")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
@@ -168,7 +166,7 @@ class FavoriteCreationIntegrationTest {
         );
         String requestBody = objectMapper.writeValueAsString(request);
 
-        mockMvc.perform(post("/public/fav")
+        mockMvc.perform(post("/public/favorite")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))

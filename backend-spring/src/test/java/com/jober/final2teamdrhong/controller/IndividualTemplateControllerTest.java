@@ -16,12 +16,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -43,18 +44,9 @@ class IndividualTemplateControllerTest {
         // given
         JwtClaims mockClaims = createMockJwtClaims(1, "test@test.com");
 
-        LocalDateTime now = LocalDateTime.now();
-        IndividualTemplateResponse expectedResponse = new IndividualTemplateResponse(
-                1,                  // individualTemplateId
-                null,               // individualTemplateTitle
-                null,               // individualTemplateContent
-                null,               // buttonTitle
-                99,                 // workspaceId
-                now.minusSeconds(1),// createdAt
-                now,                // updatedAt
-                false,              // isDeleted
-                IndividualTemplate.Status.DRAFT // status
-        );
+        IndividualTemplateResponse expectedResponse = new IndividualTemplateResponse();
+        ReflectionTestUtils.setField(expectedResponse, "individualTemplateId", 1);
+        ReflectionTestUtils.setField(expectedResponse, "workspaceId", 99);
 
         given(individualTemplateService.createTemplate(99)).willReturn(expectedResponse);
 
@@ -73,32 +65,22 @@ class IndividualTemplateControllerTest {
     }
 
     @Test
-    void createEmptyTemplateAsync_정상_호출() throws ExecutionException, InterruptedException {
+    void createEmptyTemplateAsync_정상_호출() {
         // given
         JwtClaims mockClaims = createMockJwtClaims(2, "test@test.com");
 
-        LocalDateTime now = LocalDateTime.now();
-        IndividualTemplateResponse expectedResponse = new IndividualTemplateResponse(
-                2,                  // individualTemplateId
-                null,               // individualTemplateTitle
-                null,               // individualTemplateContent
-                null,               // buttonTitle
-                77,                 // workspaceId
-                now.minusSeconds(1),// createdAt
-                now,                // updatedAt
-                false,              // isDeleted
-                IndividualTemplate.Status.DRAFT // status (필요에 따라 변경)
-        );
+        IndividualTemplateResponse expectedResponse = new IndividualTemplateResponse();
+        ReflectionTestUtils.setField(expectedResponse, "individualTemplateId", 2);
+        ReflectionTestUtils.setField(expectedResponse, "workspaceId", 77);
 
         given(individualTemplateService.createTemplateAsync(77))
                 .willReturn(CompletableFuture.completedFuture(expectedResponse));
 
         // when
-        CompletableFuture<ResponseEntity<IndividualTemplateResponse>> result =
+        ResponseEntity<IndividualTemplateResponse> response =
                 controller.createEmptyTemplateAsync(77, mockClaims);
 
         // then
-        ResponseEntity<IndividualTemplateResponse> response = result.get();
         assertThat(response.getStatusCodeValue()).isEqualTo(200);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getIndividualTemplateId()).isEqualTo(2);
@@ -108,12 +90,64 @@ class IndividualTemplateControllerTest {
         verify(individualTemplateService).createTemplateAsync(77);
     }
 
+    @Test
+    void createFromPublicTemplate_정상_호출() {
+        // given
+        JwtClaims mockClaims = createMockJwtClaims(3, "test@test.com");
+
+        IndividualTemplateResponse expectedResponse = new IndividualTemplateResponse();
+        ReflectionTestUtils.setField(expectedResponse, "individualTemplateId", 3);
+        ReflectionTestUtils.setField(expectedResponse, "workspaceId", 55);
+
+        given(individualTemplateService.createIndividualTemplateFromPublic(10, 55))
+                .willReturn(expectedResponse);
+
+        // when
+        ResponseEntity<IndividualTemplateResponse> result =
+                controller.createFromPublicTemplate(10, 55, mockClaims);
+
+        // then
+        assertThat(result.getStatusCodeValue()).isEqualTo(200);
+        assertThat(result.getBody()).isNotNull();
+        assertThat(result.getBody().getIndividualTemplateId()).isEqualTo(3);
+        assertThat(result.getBody().getWorkspaceId()).isEqualTo(55);
+
+        verify(individualTemplateService).validateWorkspaceOwnership(55, 3);
+        verify(individualTemplateService).createIndividualTemplateFromPublic(10, 55);
+    }
+
+    @Test
+    void createFromPublicTemplateAsync_정상_호출() {
+        // given
+        JwtClaims mockClaims = createMockJwtClaims(4, "test@test.com");
+
+        IndividualTemplateResponse expectedResponse = new IndividualTemplateResponse();
+        ReflectionTestUtils.setField(expectedResponse, "individualTemplateId", 4);
+        ReflectionTestUtils.setField(expectedResponse, "workspaceId", 44);
+
+        given(individualTemplateService.createIndividualTemplateFromPublicAsync(20, 44))
+                .willReturn(CompletableFuture.completedFuture(expectedResponse));
+
+        // when
+        ResponseEntity<IndividualTemplateResponse> result =
+                controller.createFromPublicTemplateAsync(20, 44, mockClaims);
+
+        // then
+        assertThat(result.getStatusCodeValue()).isEqualTo(200);
+        assertThat(result.getBody()).isNotNull();
+        assertThat(result.getBody().getIndividualTemplateId()).isEqualTo(4);
+        assertThat(result.getBody().getWorkspaceId()).isEqualTo(44);
+
+        verify(individualTemplateService).validateWorkspaceOwnership(44, 4);
+        verify(individualTemplateService).createIndividualTemplateFromPublicAsync(20, 44);
+    }
+
     private JwtClaims createMockJwtClaims(Integer userId, String email) {
         return JwtClaims.builder()
                 .userId(userId)
                 .email(email)
                 .userName("testUser")
-                .userRole(UserRole.USER) // UserRole enum import 필요
+                .userRole(UserRole.USER)
                 .tokenType("access")
                 .jti("test-jti-123")
                 .expiresAt(LocalDateTime.now().plusHours(1))

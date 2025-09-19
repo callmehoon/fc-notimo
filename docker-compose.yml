@@ -7,5 +7,45 @@ services:
     volumes:
       - redis-data:/data
 
+  spring-boot:
+    build:
+      context: .
+      dockerfile: backend-spring/Dockerfile
+    container_name: spring-boot
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DB_PASSWORD=${DB_PASSWORD}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+
+  python-ai:
+    build:
+      context: .
+      dockerfile: backend-ai/Dockerfile
+    container_name: python-ai
+    ports:
+      - "8001:8001"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: frontend
+    ports:
+      - "80:80"
+    depends_on:
+      spring-boot:
+        condition: service_started
+      python-ai:
+        condition: service_started
+
 volumes:
   redis-data:
