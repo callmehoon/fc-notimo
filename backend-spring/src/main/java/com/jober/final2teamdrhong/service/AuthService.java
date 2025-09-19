@@ -5,7 +5,6 @@ import com.jober.final2teamdrhong.config.JwtConfig;
 import com.jober.final2teamdrhong.dto.userLogin.TokenRefreshResponse;
 import com.jober.final2teamdrhong.dto.userLogin.UserLoginRequest;
 import com.jober.final2teamdrhong.dto.userLogin.UserLoginResponse;
-import com.jober.final2teamdrhong.dto.userLogout.UserLogoutResponse;
 import com.jober.final2teamdrhong.dto.userSignup.UserSignupRequest;
 import com.jober.final2teamdrhong.entity.User;
 import com.jober.final2teamdrhong.entity.UserAuth;
@@ -44,31 +43,31 @@ public class AuthService {
      */
     public void signupWithRateLimit(UserSignupRequest requestDto, String clientIp) {
         // Rate limiting 체크
-        rateLimitService.checkSignupRateLimit(clientIp, requestDto.getEmail());
+        rateLimitService.checkSignupRateLimit(clientIp, requestDto.email());
 
         // 기존 회원가입 로직 호출
         signup(requestDto);
     }
 
     public void signup(UserSignupRequest requestDto) {
-        log.info("회원가입 시작: email={}", requestDto.getEmail());
+        log.info("회원가입 시작: email={}", requestDto.email());
 
         // 1. 비즈니스 규칙 검증 (기본 유효성 검증은 @Valid에서 처리됨)
         validateBusinessRules(requestDto);
 
         // 2. 인증 코드 검증
-        validateVerificationCode(requestDto.getEmail(), requestDto.getVerificationCode());
+        validateVerificationCode(requestDto.email(), requestDto.verificationCode());
 
         try {
             // 4. 새로운 User 생성
             User newUser = User.create(
-                    requestDto.getUserName(),
-                    requestDto.getEmail(),
-                    requestDto.getUserNumber()
+                    requestDto.userName(),
+                    requestDto.email(),
+                    requestDto.userNumber()
             );
 
             // 5. 비밀번호 암호화 및 UserAuth 생성
-            String encodedPassword = passwordEncoder.encode(requestDto.getPassword());
+            String encodedPassword = passwordEncoder.encode(requestDto.password());
             UserAuth userAuth = UserAuth.builder()
                     .authType(UserAuth.AuthType.LOCAL)
                     .passwordHash(encodedPassword)
@@ -79,19 +78,19 @@ public class AuthService {
             userAuth.markAsVerified(); // 이메일 인증을 완료했으므로 인증 완료 처리
             userRepository.save(newUser);
 
-            log.info("회원가입 성공: userId={}, email={}", newUser.getUserId(), requestDto.getEmail());
+            log.info("회원가입 성공: userId={}, email={}", newUser.getUserId(), requestDto.email());
 
             // 주의: 인증 코드는 이미 validateVerificationCode에서 일회성 검증으로 삭제됨
 
         } catch (Exception e) {
-            log.error("회원가입 실패: email={}, error={}", requestDto.getEmail(), e.getMessage());
+            log.error("회원가입 실패: email={}, error={}", requestDto.email(), e.getMessage());
             throw e;
         }
     }
 
     private void validateBusinessRules(UserSignupRequest requestDto) {
         // 이메일 중복 확인 (비즈니스 규칙)
-        if (userRepository.findByUserEmail(requestDto.getEmail()).isPresent()) {
+        if (userRepository.findByUserEmail(requestDto.email()).isPresent()) {
             throw new DuplicateResourceException("이미 가입된 이메일입니다.");
         }
 
@@ -122,19 +121,19 @@ public class AuthService {
         timingAttackProtection.startTiming();
 
         try {
-            log.info("로그인 시도: email={}", LogMaskingUtil.maskEmail(userLoginRequest.getEmail()));
+            log.info("로그인 시도: email={}", LogMaskingUtil.maskEmail(userLoginRequest.email()));
 
             AuthenticationResult authResult = authenticateUser(userLoginRequest);
             if (authResult.isFailure()) {
-                handleAuthenticationFailure(userLoginRequest.getEmail());
+                handleAuthenticationFailure(userLoginRequest.email());
             }
             return createSuccessfulLoginResponse(authResult.user(), authResult.localAuth(), clientIp);
 
         } catch (BadCredentialsException e) {
-            handleAuthenticationFailure(userLoginRequest.getEmail());
+            handleAuthenticationFailure(userLoginRequest.email());
             throw e;
         } catch (Exception e) {
-            handleUnexpectedError(userLoginRequest.getEmail(), e);
+            handleUnexpectedError(userLoginRequest.email(), e);
             return null; // 실제로는 예외가 던져지므로 도달하지 않음
         } finally {
             // ThreadLocal 정리 (메모리 누수 방지)
@@ -147,7 +146,7 @@ public class AuthService {
      */
     private AuthenticationResult authenticateUser(UserLoginRequest request) {
         String targetHash = authProperties.getSecurity().getDummyHash();
-        User user = userRepository.findByUserEmailWithAuth(request.getEmail()).orElse(null);
+        User user = userRepository.findByUserEmailWithAuth(request.email()).orElse(null);
         UserAuth localAuth = null;
 
         if (user != null) {
@@ -161,7 +160,7 @@ public class AuthService {
             }
         }
 
-        boolean passwordMatches = passwordEncoder.matches(request.getPassword(), targetHash);
+        boolean passwordMatches = passwordEncoder.matches(request.password(), targetHash);
         return new AuthenticationResult(user, localAuth, passwordMatches);
     }
 
