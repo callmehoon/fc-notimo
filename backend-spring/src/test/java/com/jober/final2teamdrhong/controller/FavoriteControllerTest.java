@@ -42,7 +42,7 @@ class FavoriteControllerTest {
 
         doNothing().when(favoriteService).createIndividualTemplateFavorite(any(IndividualTemplateFavoriteRequest.class));
 
-        mockMvc.perform(post("/individual/fav")
+        mockMvc.perform(post("/individual/favorite")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isOk());
@@ -56,7 +56,7 @@ class FavoriteControllerTest {
         IndividualTemplateFavoriteRequest request = new IndividualTemplateFavoriteRequest(null, 10);
         String requestBody = objectMapper.writeValueAsString(request);
 
-        mockMvc.perform(post("/individual/fav")
+        mockMvc.perform(post("/individual/favorite")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isBadRequest());
@@ -70,7 +70,7 @@ class FavoriteControllerTest {
         IndividualTemplateFavoriteRequest request = new IndividualTemplateFavoriteRequest(1, null);
         String requestBody = objectMapper.writeValueAsString(request);
 
-        mockMvc.perform(post("/individual/fav")
+        mockMvc.perform(post("/individual/favorite")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isBadRequest());
@@ -91,7 +91,7 @@ class FavoriteControllerTest {
 
         doNothing().when(favoriteService).createPublicTemplateFavorite(any(PublicTemplateFavoriteRequest.class));
 
-        mockMvc.perform(post("/public/fav")
+        mockMvc.perform(post("/public/favorite")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isOk());
@@ -121,7 +121,7 @@ class FavoriteControllerTest {
         String requestBody = objectMapper.writeValueAsString(request);
 
         // when & then
-        mockMvc.perform(post("/public/fav")
+        mockMvc.perform(post("/public/favorite")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isBadRequest());
