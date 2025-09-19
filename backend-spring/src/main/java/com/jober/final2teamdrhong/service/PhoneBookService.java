@@ -12,6 +12,7 @@ import com.jober.final2teamdrhong.repository.PhoneBookRepository;
 import com.jober.final2teamdrhong.service.validator.PhoneBookValidator;
 import com.jober.final2teamdrhong.service.validator.RecipientValidator;
 import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -35,6 +36,7 @@ public class PhoneBookService {
     private final PhoneBookValidator phoneBookValidator;
     private final WorkspaceValidator workspaceValidator;
     private final RecipientValidator recipientValidator;
+    private final EntityManager entityManager;
 
     /**
      * 특정 워크스페이스에 새로운 주소록을 생성합니다.
@@ -192,6 +194,12 @@ public class PhoneBookService {
         existingPhoneBook.setPhoneBookMemo(updateDTO.getNewPhoneBookMemo());
         existingPhoneBook.update();
 
-        return new PhoneBookResponse.SimpleDTO(existingPhoneBook);
+        // 4. 생성은 save() 반환값을 사용하는 반면, 수정과 소프트 삭제는 기존 엔티티를 직접 변경하기 때문에
+        // 즉시 DB에 반영, 및 Hibernate 1차 캐시 비우기 후 변경된 DB를 반환해야 정확한 시간이 응답으로 나옴
+        entityManager.flush();
+        entityManager.clear();
+        PhoneBook refreshedPhoneBook = phoneBookRepository.findById(phoneBookId).orElseThrow();
+
+        return new PhoneBookResponse.SimpleDTO(refreshedPhoneBook);
     }
 }
