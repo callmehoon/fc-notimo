@@ -38,6 +38,7 @@ langchain-chroma = "^0.2.5"
 #absl-py = "^2.3.1"
 #rouge-score = "^0.1.2"
 #nltk = "^3.9.1"
+langchain-google-genai = "^2.1.12"
 
 [build-system]
 requires = ["poetry-core"]
