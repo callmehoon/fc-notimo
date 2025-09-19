@@ -168,7 +168,7 @@ public class PhoneBookController {
                                                                                        @PageableDefault(size = 50,
                                                                                                sort = "createdAt",
                                                                                                direction = Sort.Direction.DESC)
-                                                                                           Pageable pageable,
+                                                                                       Pageable pageable,
                                                                                        @AuthenticationPrincipal JwtClaims jwtClaims) {
         Integer currentUserId = jwtClaims.getUserId();
         Page<RecipientResponse.SimpleDTO> recipientsInPhoneBookPage = phoneBookService.readRecipientsInPhoneBook(workspaceId, phoneBookId, currentUserId, pageable);
