@@ -115,6 +115,7 @@ class ModelLoader:
         else:
             log.warning("분류 모델이 이미 로드 되어 있습니다")
             return cls.models
+
     @classmethod
     def unload_cls_model(cls):
         """메모리 정리"""
