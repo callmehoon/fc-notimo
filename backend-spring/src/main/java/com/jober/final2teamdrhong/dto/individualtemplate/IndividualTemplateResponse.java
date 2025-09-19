@@ -1,5 +1,6 @@
 package com.jober.final2teamdrhong.dto.individualtemplate;
 
+import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,4 +18,17 @@ public class IndividualTemplateResponse {
     private Integer workspaceId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+
+    public static IndividualTemplateResponse toResponse(IndividualTemplate entity) {
+        return new IndividualTemplateResponse(
+                entity.getIndividualTemplateId(),
+                entity.getIndividualTemplateTitle(),
+                entity.getIndividualTemplateContent(),
+                entity.getButtonTitle(),
+                entity.getWorkspace().getWorkspaceId(),
+                entity.getCreatedAt(),
+                entity.getUpdatedAt()
+        );
+    }
 }
