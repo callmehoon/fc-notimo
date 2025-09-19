@@ -201,7 +201,7 @@ class IndividualTemplateControllerTest {
         assertThat(res.getBody().getWorkspaceId()).isEqualTo(workspaceId);
         assertThat(res.getBody().getIndividualTemplateTitle()).isEqualTo("Single Template");
         assertThat(res.getBody().getIndividualTemplateContent()).isEqualTo("Template Content");
-        assertThat(res.getBody().isDeleted()).isFalse();
+        assertThat(res.getBody().getIsDeleted()).isFalse();
         assertThat(res.getBody().getStatus()).isEqualTo(IndividualTemplate.Status.DRAFT);
 
         verify(individualTemplateService).validateWorkspaceOwnership(workspaceId, userId);
@@ -223,10 +223,9 @@ class IndividualTemplateControllerTest {
         given(individualTemplateService.getIndividualTemplateAsync(workspaceId, individualTemplateId))
                 .willReturn(CompletableFuture.completedFuture(expected));
 
-        CompletableFuture<ResponseEntity<IndividualTemplateResponse>> future =
+        ResponseEntity<IndividualTemplateResponse> res =
                 controller.getTemplateAsync(workspaceId, individualTemplateId, claims);
 
-        ResponseEntity<IndividualTemplateResponse> res = future.get();
         assertThat(res.getStatusCodeValue()).isEqualTo(200);
         assertThat(res.getBody()).isNotNull();
         assertThat(res.getBody().getStatus()).isEqualTo(IndividualTemplate.Status.APPROVED);
@@ -236,7 +235,7 @@ class IndividualTemplateControllerTest {
     }
 
     @Test
-    @DisplayName("전체 템플릿 조회 성공")
+    @DisplayName("전체 템플릿 조회 성공 (status=null)")
     void getAllTemplates_정상_호출() {
         Integer workspaceId = 1;
         Integer userId = 42;
@@ -266,32 +265,33 @@ class IndividualTemplateControllerTest {
     }
 
     @Test
-    @DisplayName("상태별 템플릿 조회 성공")
-    void getTemplatesByStatus_DRAFT_정상_호출() {
+    @DisplayName("상태별 템플릿 조회 성공 (status=DRAFT)")
+    void getAllTemplates_Status_DRAFT_정상_호출() {
         Integer workspaceId = 3;
         Integer userId = 314;
         JwtClaims claims = createMockJwtClaims(userId, "status@example.com");
 
-        IndividualTemplate.Status status = IndividualTemplate.Status.DRAFT;
         IndividualTemplatePageableRequest req = new IndividualTemplatePageableRequest();
+        req.setStatus(IndividualTemplate.Status.DRAFT);
 
         IndividualTemplateResponse row =
-                makeResponse(3, null, null, null, workspaceId, false, status);
+                makeResponse(3, null, null, null, workspaceId, false, IndividualTemplate.Status.DRAFT);
 
         Page<IndividualTemplateResponse> page =
                 new PageImpl<>(List.of(row), PageRequest.of(0, 10), 1);
 
-        given(individualTemplateService.getIndividualTemplateByStatus(eq(workspaceId), eq(status), any(Pageable.class)))
+        given(individualTemplateService.getIndividualTemplateByStatus(eq(workspaceId), eq(IndividualTemplate.Status.DRAFT), any(Pageable.class)))
                 .willReturn(page);
 
         ResponseEntity<Page<IndividualTemplateResponse>> res =
-                controller.getTemplatesByStatus(workspaceId, status, req, claims);
+                controller.getAllTemplates(workspaceId, req, claims);
 
         assertThat(res.getStatusCodeValue()).isEqualTo(200);
         assertThat(res.getBody()).isNotNull();
-        assertThat(res.getBody().getContent().get(0).getStatus()).isEqualTo(status);
+        assertThat(res.getBody().getContent()).hasSize(1);
+        assertThat(res.getBody().getContent().get(0).getStatus()).isEqualTo(IndividualTemplate.Status.DRAFT);
 
         verify(individualTemplateService).validateWorkspaceOwnership(workspaceId, userId);
-        verify(individualTemplateService).getIndividualTemplateByStatus(eq(workspaceId), eq(status), any(Pageable.class));
+        verify(individualTemplateService).getIndividualTemplateByStatus(eq(workspaceId), eq(IndividualTemplate.Status.DRAFT), any(Pageable.class));
     }
 }

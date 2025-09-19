@@ -282,8 +282,6 @@ class IndividualTemplateServiceTest {
             verify(individualTemplateRepo).save(any(IndividualTemplate.class));
         }
     }
-}
-
 
     // =========================
     // ===== READ 테스트들 =====
@@ -313,7 +311,7 @@ class IndividualTemplateServiceTest {
             assertThat(page.getContent()).hasSize(2);
             assertThat(page.getContent().get(0).getIndividualTemplateId()).isEqualTo(10);
             assertThat(page.getContent().get(0).getWorkspaceId()).isEqualTo(5);
-            assertThat(page.getContent().get(0).isDeleted()).isFalse();
+            assertThat(page.getContent().get(0).getIsDeleted()).isFalse();
             assertThat(page.getContent().get(1).getIndividualTemplateId()).isEqualTo(11);
             assertThat(page.getContent().get(1).getWorkspaceId()).isEqualTo(5);
 
@@ -349,7 +347,7 @@ class IndividualTemplateServiceTest {
             assertThat(page.getContent()).hasSize(1);
             assertThat(page.getContent().get(0).getIndividualTemplateId()).isEqualTo(20);
             assertThat(page.getContent().get(0).getWorkspaceId()).isEqualTo(7);
-            assertThat(page.getContent().get(0).isDeleted()).isFalse();
+            assertThat(page.getContent().get(0).getIsDeleted()).isFalse();
 
             verify(individualTemplateRepo, times(1))
                     .findByWorkspace_WorkspaceIdAndIsDeletedFalse(eq(7), any(Pageable.class));
@@ -464,7 +462,7 @@ class IndividualTemplateServiceTest {
             assertThat(res.getIndividualTemplateTitle()).isEqualTo("title-33");
             assertThat(res.getIndividualTemplateContent()).isEqualTo("content-33");
             assertThat(res.getButtonTitle()).isEqualTo("button-33");
-            assertThat(res.isDeleted()).isFalse();
+            assertThat(res.getIsDeleted()).isFalse();
             assertThat(res.getCreatedAt()).isEqualTo(now);
             assertThat(res.getUpdatedAt()).isEqualTo(now);
 
@@ -512,7 +510,7 @@ class IndividualTemplateServiceTest {
 
             assertThat(res.getIndividualTemplateId()).isEqualTo(44);
             assertThat(res.getWorkspaceId()).isEqualTo(4);
-            assertThat(res.isDeleted()).isFalse();
+            assertThat(res.getIsDeleted()).isFalse();
             assertThat(res.getCreatedAt()).isEqualTo(now);
             assertThat(res.getUpdatedAt()).isEqualTo(now);
 
