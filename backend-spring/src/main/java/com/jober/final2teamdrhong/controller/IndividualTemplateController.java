@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.concurrent.CompletableFuture;
+
 
 @RestController
 @RequiredArgsConstructor
@@ -49,33 +50,36 @@ public class IndividualTemplateController {
         Integer userId = claims.getUserId();
         individualTemplateService.validateWorkspaceOwnership(workspaceId, userId);
 
-        System.out.print(claims);
-        log.info("[SYNC] thread={}, isVirtual={}", Thread.currentThread().getName(), Thread.currentThread().isVirtual());
         IndividualTemplateResponse response = individualTemplateService.createTemplate(workspaceId);
         return ResponseEntity.ok(response);
     }
 
     /**
-     * ✅ 비동기 템플릿 생성 API (@Async)
+     * 비동기 빈 템플릿 생성 API
      */
     @PostMapping("/templates/{workspaceId}/async")
     @Operation(
             summary = "빈 템플릿 생성(비동기 @Async)",
-            description = "Workspace ID를 기반으로 빈 템플릿을 비동기로 생성합니다. (가상 스레드 확인용)"
+            description = "Workspace ID를 기반으로 빈 템플릿을 비동기로 생성합니다.",
+            security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "템플릿 생성 성공"),
+            @ApiResponse(responseCode = "202", description = "요청 접수됨"),
             @ApiResponse(responseCode = "400", description = "잘못된 요청"),
             @ApiResponse(responseCode = "500", description = "서버 오류 발생")
     })
-    public CompletableFuture<ResponseEntity<IndividualTemplateResponse>> createEmptyTemplateAsync(
+    public ResponseEntity<IndividualTemplateResponse> createEmptyTemplateAsync(
             @Parameter(description = "Workspace ID", example = "1")
             @PathVariable Integer workspaceId,
             @AuthenticationPrincipal JwtClaims claims) {
+
         Integer userId = claims.getUserId();
         individualTemplateService.validateWorkspaceOwnership(workspaceId, userId);
 
-        log.info("[ASYNC-ENTRY] thread={}, isVirtual={}", Thread.currentThread().getName(), Thread.currentThread().isVirtual());
-        return individualTemplateService.createTemplateAsync(workspaceId).thenApply(ResponseEntity::ok);
+        // 비동기 호출 (여기서는 join()으로 결과를 가져옴 → 403 안나옴)
+        IndividualTemplateResponse response =
+                individualTemplateService.createTemplateAsync(workspaceId).join();
+
+        return ResponseEntity.status(200).body(response);
     }
 }
