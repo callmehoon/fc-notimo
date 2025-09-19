@@ -3,7 +3,6 @@ package com.jober.final2teamdrhong.controller;
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplatePageableRequest;
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateResponse;
 import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
-import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import com.jober.final2teamdrhong.service.IndividualTemplateService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -148,7 +147,6 @@ public class IndividualTemplateController {
                 individualTemplateService.createIndividualTemplateFromPublicAsync(publicTemplateId, workspaceId).join();
         return ResponseEntity.status(200).body(response);
     }
-}
 
     // 전체 조회 (동기)
     @Operation(summary = "워크스페이스 별 개인 템플릿 목록 전체 조회", description = "페이지네이션 및 정렬 조건 지원")
@@ -162,17 +160,19 @@ public class IndividualTemplateController {
         Integer userId = claims.getUserId();
         individualTemplateService.validateWorkspaceOwnership(workspaceId, userId);
 
-        Page<IndividualTemplateResponse> page = individualTemplateService.getAllTemplates(
-                workspaceId,
-                individualTemplatePageableRequest.toPageable()
-        );
+        Page<IndividualTemplateResponse> page =
+                (individualTemplatePageableRequest.getStatus() == null)
+                ? individualTemplateService.getAllTemplates(workspaceId, individualTemplatePageableRequest.toPageable())
+                        : individualTemplateService.getIndividualTemplateByStatus(workspaceId,
+                        individualTemplatePageableRequest.getStatus(),
+                        individualTemplatePageableRequest.toPageable());
         return ResponseEntity.ok(page);
     }
 
     // 전체 조회 (비동기)
     @Operation(summary = "워크스페이스 별 템플릿 목록 전체 조회 (비동기 @Async)")
     @GetMapping("/{workspaceId}/templates/async")
-    public CompletableFuture<ResponseEntity<Page<IndividualTemplateResponse>>> getAllTemplatesAsync(
+    public ResponseEntity<Page<IndividualTemplateResponse>> getAllTemplatesAsync(
             @Parameter(description = "워크스페이스 ID", example = "1")
             @PathVariable Integer workspaceId,
             @Valid @ParameterObject IndividualTemplatePageableRequest individualTemplatePageableRequest,
@@ -180,56 +180,16 @@ public class IndividualTemplateController {
         Integer userId = claims.getUserId();
         individualTemplateService.validateWorkspaceOwnership(workspaceId, userId);
 
-        return individualTemplateService.getAllTemplatesAsync(workspaceId,
-                        individualTemplatePageableRequest.toPageable())
-                .thenApply(ResponseEntity::ok);
-    }
-
-    // 상태별 조회 (동기)
-    @Operation(summary = "워크스페이스 별 개인 템플릿 상태별 조회",
-            description = "status 값(DRAFT, APPROVED 등)에 따른 템플릿 목록 조회. 페이지네이션 및 정렬 지원")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "상태별 템플릿 조회"),
-            @ApiResponse(responseCode = "400", description = "잘못된 status 값"),
-            @ApiResponse(responseCode = "404", description = "해당 조건에 맞는 템플릿 없음")
-    })
-    @GetMapping("/{workspaceId}/templates/status")
-    public ResponseEntity<Page<IndividualTemplateResponse>> getTemplatesByStatus(
-            @Parameter(description = "워크스페이스 ID", example = "1")
-            @PathVariable Integer workspaceId,
-            @Parameter(description = "조회할 템플릿 상태", example = "DRAFT")
-            @RequestParam(value = "status", required = false) IndividualTemplate.Status status,
-            @Parameter(description = "정렬 타입: latest | title", example = "latest")
-            @Valid @ParameterObject IndividualTemplatePageableRequest individualTemplatePageableRequest,
-            @AuthenticationPrincipal JwtClaims claims) {
-        Integer userId = claims.getUserId();
-        individualTemplateService.validateWorkspaceOwnership(workspaceId, userId);
-
-        Page<IndividualTemplateResponse> page = (status == null)
-                ? individualTemplateService.getAllTemplates(workspaceId, individualTemplatePageableRequest.toPageable())
-                : individualTemplateService.getIndividualTemplateByStatus(workspaceId, status, individualTemplatePageableRequest.toPageable());
-        return ResponseEntity.ok(page);
-    }
-
-    // 상태별 조회 (비동기)
-    @Operation(summary = "워크스페이스 별 개인 템플릿 상태별 조회 (비동기 @Async)")
-    @GetMapping("/{workspaceId}/templates/status/async")
-    public CompletableFuture<ResponseEntity<Page<IndividualTemplateResponse>>> getTemplatesByStatusAsync(
-            @Parameter(description = "워크스페이스 ID", example = "1")
-            @PathVariable Integer workspaceId,
-            @Parameter(description = "조회할 템플릿 상태", example = "DRAFT")
-            @RequestParam(value = "status", required = false) IndividualTemplate.Status status,
-            @Parameter(description = "정렬 타입: latest | title", example = "title")
-            @Valid @ParameterObject IndividualTemplatePageableRequest individualTemplatePageableRequest,
-            @AuthenticationPrincipal JwtClaims claims) {
-        Integer userId = claims.getUserId();
-        individualTemplateService.validateWorkspaceOwnership(workspaceId, userId);
-
-        CompletableFuture<Page<IndividualTemplateResponse>> fut =
-                (status == null)
-                        ? individualTemplateService.getAllTemplatesAsync(workspaceId, individualTemplatePageableRequest.toPageable())
-                        : individualTemplateService.getIndividualTemplateByStatusAsync(workspaceId, status, individualTemplatePageableRequest.toPageable());
-        return fut.thenApply(ResponseEntity::ok);
+        Page<IndividualTemplateResponse> page =
+                (individualTemplatePageableRequest.getStatus() == null)
+                        ? individualTemplateService.getAllTemplatesAsync(workspaceId,
+                                individualTemplatePageableRequest.toPageable())
+                        .join()
+                        : individualTemplateService.getIndividualTemplateByStatusAsync(workspaceId,
+                            individualTemplatePageableRequest.getStatus(),
+                            individualTemplatePageableRequest.toPageable())
+                        .join();
+        return ResponseEntity.status(200).body(page);
     }
 
     // 단일 조회 (동기)
@@ -254,7 +214,7 @@ public class IndividualTemplateController {
     // 단일 조회 (비동기)
     @Operation(summary = "템플릿 단일 조회 (비동기 @Async)")
     @GetMapping("/{workspaceId}/templates/{individualTemplateId}/async")
-    public CompletableFuture<ResponseEntity<IndividualTemplateResponse>> getTemplateAsync(
+    public ResponseEntity<IndividualTemplateResponse> getTemplateAsync(
             @Parameter(description = "워크스페이스 ID", example = "1")
             @PathVariable Integer workspaceId,
             @Parameter(description = "개인 템플릿 ID", example = "2")
@@ -263,7 +223,11 @@ public class IndividualTemplateController {
         Integer userId = claims.getUserId();
         individualTemplateService.validateWorkspaceOwnership(workspaceId, userId);
 
-        return individualTemplateService.getIndividualTemplateAsync(workspaceId, individualTemplateId)
-                .thenApply(ResponseEntity::ok);
+        // 비동기 실행 후 join()으로 결과 획득
+        IndividualTemplateResponse response = individualTemplateService
+                .getIndividualTemplateAsync(workspaceId, individualTemplateId)
+                .join();
+
+        return ResponseEntity.status(200).body(response);
     }
 }
