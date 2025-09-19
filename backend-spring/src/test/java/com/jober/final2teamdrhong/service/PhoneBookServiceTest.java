@@ -481,4 +481,125 @@ class PhoneBookServiceTest {
         // 2. (중요) 로직이 초반에 중단되었으므로, GroupMapping 조회 로직은 절대 호출되면 안됩니다.
         verify(groupMappingRepository, never()).findByPhoneBook(any(PhoneBook.class), any(Pageable.class));
     }
+
+    @Test
+    @DisplayName("주소록 수정 성공 테스트")
+    void updatePhoneBook_Success_Test() {
+        // given
+        // 1. 테스트에 사용할 ID와 요청 DTO를 준비합니다.
+        Integer workspaceId = 1;
+        Integer phoneBookId = 1;
+        Integer userId = 1;
+        PhoneBookRequest.UpdateDTO updateDTO = PhoneBookRequest.UpdateDTO.builder()
+                .newPhoneBookName("수정된 주소록명")
+                .newPhoneBookMemo("수정된 메모입니다.")
+                .build();
+
+        // 2. Mock 객체들을 준비합니다.
+        Workspace mockWorkspace = mock(Workspace.class);
+        PhoneBook existingPhoneBook = spy(PhoneBook.builder()
+                .phoneBookId(phoneBookId)
+                .phoneBookName("기존 주소록명")
+                .phoneBookMemo("기존 메모")
+                .workspace(mockWorkspace)
+                .build());
+
+        // 3. Mockito 행동 정의
+        //    - workspaceValidator.validateAndGetWorkspace 호출 시, mockWorkspace를 반환하여 권한 검증을 통과시킵니다.
+        when(workspaceValidator.validateAndGetWorkspace(workspaceId, userId))
+                .thenReturn(mockWorkspace);
+        //    - phoneBookValidator.validateAndGetPhoneBook 호출 시, existingPhoneBook를 반환합니다.
+        when(phoneBookValidator.validateAndGetPhoneBook(workspaceId, phoneBookId))
+                .thenReturn(existingPhoneBook);
+
+        // when
+        // 1. 실제 테스트 대상인 서비스 메소드를 호출합니다.
+        PhoneBookResponse.SimpleDTO result = phoneBookService.updatePhoneBook(updateDTO, workspaceId, phoneBookId, userId);
+
+        // then
+        // 1. 반환된 DTO가 null이 아닌지, 그리고 필드 값들이 수정된 데이터와 일치하는지 검증합니다.
+        assertNotNull(result);
+        assertEquals(phoneBookId, result.getPhoneBookId());
+        assertEquals("수정된 주소록명", result.getPhoneBookName());
+        assertEquals("수정된 메모입니다.", result.getPhoneBookMemo());
+
+        // 2. 엔티티의 필드가 실제로 업데이트되었는지 검증합니다.
+        assertEquals("수정된 주소록명", existingPhoneBook.getPhoneBookName());
+        assertEquals("수정된 메모입니다.", existingPhoneBook.getPhoneBookMemo());
+
+        // 3. update() 메서드가 호출되어 updatedAt이 갱신되었는지 검증합니다.
+        verify(existingPhoneBook, times(1)).update();
+
+        // 4. Validator들이 각각 정확히 1번씩 호출되었는지 검증합니다.
+        verify(workspaceValidator, times(1)).validateAndGetWorkspace(workspaceId, userId);
+        verify(phoneBookValidator, times(1)).validateAndGetPhoneBook(workspaceId, phoneBookId);
+    }
+
+    @Test
+    @DisplayName("주소록 수정 실패 테스트 - 존재하지 않거나 권한이 없는 워크스페이스")
+    void updatePhoneBook_Fail_UnauthorizedWorkspace_Test() {
+        // given
+        // 1. 테스트에 사용할 ID와 요청 DTO를 준비합니다.
+        Integer unauthorizedWorkspaceId = 999;
+        Integer phoneBookId = 1;
+        Integer userId = 1;
+        PhoneBookRequest.UpdateDTO updateDTO = PhoneBookRequest.UpdateDTO.builder()
+                .newPhoneBookName("수정된 주소록명")
+                .newPhoneBookMemo("수정된 메모입니다.")
+                .build();
+
+        // 2. Mockito 행동 정의: workspaceValidator가 예외를 던지도록 설정합니다.
+        when(workspaceValidator.validateAndGetWorkspace(unauthorizedWorkspaceId, userId))
+                .thenThrow(new IllegalArgumentException("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + unauthorizedWorkspaceId));
+
+        // when
+        // 1. 서비스 메소드를 호출했을 때 특정 예외가 발생하는지 검증합니다.
+        Throwable thrown = assertThrows(IllegalArgumentException.class, () ->
+                phoneBookService.updatePhoneBook(updateDTO, unauthorizedWorkspaceId, phoneBookId, userId));
+
+        // then
+        // 1. 발생한 예외의 메시지가 예상과 정확히 일치하는지 확인합니다.
+        assertEquals("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + unauthorizedWorkspaceId,
+                thrown.getMessage());
+
+        // 2. (중요) 로직이 초반에 중단되었으므로, 주소록 검증 로직은 절대 호출되면 안됩니다.
+        verify(phoneBookValidator, never()).validateAndGetPhoneBook(anyInt(), anyInt());
+    }
+
+    @Test
+    @DisplayName("주소록 수정 실패 테스트 - 존재하지 않는 주소록")
+    void updatePhoneBook_Fail_PhoneBookNotFound_Test() {
+        // given
+        // 1. 테스트에 사용할 ID와 요청 DTO를 준비합니다.
+        Integer workspaceId = 1;
+        Integer nonExistentPhoneBookId = 999;
+        Integer userId = 1;
+        PhoneBookRequest.UpdateDTO updateDTO = PhoneBookRequest.UpdateDTO.builder()
+                .newPhoneBookName("수정된 주소록명")
+                .newPhoneBookMemo("수정된 메모입니다.")
+                .build();
+
+        // 2. Mock 객체를 준비합니다.
+        Workspace mockWorkspace = mock(Workspace.class);
+
+        // 3. Mockito 행동 정의
+        when(workspaceValidator.validateAndGetWorkspace(workspaceId, userId))
+                .thenReturn(mockWorkspace);
+        when(phoneBookValidator.validateAndGetPhoneBook(workspaceId, nonExistentPhoneBookId))
+                .thenThrow(new IllegalArgumentException("주소록을 찾을 수 없습니다. ID: " + nonExistentPhoneBookId));
+
+        // when
+        // 1. 서비스 메소드를 호출했을 때 특정 예외가 발생하는지 검증합니다.
+        Throwable thrown = assertThrows(IllegalArgumentException.class, () ->
+                phoneBookService.updatePhoneBook(updateDTO, workspaceId, nonExistentPhoneBookId, userId));
+
+        // then
+        // 1. 발생한 예외의 메시지가 예상과 정확히 일치하는지 확인합니다.
+        assertEquals("주소록을 찾을 수 없습니다. ID: " + nonExistentPhoneBookId,
+                thrown.getMessage());
+
+        // 2. Validator들이 각각 정확히 1번씩 호출되었는지 검증합니다.
+        verify(workspaceValidator, times(1)).validateAndGetWorkspace(workspaceId, userId);
+        verify(phoneBookValidator, times(1)).validateAndGetPhoneBook(workspaceId, nonExistentPhoneBookId);
+    }
 }
