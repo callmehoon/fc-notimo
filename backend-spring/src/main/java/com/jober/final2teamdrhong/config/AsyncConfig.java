@@ -1,5 +1,6 @@
 package com.jober.final2teamdrhong.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -10,6 +11,7 @@ import java.util.concurrent.Executor;
 
 @Configuration
 @EnableAsync
+@Slf4j
 public class AsyncConfig implements AsyncConfigurer {
 
     /**
@@ -33,8 +35,7 @@ public class AsyncConfig implements AsyncConfigurer {
     @Override
     public org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
         return (ex, method, params) -> {
-            System.err.println("비동기 메서드 실행 중 예외 발생: " + method.getName());
-            ex.printStackTrace();
+            log.error("비동기 메서드 실행 중 예외 발생: {}, params={}", method.getName(), params, ex);
         };
     }
 }
