@@ -451,4 +451,166 @@ class PhoneBookControllerTest {
                 .andExpect(jsonPath("$.totalElements").value(0))
                 .andExpect(jsonPath("$.empty").value(true));
     }
+
+    @Test
+    @DisplayName("주소록 수정 성공 테스트")
+    @WithMockJwtClaims(userId = 1)
+    void updatePhoneBook_Success_Test() throws Exception {
+        // given
+        // 1. 수정할 주소록을 먼저 생성하고 저장합니다.
+        PhoneBook existingPhoneBook = PhoneBook.builder()
+                .phoneBookName("기존 주소록명")
+                .phoneBookMemo("기존 메모")
+                .workspace(testWorkspace)
+                .build();
+        phoneBookRepository.save(existingPhoneBook);
+
+        // 2. API 요청 본문에 담아 보낼 수정 DTO 객체를 생성합니다.
+        PhoneBookRequest.UpdateDTO updateDTO = PhoneBookRequest.UpdateDTO.builder()
+                .newPhoneBookName("수정된 주소록명")
+                .newPhoneBookMemo("수정된 메모입니다.")
+                .build();
+
+        // 3. DTO 객체를 JSON 문자열로 변환합니다.
+        String requestBody = objectMapper.writeValueAsString(updateDTO);
+
+        // when
+        // 1. MockMvc를 사용하여 PUT /workspaces/{workspaceId}/phonebooks/{phoneBookId} 엔드포인트로 API 요청을 보냅니다.
+        ResultActions resultActions = mockMvc.perform(
+                put("/workspaces/" + testWorkspace.getWorkspaceId() + "/phonebooks/" + existingPhoneBook.getPhoneBookId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody)
+        );
+
+        // then
+        // 1. API 호출 결과를 검증합니다.
+        resultActions
+                // 1-1. HTTP 상태 코드가 200 OK 인지 확인합니다.
+                .andExpect(status().isOk())
+                // 1-2. 응답 JSON 본문에 phoneBookId 필드가 기존 ID와 일치하는지 확인합니다.
+                .andExpect(jsonPath("$.phoneBookId").value(existingPhoneBook.getPhoneBookId()))
+                // 1-3. phoneBookName 필드의 값이 수정된 데이터와 일치하는지 확인합니다.
+                .andExpect(jsonPath("$.phoneBookName").value("수정된 주소록명"))
+                // 1-4. phoneBookMemo 필드의 값이 수정된 데이터와 일치하는지 확인합니다.
+                .andExpect(jsonPath("$.phoneBookMemo").value("수정된 메모입니다."))
+                // 1-5. 시스템컬럼 필드가 적절히 설정되어 있는지 확인합니다.
+                .andExpect(jsonPath("$.createdAt").isNotEmpty())
+                .andExpect(jsonPath("$.updatedAt").isNotEmpty())
+                .andExpect(jsonPath("$.deletedAt").isEmpty());
+
+        // 2. 데이터베이스에서 직접 조회하여 실제로 수정되었는지 검증합니다.
+        entityManager.flush();
+        entityManager.clear();
+        PhoneBook updatedPhoneBook = phoneBookRepository.findById(existingPhoneBook.getPhoneBookId()).orElseThrow();
+        assert updatedPhoneBook.getPhoneBookName().equals("수정된 주소록명");
+        assert updatedPhoneBook.getPhoneBookMemo().equals("수정된 메모입니다.");
+    }
+
+    @Test
+    @DisplayName("주소록 수정 실패 테스트 - 존재하지 않는 워크스페이스")
+    @WithMockJwtClaims(userId = 1)
+    void updatePhoneBook_Fail_WorkspaceNotFound_Test() throws Exception {
+        // given
+        // 1. 존재하지 않는 워크스페이스 ID를 사용합니다.
+        Integer nonExistentWorkspaceId = 999;
+        Integer phoneBookId = 1;
+
+        // 2. API 요청 본문에 담아 보낼 수정 DTO 객체를 생성합니다.
+        PhoneBookRequest.UpdateDTO updateDTO = PhoneBookRequest.UpdateDTO.builder()
+                .newPhoneBookName("수정된 주소록명")
+                .newPhoneBookMemo("수정된 메모입니다.")
+                .build();
+
+        // 3. DTO 객체를 JSON 문자열로 변환합니다.
+        String requestBody = objectMapper.writeValueAsString(updateDTO);
+
+        // when
+        // 1. MockMvc를 사용하여 PUT /workspaces/{workspaceId}/phonebooks/{phoneBookId} 엔드포인트로 API 요청을 보냅니다.
+        ResultActions resultActions = mockMvc.perform(
+                put("/workspaces/" + nonExistentWorkspaceId + "/phonebooks/" + phoneBookId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody)
+        );
+
+        // then
+        // 1. API 호출 결과를 검증합니다.
+        resultActions
+                // 1-1. HTTP 상태 코드가 400 Bad Request 인지 확인합니다.
+                .andExpect(status().isBadRequest())
+                // 1-2. 에러 메시지가 적절히 반환되는지 확인합니다.
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    @DisplayName("주소록 수정 실패 테스트 - 존재하지 않는 주소록")
+    @WithMockJwtClaims(userId = 1)
+    void updatePhoneBook_Fail_PhoneBookNotFound_Test() throws Exception {
+        // given
+        // 1. 존재하지 않는 주소록 ID를 사용합니다.
+        Integer nonExistentPhoneBookId = 999;
+
+        // 2. API 요청 본문에 담아 보낼 수정 DTO 객체를 생성합니다.
+        PhoneBookRequest.UpdateDTO updateDTO = PhoneBookRequest.UpdateDTO.builder()
+                .newPhoneBookName("수정된 주소록명")
+                .newPhoneBookMemo("수정된 메모입니다.")
+                .build();
+
+        // 3. DTO 객체를 JSON 문자열로 변환합니다.
+        String requestBody = objectMapper.writeValueAsString(updateDTO);
+
+        // when
+        // 1. MockMvc를 사용하여 PUT /workspaces/{workspaceId}/phonebooks/{phoneBookId} 엔드포인트로 API 요청을 보냅니다.
+        ResultActions resultActions = mockMvc.perform(
+                put("/workspaces/" + testWorkspace.getWorkspaceId() + "/phonebooks/" + nonExistentPhoneBookId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody)
+        );
+
+        // then
+        // 1. API 호출 결과를 검증합니다.
+        resultActions
+                // 1-1. HTTP 상태 코드가 400 Bad Request 인지 확인합니다.
+                .andExpect(status().isBadRequest())
+                // 1-2. 에러 메시지가 적절히 반환되는지 확인합니다.
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    @DisplayName("주소록 수정 실패 테스트 - 잘못된 요청 데이터 (유효성 검사 실패)")
+    @WithMockJwtClaims(userId = 1)
+    void updatePhoneBook_Fail_InvalidRequestData_Test() throws Exception {
+        // given
+        // 1. 수정할 주소록을 먼저 생성하고 저장합니다.
+        PhoneBook existingPhoneBook = PhoneBook.builder()
+                .phoneBookName("기존 주소록명")
+                .phoneBookMemo("기존 메모")
+                .workspace(testWorkspace)
+                .build();
+        phoneBookRepository.save(existingPhoneBook);
+
+        // 2. 유효성 검사에 실패할 수 있는 잘못된 DTO 객체를 생성합니다. (예: 빈 문자열)
+        PhoneBookRequest.UpdateDTO invalidUpdateDTO = PhoneBookRequest.UpdateDTO.builder()
+                .newPhoneBookName("") // 빈 문자열로 유효성 검사 실패 유도
+                .newPhoneBookMemo("수정된 메모입니다.")
+                .build();
+
+        // 3. DTO 객체를 JSON 문자열로 변환합니다.
+        String requestBody = objectMapper.writeValueAsString(invalidUpdateDTO);
+
+        // when
+        // 1. MockMvc를 사용하여 PUT /workspaces/{workspaceId}/phonebooks/{phoneBookId} 엔드포인트로 API 요청을 보냅니다.
+        ResultActions resultActions = mockMvc.perform(
+                put("/workspaces/" + testWorkspace.getWorkspaceId() + "/phonebooks/" + existingPhoneBook.getPhoneBookId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody)
+        );
+
+        // then
+        // 1. API 호출 결과를 검증합니다.
+        resultActions
+                // 1-1. HTTP 상태 코드가 400 Bad Request 인지 확인합니다.
+                .andExpect(status().isBadRequest())
+                // 1-2. 에러 메시지가 적절히 반환되는지 확인합니다.
+                .andExpect(jsonPath("$.message").exists());
+    }
 }
