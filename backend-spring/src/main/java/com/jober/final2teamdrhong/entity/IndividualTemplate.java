@@ -35,7 +35,14 @@ public class IndividualTemplate extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    private Status status = Status.DRAFT;
+    private Status status;
+
+    @PrePersist
+    public void applyDefaultStatus() {
+        if (status == null){
+            status = Status.DRAFT;
+        }
+    }
 
     @ManyToOne
     @JoinColumn(name = "workspace_id")
@@ -43,7 +50,4 @@ public class IndividualTemplate extends BaseEntity {
 
     @OneToMany(mappedBy = "individualTemplate")
     private List<TemplateModifiedHistory> histories;
-
-    @OneToOne(mappedBy = "individualTemplate")
-    private Favorite favorite;
 }
