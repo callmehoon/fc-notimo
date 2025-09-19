@@ -3,16 +3,16 @@ package com.jober.final2teamdrhong.controller;
 import com.jober.final2teamdrhong.config.JwtConfig;
 import com.jober.final2teamdrhong.dto.emailVerification.EmailRequest;
 import com.jober.final2teamdrhong.dto.emailVerification.EmailVerificationResponse;
+import com.jober.final2teamdrhong.dto.userLogin.TokenRefreshResponse;
 import com.jober.final2teamdrhong.dto.userLogin.UserLoginRequest;
 import com.jober.final2teamdrhong.dto.userLogin.UserLoginResponse;
-import com.jober.final2teamdrhong.dto.userLogout.UserLogoutResponse;
+import com.jober.final2teamdrhong.dto.userLogout.UserLogoutRequest;
 import com.jober.final2teamdrhong.dto.userSignup.UserSignupRequest;
 import com.jober.final2teamdrhong.dto.userSignup.UserSignupResponse;
+import com.jober.final2teamdrhong.exception.ErrorResponse;
 import com.jober.final2teamdrhong.service.AuthService;
-import com.jober.final2teamdrhong.service.BlacklistService;
 import com.jober.final2teamdrhong.service.EmailService;
 import com.jober.final2teamdrhong.service.RateLimitService;
-import com.jober.final2teamdrhong.service.RefreshTokenService;
 import com.jober.final2teamdrhong.util.ClientIpUtil;
 import com.jober.final2teamdrhong.util.LogMaskingUtil;
 import io.swagger.v3.oas.annotations.Operation;
@@ -42,8 +42,6 @@ public class AuthController {
     private final AuthService authService;
     private final EmailService emailService;
     private final RateLimitService rateLimitService;
-    private final RefreshTokenService refreshTokenService;
-    private final BlacklistService blacklistService;
     private final JwtConfig jwtConfig;
 
     @Value("${app.environment.development:true}")
@@ -70,9 +68,9 @@ public class AuthController {
         String clientIp = ClientIpUtil.getClientIpAddress(request, isDevelopment);
 
         // Rate limiting 로직을 서비스로 위임
-        emailService.sendVerificationCodeWithRateLimit(emailRequest.getEmail(), clientIp);
+        emailService.sendVerificationCodeWithRateLimit(emailRequest.email(), clientIp);
 
-        log.info("인증 코드 발송 성공: ip={}, email={}", clientIp, emailRequest.getEmail());
+        log.info("인증 코드 발송 성공: ip={}, email={}", clientIp, emailRequest.email());
         return ResponseEntity.ok(
             EmailVerificationResponse.success("인증 코드가 발송되었습니다.")
         );
@@ -214,16 +212,17 @@ public class AuthController {
     @Operation(summary = "토큰 갱신", description = "만료된 Access Token을 Refresh Token으로 갱신합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "토큰 갱신 성공",
-                    content = @Content(mediaType = "application/json")),
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = TokenRefreshResponse.class))),
             @ApiResponse(responseCode = "401", description = "인증 실패",
                     content = @Content(mediaType = "application/json",
-                    schema = @Schema(implementation = UserLoginResponse.class))),
+                    schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "429", description = "Rate Limit 초과",
                     content = @Content(mediaType = "application/json",
-                    schema = @Schema(implementation = UserLoginResponse.class)))
+                    schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/refresh")
-    public ResponseEntity<?> refreshToken(
+    public ResponseEntity<TokenRefreshResponse> refreshToken(
             @Parameter(description = "Authorization 헤더 (Bearer + Refresh Token)", required = true)
             @RequestHeader("Authorization") String authorizationHeader,
             HttpServletRequest request) {
@@ -233,83 +232,33 @@ public class AuthController {
         // Rate limiting 체크 (토큰 갱신 남용 방지)
         rateLimitService.checkRefreshTokenRateLimit(clientIp);
 
-        // Authorization 헤더에서 토큰 추출
-        String refreshToken = jwtConfig.extractTokenFromHeader(authorizationHeader);
+        // AuthService에 토큰 갱신 처리 위임
+        TokenRefreshResponse response = authService.refreshTokens(authorizationHeader, clientIp);
 
-        if (refreshToken == null) {
-            log.warn("토큰 갱신 실패 - Authorization 헤더 없음: ip={}",
-                    LogMaskingUtil.maskIpAddress(clientIp));
-            return ResponseEntity.badRequest().body(
-                UserLoginResponse.error("Authorization 헤더가 필요합니다.")
-            );
-        }
-
-        // 토큰 갱신 처리
-        RefreshTokenService.TokenPair tokenPair = refreshTokenService.refreshTokens(refreshToken, clientIp);
-
-        // 보안 강화: 민감한 정보 마스킹 후 로깅
-        log.info("토큰 갱신 API 완료: ip={}", LogMaskingUtil.maskIpAddress(clientIp));
-
-        // 새로운 토큰 쌍 응답 (보안 개선: 응답 바디에만 토큰 포함)
-        Map<String, Object> response = Map.of(
-            "accessToken", tokenPair.getAccessToken(),
-            "refreshToken", tokenPair.getRefreshToken(),
-            "tokenType", "Bearer",
-            "expiresIn", jwtConfig.getAccessTokenValiditySeconds()
-        );
-
-        return ResponseEntity.ok().body(response);
+        return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "로그아웃", description = "현재 세션을 종료하고 모든 토큰을 무효화합니다.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "로그아웃 성공",
-                    content = @Content(mediaType = "application/json",
-                    schema = @Schema(implementation = UserLogoutResponse.class))),
+            @ApiResponse(responseCode = "204", description = "로그아웃 성공"),
             @ApiResponse(responseCode = "400", description = "잘못된 요청",
                     content = @Content(mediaType = "application/json",
-                    schema = @Schema(implementation = UserLogoutResponse.class)))
+                    schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/logout")
-    public ResponseEntity<UserLogoutResponse> logout(
+    public ResponseEntity<Void> logout(
             @Parameter(description = "Authorization 헤더 (Bearer + Access Token)")
             @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
             @Parameter(description = "로그아웃 요청 (Refresh Token 포함)")
-            @RequestBody Map<String, String> logoutRequest,
+            @Valid @RequestBody UserLogoutRequest logoutRequest,
             HttpServletRequest request) {
 
         String clientIp = ClientIpUtil.getClientIpAddress(request, isDevelopment);
 
-        // 1. Access Token 처리 (Authorization 헤더에서 추출)
+        // AuthService에 로그아웃 처리 위임
         String accessToken = jwtConfig.extractTokenFromHeader(authorizationHeader);
-        if (accessToken != null && jwtConfig.validateToken(accessToken) && jwtConfig.isAccessToken(accessToken)) {
-            try {
-                blacklistService.addAccessTokenToBlacklist(accessToken);
-                log.info("Access Token이 블랙리스트에 추가되었습니다: ip={}", LogMaskingUtil.maskIpAddress(clientIp));
-            } catch (Exception e) {
-                log.warn("Access Token 블랙리스트 추가 실패: ip={}, error={}",
-                        LogMaskingUtil.maskIpAddress(clientIp), e.getMessage());
-            }
-        }
+        authService.logout(accessToken, logoutRequest.refreshToken(), clientIp);
 
-        // 2. Refresh Token 처리 (Request Body에서 추출)
-        String refreshToken = logoutRequest.get("refreshToken");
-        if (refreshToken != null && jwtConfig.validateToken(refreshToken) && jwtConfig.isRefreshToken(refreshToken)) {
-            try {
-                refreshTokenService.revokeRefreshToken(refreshToken);
-                log.info("Refresh Token이 무효화되었습니다: ip={}", LogMaskingUtil.maskIpAddress(clientIp));
-            } catch (Exception e) {
-                log.warn("Refresh Token 무효화 실패: ip={}, error={}",
-                        LogMaskingUtil.maskIpAddress(clientIp), e.getMessage());
-            }
-        } else if (refreshToken != null) {
-            log.warn("유효하지 않은 Refresh Token 형식: ip={}", LogMaskingUtil.maskIpAddress(clientIp));
-        }
-
-        log.info("로그아웃 완료: ip={}", LogMaskingUtil.maskIpAddress(clientIp));
-
-        return ResponseEntity.ok(
-            UserLogoutResponse.success("로그아웃이 완료되었습니다.")
-        );
+        return ResponseEntity.noContent().build();
     }
 }
