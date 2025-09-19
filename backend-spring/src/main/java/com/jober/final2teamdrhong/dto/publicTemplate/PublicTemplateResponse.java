@@ -1,5 +1,6 @@
 package com.jober.final2teamdrhong.dto.publicTemplate;
 
+import com.jober.final2teamdrhong.entity.PublicTemplate;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 @Schema(name = "PublicTemplateResponse", description = "공용 템플릿 조회/생성 응답")
@@ -15,4 +16,19 @@ public record PublicTemplateResponse(
 
     @Schema(description = "버튼 제목", example = "회의 참석하기")
     String buttonTitle
-) {}
+) {
+    /**
+     * PublicTemplate 엔티티를 PublicTemplateResponse DTO로 변환하는 정적 팩토리 메소드.
+     *
+     * @param entity 변환할 PublicTemplate 엔티티
+     * @return 변환된 PublicTemplateResponse DTO
+     */
+    public static PublicTemplateResponse from(PublicTemplate entity) {
+        return new PublicTemplateResponse(
+            entity.getPublicTemplateId(),
+            entity.getPublicTemplateTitle(),
+            entity.getPublicTemplateContent(),
+            entity.getButtonTitle()
+        );
+    }
+}

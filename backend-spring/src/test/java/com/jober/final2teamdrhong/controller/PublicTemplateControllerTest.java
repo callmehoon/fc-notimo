@@ -291,7 +291,7 @@ class PublicTemplateControllerTest {
         Integer individualTemplateId = 10;
         PublicTemplateResponse response = new PublicTemplateResponse(1, "제목", "내용", "버튼");
 
-        when(publicTemplateService.createPublicTemplate(any(PublicTemplateCreateRequest.class)))
+        when(publicTemplateService.createPublicTemplate(any(PublicTemplateCreateRequest.class), any(Integer.class)))
                 .thenReturn(response);
 
         // when & then
@@ -305,7 +305,7 @@ class PublicTemplateControllerTest {
                 .andExpect(jsonPath("$.buttonTitle").value("버튼"));
 
         ArgumentCaptor<PublicTemplateCreateRequest> requestCaptor = ArgumentCaptor.forClass(PublicTemplateCreateRequest.class);
-        verify(publicTemplateService, times(1)).createPublicTemplate(requestCaptor.capture());
+        verify(publicTemplateService, times(1)).createPublicTemplate(requestCaptor.capture(), any(Integer.class));
         PublicTemplateCreateRequest captured = requestCaptor.getValue();
         Assertions.assertEquals(individualTemplateId, captured.individualTemplateId());
     }
@@ -319,14 +319,14 @@ class PublicTemplateControllerTest {
                         .content("{}"))
                 .andExpect(status().isBadRequest());
 
-        verify(publicTemplateService, never()).createPublicTemplate(any(PublicTemplateCreateRequest.class));
+        verify(publicTemplateService, never()).createPublicTemplate(any(PublicTemplateCreateRequest.class), any(Integer.class));
     }
 
     @Test
-    @DisplayName("공용 템플릿 생성 실패 - 개인 템플릿 없음 400")
-    void createPublicTemplate_NotFound_ReturnsBadRequest() throws Exception {
+    @DisplayName("공용 템플릿 생성 실패 - 개인 템플릿 없음 또는 워크스페이스 소유권 없음 400")
+    void createPublicTemplate_NotFoundOrNotOwned_ReturnsBadRequest() throws Exception {
         // given
-        when(publicTemplateService.createPublicTemplate(any(PublicTemplateCreateRequest.class)))
+        when(publicTemplateService.createPublicTemplate(any(PublicTemplateCreateRequest.class), any(Integer.class)))
                 .thenThrow(new IllegalArgumentException("해당 개인 템플릿을 찾을 수 없습니다."));
 
         // when & then
@@ -335,6 +335,6 @@ class PublicTemplateControllerTest {
                         .content("{\"individualTemplateId\": 999}"))
                 .andExpect(status().isBadRequest());
 
-        verify(publicTemplateService, times(1)).createPublicTemplate(any(PublicTemplateCreateRequest.class));
+        verify(publicTemplateService, times(1)).createPublicTemplate(any(PublicTemplateCreateRequest.class), any(Integer.class));
     }
 }
