@@ -33,10 +33,16 @@ public class IndividualTemplate extends BaseEntity {
     @Column(name = "button_title", length = 50)
     private String buttonTitle;
 
-    @Builder.Default
-    @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
-    private TemplateModifiedHistory.Status status = TemplateModifiedHistory.Status.DRAFT;
+    @Column(name = "status", nullable = false, length = 20)
+    private Status status;
+
+    @PrePersist
+    public void applyDefaultStatus() {
+        if (status == null){
+            status = Status.DRAFT;
+        }
+    }
 
     @ManyToOne
     @JoinColumn(name = "workspace_id")
@@ -44,7 +50,4 @@ public class IndividualTemplate extends BaseEntity {
 
     @OneToMany(mappedBy = "individualTemplate")
     private List<TemplateModifiedHistory> histories;
-
-    @OneToOne(mappedBy = "individualTemplate")
-    private Favorite favorite;
 }
