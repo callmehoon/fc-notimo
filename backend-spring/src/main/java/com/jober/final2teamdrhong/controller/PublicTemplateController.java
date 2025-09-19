@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
 import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplateCreateRequest;
 import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplatePageableRequest;
 import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplateResponse;
@@ -22,11 +23,12 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/public-templates")
-@Tag(name = "공용템플릿 관리 API", description = "공용 템플릿 생성, 조회, 삭제 기능을 제공합니다")
+@Tag(name = "공용템플릿 관리 API", description = "공용 템플릿 생성, 조회 기능을 제공합니다")
 public class PublicTemplateController {
     private final PublicTemplateService publicTemplateService;
 
@@ -120,7 +122,7 @@ public class PublicTemplateController {
         ),
         @ApiResponse(
             responseCode = "400",
-            description = "잘못된 요청 - 존재하지 않는 개인 템플릿 ID",
+            description = "잘못된 요청 - 존재하지 않는 개인 템플릿 ID, 또는 해당 개인 템플릿의 워크스페이스가 현재 사용자의 소유가 아닐 경우",
             content = @Content(
                 mediaType = "application/json",
                 schema = @Schema(implementation = ErrorResponse.class)
@@ -145,9 +147,11 @@ public class PublicTemplateController {
     })
     @PostMapping
     public ResponseEntity<PublicTemplateResponse> createPublicTemplate(
-        @Valid @RequestBody PublicTemplateCreateRequest request
+        @Valid @RequestBody PublicTemplateCreateRequest request,
+        @AuthenticationPrincipal JwtClaims jwtClaims
     ) {
-        PublicTemplateResponse response = publicTemplateService.createPublicTemplate(request);
+        Integer currentUserId = jwtClaims.getUserId();
+        PublicTemplateResponse response = publicTemplateService.createPublicTemplate(request, currentUserId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }
