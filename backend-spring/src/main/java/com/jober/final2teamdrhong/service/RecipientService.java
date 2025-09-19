@@ -109,4 +109,33 @@ public class RecipientService {
 
         return new RecipientResponse.SimpleDTO(existingRecipient);
     }
+
+    /**
+     * 특정 수신자를 삭제합니다 (소프트 딜리트).
+     * <p>
+     * 요청한 사용자가 해당 워크스페이스의 소유자인지 확인하는 인가 과정이 포함되며,
+     * 실제 데이터베이스에서 삭제되지 않고 is_deleted 플래그를 true로 변경하고 deleted_at에 현재 시간을 설정합니다.
+     * <p>
+     * JPA의 Dirty Checking 기능을 통해 변경사항이 자동으로 데이터베이스에 UPDATE됩니다.
+     *
+     * @param workspaceId 삭제할 수신자가 속한 워크스페이스의 ID
+     * @param recipientId 삭제할 수신자의 ID
+     * @param userId      삭제를 요청한 사용자의 ID (인가에 사용)
+     * @return 삭제 처리된 수신자의 정보가 담긴 {@link RecipientResponse.SimpleDTO}
+     * @throws IllegalArgumentException 해당 워크스페이스가 존재하지 않거나, 사용자가 접근 권한이 없거나,
+     *                                  수신자가 해당 워크스페이스에 존재하지 않을 경우 발생
+     */
+    @Transactional
+    public RecipientResponse.SimpleDTO deleteRecipient(Integer workspaceId, Integer recipientId, Integer userId) {
+        // 1. 워크스페이스 접근 권한 확인
+        workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
+
+        // 2. 수신자 조회 (워크스페이스 소속인지 함께 검증)
+        Recipient existingRecipient = recipientValidator.validateAndGetRecipient(workspaceId, recipientId);
+
+        // 3. 소프트 딜리트 처리
+        existingRecipient.softDelete();
+
+        return new RecipientResponse.SimpleDTO(existingRecipient);
+    }
 }
