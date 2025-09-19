@@ -2,8 +2,10 @@ package com.jober.final2teamdrhong.service;
 
 import com.jober.final2teamdrhong.config.AuthProperties;
 import com.jober.final2teamdrhong.config.JwtConfig;
+import com.jober.final2teamdrhong.dto.userLogin.TokenRefreshResponse;
 import com.jober.final2teamdrhong.dto.userLogin.UserLoginRequest;
 import com.jober.final2teamdrhong.dto.userLogin.UserLoginResponse;
+import com.jober.final2teamdrhong.dto.userLogout.UserLogoutResponse;
 import com.jober.final2teamdrhong.dto.userSignup.UserSignupRequest;
 import com.jober.final2teamdrhong.entity.User;
 import com.jober.final2teamdrhong.entity.UserAuth;
@@ -33,6 +35,7 @@ public class AuthService {
     private final RateLimitService rateLimitService;
     private final JwtConfig jwtConfig;
     private final RefreshTokenService refreshTokenService;
+    private final BlacklistService blacklistService;
     private final AuthProperties authProperties;
     private final TimingAttackProtection timingAttackProtection;
 
@@ -125,7 +128,7 @@ public class AuthService {
             if (authResult.isFailure()) {
                 handleAuthenticationFailure(userLoginRequest.getEmail());
             }
-            return createSuccessfulLoginResponse(authResult.getUser(), authResult.getLocalAuth(), clientIp);
+            return createSuccessfulLoginResponse(authResult.user(), authResult.localAuth(), clientIp);
 
         } catch (BadCredentialsException e) {
             handleAuthenticationFailure(userLoginRequest.getEmail());
@@ -200,24 +203,66 @@ public class AuthService {
     }
 
     /**
-     * 인증 결과를 담는 내부 클래스
+     * 토큰 갱신 처리 (Authorization 헤더에서 Refresh Token 추출)
      */
-    private static class AuthenticationResult {
-        private final User user;
-        private final UserAuth localAuth;
-        private final boolean passwordMatches;
+    public TokenRefreshResponse refreshTokens(String authorizationHeader, String clientIp) {
+        // 1. Authorization 헤더에서 Refresh Token 추출
+        String refreshToken = jwtConfig.extractTokenFromHeader(authorizationHeader);
 
-        public AuthenticationResult(User user, UserAuth localAuth, boolean passwordMatches) {
-            this.user = user;
-            this.localAuth = localAuth;
-            this.passwordMatches = passwordMatches;
+        if (refreshToken == null) {
+            log.warn("토큰 갱신 실패 - Authorization 헤더 없음: ip={}", LogMaskingUtil.maskIpAddress(clientIp));
+            throw new AuthenticationException("Authorization 헤더가 필요합니다.");
         }
+
+        // 2. 토큰 갱신 처리
+        RefreshTokenService.TokenPair tokenPair = refreshTokenService.refreshTokens(refreshToken, clientIp);
+
+        // 3. 보안 강화: 민감한 정보 마스킹 후 로깅
+        log.info("토큰 갱신 API 완료: ip={}", LogMaskingUtil.maskIpAddress(clientIp));
+
+        // 4. 새로운 토큰 쌍 응답
+        return TokenRefreshResponse.of(
+            tokenPair.accessToken(),
+            tokenPair.refreshToken(),
+            jwtConfig.getAccessTokenValiditySeconds()
+        );
+    }
+
+    /**
+     * 로그아웃 처리 (Access Token과 Refresh Token 무효화)
+     */
+    public void logout(String accessToken, String refreshToken, String clientIp) {
+        try {
+            // 1. Access Token 블랙리스트 추가
+            if (accessToken != null && jwtConfig.validateToken(accessToken) && jwtConfig.isAccessToken(accessToken)) {
+                blacklistService.addAccessTokenToBlacklist(accessToken);
+                log.info("Access Token이 블랙리스트에 추가되었습니다: ip={}", LogMaskingUtil.maskIpAddress(clientIp));
+            }
+
+            // 2. Refresh Token 무효화
+            if (refreshToken != null && jwtConfig.validateToken(refreshToken) && jwtConfig.isRefreshToken(refreshToken)) {
+                refreshTokenService.revokeRefreshToken(refreshToken);
+                log.info("Refresh Token이 무효화되었습니다: ip={}", LogMaskingUtil.maskIpAddress(clientIp));
+            } else if (refreshToken != null) {
+                log.warn("유효하지 않은 Refresh Token 형식: ip={}", LogMaskingUtil.maskIpAddress(clientIp));
+            }
+
+            log.info("로그아웃 완료: ip={}", LogMaskingUtil.maskIpAddress(clientIp));
+
+        } catch (Exception e) {
+            log.warn("로그아웃 처리 중 일부 오류 발생: ip={}, error={}",
+                     LogMaskingUtil.maskIpAddress(clientIp), e.getMessage());
+            // 로그아웃은 부분적 실패라도 성공으로 처리 (클라이언트에서 토큰 삭제가 중요)
+        }
+    }
+
+    /**
+     * 인증 결과를 담는 내부 record 클래스
+     */
+    private record AuthenticationResult(User user, UserAuth localAuth, boolean passwordMatches) {
 
         public boolean isFailure() {
             return user == null || localAuth == null || !passwordMatches;
         }
-
-        public User getUser() { return user; }
-        public UserAuth getLocalAuth() { return localAuth; }
     }
 }
