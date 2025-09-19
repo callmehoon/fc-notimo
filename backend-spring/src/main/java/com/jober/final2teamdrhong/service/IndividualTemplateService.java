@@ -7,7 +7,7 @@ import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
 import com.jober.final2teamdrhong.repository.WorkspaceRepository;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -16,8 +16,6 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -123,7 +121,7 @@ public class IndividualTemplateService {
             Integer workspaceId,
             Pageable pageable) {
 
-        return individualTemplateRepo.findByWorkspace_WorkspaceIdAndIsDeletedFalse(workspaceId, pageable)
+        return individualTemplateRepository.findByWorkspace_WorkspaceIdAndIsDeletedFalse(workspaceId, pageable)
                 .map(individualTemplate -> new IndividualTemplateResponse(
                         individualTemplate.getIndividualTemplateId(),
                         individualTemplate.getIndividualTemplateTitle(),
@@ -155,7 +153,7 @@ public class IndividualTemplateService {
             IndividualTemplate.Status status,
             Pageable pageable) {
 
-        return individualTemplateRepo
+        return individualTemplateRepository
                 .findByWorkspace_WorkspaceIdAndIsDeletedFalseAndStatus(workspaceId, status, pageable)
                 .map(individualTemplate -> new IndividualTemplateResponse(
                         individualTemplate.getIndividualTemplateId(),
@@ -186,7 +184,7 @@ public class IndividualTemplateService {
      */
     @Transactional(readOnly = true)
     public IndividualTemplateResponse getIndividualTemplate(Integer workspaceId, Integer individualTemplateId) {
-        IndividualTemplate individualTemplate = individualTemplateRepo
+        IndividualTemplate individualTemplate = individualTemplateRepository
                 .findByIndividualTemplateIdAndWorkspace_WorkspaceIdAndIsDeletedFalse(individualTemplateId, workspaceId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 템플릿이 존재하지 않습니다. id = " + individualTemplateId));
 
