@@ -16,6 +16,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.security.access.AccessDeniedException;
 import java.util.concurrent.CompletableFuture;
 
+import static com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateResponse.toResponse;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -38,17 +40,6 @@ public class IndividualTemplateService {
             throw new AccessDeniedException("해당 워크스페이스에 접근 권한이 없습니다.");
     }
 
-    private IndividualTemplateResponse toResponse(IndividualTemplate entity) {
-        return new IndividualTemplateResponse(
-                entity.getIndividualTemplateId(),
-                entity.getIndividualTemplateTitle(),
-                entity.getIndividualTemplateContent(),
-                entity.getButtonTitle(),
-                entity.getWorkspace().getWorkspaceId(),
-                entity.getCreatedAt(),
-                entity.getUpdatedAt()
-        );
-    }
 
     @Transactional
     public IndividualTemplateResponse createTemplate(Integer workspaceId) {
