@@ -33,17 +33,9 @@ public class IndividualTemplate extends BaseEntity {
     @Column(name = "button_title", length = 50)
     private String buttonTitle;
 
-    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private Status status = Status.DRAFT;
-
-
-    // 빌더로 null이 들어오거나, 다른 경로로 null인 경우에도 DB에 들어가기 전 DRAFT로 보정.
-    @PrePersist
-    void applyDefaultStatus() {
-        if (status == null) status = Status.DRAFT;
-    }
 
     @ManyToOne
     @JoinColumn(name = "workspace_id")
