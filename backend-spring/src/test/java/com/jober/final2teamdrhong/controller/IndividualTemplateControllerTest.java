@@ -30,6 +30,7 @@ class IndividualTemplateControllerTest {
 
     @Test
     void createEmptyTemplate_정상_호출() {
+        // given
         JwtClaims mockClaims = createMockJwtClaims(1, "test@test.com");
 
         IndividualTemplateResponse expectedResponse = new IndividualTemplateResponse();
@@ -38,9 +39,11 @@ class IndividualTemplateControllerTest {
 
         given(individualTemplateService.createTemplate(99)).willReturn(expectedResponse);
 
+        // when
         ResponseEntity<IndividualTemplateResponse> result =
                 controller.createEmptyTemplate(99, mockClaims);
 
+        // then
         assertThat(result.getStatusCodeValue()).isEqualTo(200);
         assertThat(result.getBody()).isNotNull();
         assertThat(result.getBody().getIndividualTemplateId()).isEqualTo(1);
@@ -52,6 +55,7 @@ class IndividualTemplateControllerTest {
 
     @Test
     void createEmptyTemplateAsync_정상_호출() {
+        // given
         JwtClaims mockClaims = createMockJwtClaims(2, "test@test.com");
 
         IndividualTemplateResponse expectedResponse = new IndividualTemplateResponse();
@@ -61,9 +65,11 @@ class IndividualTemplateControllerTest {
         given(individualTemplateService.createTemplateAsync(77))
                 .willReturn(CompletableFuture.completedFuture(expectedResponse));
 
+        // when
         ResponseEntity<IndividualTemplateResponse> response =
                 controller.createEmptyTemplateAsync(77, mockClaims);
 
+        // then
         assertThat(response.getStatusCodeValue()).isEqualTo(200);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getIndividualTemplateId()).isEqualTo(2);
@@ -75,6 +81,7 @@ class IndividualTemplateControllerTest {
 
     @Test
     void createFromPublicTemplate_정상_호출() {
+        // given
         JwtClaims mockClaims = createMockJwtClaims(3, "test@test.com");
 
         IndividualTemplateResponse expectedResponse = new IndividualTemplateResponse();
@@ -84,9 +91,11 @@ class IndividualTemplateControllerTest {
         given(individualTemplateService.createIndividualTemplateFromPublic(10, 55))
                 .willReturn(expectedResponse);
 
+        // when
         ResponseEntity<IndividualTemplateResponse> result =
                 controller.createFromPublicTemplate(10, 55, mockClaims);
 
+        // then
         assertThat(result.getStatusCodeValue()).isEqualTo(200);
         assertThat(result.getBody()).isNotNull();
         assertThat(result.getBody().getIndividualTemplateId()).isEqualTo(3);
@@ -98,6 +107,7 @@ class IndividualTemplateControllerTest {
 
     @Test
     void createFromPublicTemplateAsync_정상_호출() {
+        // given
         JwtClaims mockClaims = createMockJwtClaims(4, "test@test.com");
 
         IndividualTemplateResponse expectedResponse = new IndividualTemplateResponse();
@@ -107,9 +117,11 @@ class IndividualTemplateControllerTest {
         given(individualTemplateService.createIndividualTemplateFromPublicAsync(20, 44))
                 .willReturn(CompletableFuture.completedFuture(expectedResponse));
 
+        // when
         ResponseEntity<IndividualTemplateResponse> result =
                 controller.createFromPublicTemplateAsync(20, 44, mockClaims);
 
+        // then
         assertThat(result.getStatusCodeValue()).isEqualTo(200);
         assertThat(result.getBody()).isNotNull();
         assertThat(result.getBody().getIndividualTemplateId()).isEqualTo(4);

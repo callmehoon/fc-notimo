@@ -59,18 +59,22 @@ class IndividualTemplateServiceTest {
         @Test
         @DisplayName("userId가 null이면 AccessDeniedException이 발생한다")
         void validateWorkspaceOwnership_nullUserId() {
+            // when & then
             assertThatThrownBy(() -> service.validateWorkspaceOwnership(1, null))
                     .isInstanceOf(AccessDeniedException.class)
                     .hasMessage("인증이 필요합니다.");
+
             verifyNoInteractions(workspaceRepo);
         }
 
         @Test
         @DisplayName("워크스페이스 소유권이 없으면 AccessDeniedException이 발생한다")
         void validateWorkspaceOwnership_noOwnership() {
+            // given
             when(workspaceRepo.existsByWorkspaceIdAndUser_UserId(1, 100))
                     .thenReturn(false);
 
+            // when & then
             assertThatThrownBy(() -> service.validateWorkspaceOwnership(1, 100))
                     .isInstanceOf(AccessDeniedException.class)
                     .hasMessage("해당 워크스페이스에 접근 권한이 없습니다.");
@@ -82,9 +86,11 @@ class IndividualTemplateServiceTest {
         @Test
         @DisplayName("워크스페이스 소유권이 있으면 정상적으로 통과한다")
         void validateWorkspaceOwnership_hasOwnership() {
+            // given
             when(workspaceRepo.existsByWorkspaceIdAndUser_UserId(1, 100))
                     .thenReturn(true);
 
+            // when & then
             assertThatCode(() -> service.validateWorkspaceOwnership(1, 100))
                     .doesNotThrowAnyException();
 
@@ -100,6 +106,7 @@ class IndividualTemplateServiceTest {
         @Test
         @DisplayName("유효한 workspaceId면 빈 템플릿을 생성하고 응답을 반환한다")
         void createTemplate_success() {
+            // given
             when(workspaceMock.getWorkspaceId()).thenReturn(1);
             when(workspaceRepo.findById(1)).thenReturn(Optional.of(workspaceMock));
 
@@ -112,8 +119,10 @@ class IndividualTemplateServiceTest {
 
             when(individualTemplateRepo.save(any(IndividualTemplate.class))).thenReturn(savedMock);
 
+            // when
             IndividualTemplateResponse res = service.createTemplate(1);
 
+            // then
             assertThat(res).isNotNull();
             assertThat(res.getIndividualTemplateId()).isEqualTo(1);
             assertThat(res.getWorkspaceId()).isEqualTo(1);
@@ -125,8 +134,10 @@ class IndividualTemplateServiceTest {
         @Test
         @DisplayName("존재하지 않는 workspaceId면 IllegalArgumentException 발생")
         void createTemplate_invalidWorkspace() {
+            // given
             when(workspaceRepo.findById(999)).thenReturn(Optional.empty());
 
+            // when & then
             assertThatThrownBy(() -> service.createTemplate(999))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("유효하지 않은 workspaceId");
@@ -140,6 +151,7 @@ class IndividualTemplateServiceTest {
         @Test
         @DisplayName("정상 실행 시 CompletableFuture로 결과를 반환한다")
         void createTemplateAsync_success() throws Exception {
+            // given
             when(workspaceMock.getWorkspaceId()).thenReturn(1);
             when(workspaceRepo.findById(1)).thenReturn(Optional.of(workspaceMock));
 
@@ -152,9 +164,11 @@ class IndividualTemplateServiceTest {
 
             when(individualTemplateRepo.save(any(IndividualTemplate.class))).thenReturn(savedMock);
 
+            // when
             CompletableFuture<IndividualTemplateResponse> future = service.createTemplateAsync(1);
             IndividualTemplateResponse res = future.get(2, TimeUnit.SECONDS);
 
+            // then
             assertThat(res.getIndividualTemplateId()).isEqualTo(456);
             assertThat(res.getWorkspaceId()).isEqualTo(1);
 
@@ -165,8 +179,10 @@ class IndividualTemplateServiceTest {
         @Test
         @DisplayName("유효하지 않은 workspaceId면 예외 발생")
         void createTemplateAsync_invalidWorkspace() {
+            // given
             when(workspaceRepo.findById(999)).thenReturn(Optional.empty());
 
+            // when & then
             assertThatThrownBy(() -> service.createTemplateAsync(999))
                     .isInstanceOf(IllegalArgumentException.class);
         }
@@ -179,6 +195,7 @@ class IndividualTemplateServiceTest {
         @Test
         @DisplayName("공용 템플릿 내용을 복사하여 개인 템플릿을 생성한다")
         void createFromPublic_success() {
+            // given
             when(workspaceMock.getWorkspaceId()).thenReturn(10);
             when(workspaceRepo.findByIdOrThrow(10)).thenReturn(workspaceMock);
 
@@ -200,8 +217,10 @@ class IndividualTemplateServiceTest {
 
             when(individualTemplateRepo.save(any(IndividualTemplate.class))).thenReturn(savedMock);
 
+            // when
             IndividualTemplateResponse res = service.createIndividualTemplateFromPublic(99, 10);
 
+            // then
             assertThat(res.getIndividualTemplateId()).isEqualTo(1000);
             assertThat(res.getWorkspaceId()).isEqualTo(10);
             assertThat(res.getIndividualTemplateTitle()).isEqualTo("제목");
@@ -221,6 +240,7 @@ class IndividualTemplateServiceTest {
         @Test
         @DisplayName("비동기 실행도 정상적으로 PublicTemplate 기반 생성 결과를 반환한다")
         void createFromPublicAsync_success() throws Exception {
+            // given
             when(workspaceMock.getWorkspaceId()).thenReturn(20);
             when(workspaceRepo.findByIdOrThrow(20)).thenReturn(workspaceMock);
 
@@ -242,10 +262,12 @@ class IndividualTemplateServiceTest {
 
             when(individualTemplateRepo.save(any(IndividualTemplate.class))).thenReturn(savedMock);
 
+            // when
             CompletableFuture<IndividualTemplateResponse> future =
                     service.createIndividualTemplateFromPublicAsync(200, 20);
             IndividualTemplateResponse res = future.get(2, TimeUnit.SECONDS);
 
+            // then
             assertThat(res.getIndividualTemplateId()).isEqualTo(2000);
             assertThat(res.getWorkspaceId()).isEqualTo(20);
             assertThat(res.getIndividualTemplateTitle()).isEqualTo("Async제목");
