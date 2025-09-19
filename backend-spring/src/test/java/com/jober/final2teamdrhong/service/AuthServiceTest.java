@@ -75,18 +75,18 @@ class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
-        validSignupRequest = UserSignupRequest.builder()
-                .userName("테스트유저")
-                .email("test@example.com")
-                .password("Password123!")
-                .userNumber("010-1234-5678")
-                .verificationCode("123456")
-                .build();
+        validSignupRequest = new UserSignupRequest(
+                "테스트유저",
+                "test@example.com",
+                "010-1234-5678",
+                "Password123!",
+                "123456"
+        );
 
-        validLoginRequest = UserLoginRequest.builder()
-                .email("test@example.com")
-                .password("Password123!")
-                .build();
+        validLoginRequest = new UserLoginRequest(
+                "test@example.com",
+                "Password123!"
+        );
     }
 
     @Test
@@ -127,13 +127,13 @@ class AuthServiceTest {
     @DisplayName("실패: 인증 코드가 일치하지 않으면 예외 발생")
     void signup_fail_invalidVerificationCode() {
         // given
-        UserSignupRequest requestDto = UserSignupRequest.builder()
-                .userName("홍길동")
-                .email("test@example.com")
-                .userNumber("010-1234-5678")
-                .password("Test123!")
-                .verificationCode("999999")
-                .build();
+        UserSignupRequest requestDto = new UserSignupRequest(
+                "홍길동",
+                "test@example.com",
+                "010-1234-5678",
+                "Test123!",
+                "999999"
+        );
 
         given(userRepository.findByUserEmail("test@example.com")).willReturn(Optional.empty());
         given(verificationStorage.validateAndDelete("test@example.com", "999999")).willReturn(false);
@@ -150,13 +150,13 @@ class AuthServiceTest {
     @DisplayName("실패: 인증 코드가 만료되었으면 예외 발생")
     void signup_fail_expiredVerificationCode() {
         // given
-        UserSignupRequest requestDto = UserSignupRequest.builder()
-                .userName("홍길동")
-                .email("test@example.com")
-                .userNumber("010-1234-5678")
-                .password("Test123!")
-                .verificationCode("123456")
-                .build();
+        UserSignupRequest requestDto = new UserSignupRequest(
+                "홍길동",
+                "test@example.com",
+                "010-1234-5678",
+                "Test123!",
+                "123456"
+        );
 
         given(userRepository.findByUserEmail("test@example.com")).willReturn(Optional.empty());
         given(verificationStorage.validateAndDelete("test@example.com", "123456")).willReturn(false);
@@ -173,13 +173,13 @@ class AuthServiceTest {
     @DisplayName("성공: Rate limiting 통과 시 회원가입")
     void signupWithRateLimit_success() {
         // given
-        UserSignupRequest requestDto = UserSignupRequest.builder()
-                .userName("홍길동")
-                .email("test@example.com")
-                .userNumber("010-1234-5678")
-                .password("Test123!")
-                .verificationCode("123456")
-                .build();
+        UserSignupRequest requestDto = new UserSignupRequest(
+                "홍길동",
+                "test@example.com",
+                "010-1234-5678",
+                "Test123!",
+                "123456"
+        );
         String clientIp = "192.168.1.1";
 
         given(userRepository.findByUserEmail("test@example.com")).willReturn(Optional.empty());
@@ -199,13 +199,13 @@ class AuthServiceTest {
     @DisplayName("실패: Rate limiting 초과 시 예외 발생")
     void signupWithRateLimit_fail_rateLimitExceeded() {
         // given
-        UserSignupRequest requestDto = UserSignupRequest.builder()
-                .userName("홍길동")
-                .email("test@example.com")
-                .userNumber("010-1234-5678")
-                .password("Test123!")
-                .verificationCode("123456")
-                .build();
+        UserSignupRequest requestDto = new UserSignupRequest(
+                "홍길동",
+                "test@example.com",
+                "010-1234-5678",
+                "Test123!",
+                "123456"
+        );
         String clientIp = "192.168.1.1";
 
         willThrow(new RateLimitExceededException("회원가입 속도 제한을 초과했습니다. 3600초 후 다시 시도해주세요.", 3600L))
@@ -337,9 +337,9 @@ class AuthServiceTest {
         then(refreshTokenService).should().refreshTokens(refreshToken, clientIp);
 
         assertThat(response).isNotNull();
-        assertThat(response.getAccessToken()).isEqualTo(newAccessToken);
-        assertThat(response.getRefreshToken()).isEqualTo(newRefreshToken);
-        assertThat(response.getExpiresIn()).isEqualTo(3600L);
+        assertThat(response.accessToken()).isEqualTo(newAccessToken);
+        assertThat(response.refreshToken()).isEqualTo(newRefreshToken);
+        assertThat(response.expiresIn()).isEqualTo(3600L);
     }
 
     @Test
