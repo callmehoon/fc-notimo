@@ -12,7 +12,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -98,5 +105,68 @@ class RecipientServiceTest {
 
         // 2. (Quality) 검증 실패 시, DB 저장 로직이 실행되지 않았음을 검증합니다.
         verify(recipientRepository, never()).save(any(Recipient.class));
+    }
+
+    @Test
+    @DisplayName("수신자 목록 페이징 조회 성공 테스트")
+    void readRecipients_Paging_Success_Test() {
+        // given
+        // 1. 서비스 메소드에 넘겨줄 ID와 Pageable 객체를 준비합니다.
+        Integer workspaceId = 1;
+        Integer userId = 1;
+        Pageable pageable = PageRequest.of(0, 10);
+        Workspace mockWorkspace = mock(Workspace.class);
+
+        List<Recipient> recipientList = List.of(
+                Recipient.builder()
+                        .recipientName("홍길동")
+                        .recipientPhoneNumber("010-1111-1111")
+                        .workspace(mockWorkspace)
+                        .build(),
+                Recipient.builder()
+                        .recipientName("임꺽정")
+                        .recipientPhoneNumber("010-2222-2222")
+                        .workspace(mockWorkspace)
+                        .build()
+        );
+        Page<Recipient> recipientPage = new PageImpl<>(recipientList, pageable, 2);
+
+        when(workspaceValidator.validateAndGetWorkspace(workspaceId, userId)).thenReturn(mockWorkspace);
+        when(recipientRepository.findAllByWorkspace_WorkspaceId(workspaceId, pageable)).thenReturn(recipientPage);
+
+        // when
+        Page<RecipientResponse.SimpleDTO> resultPage = recipientService.readRecipients(workspaceId, userId, pageable);
+
+        // then
+        // 1. 반환된 Page 객체의 주요 정보들을 검증합니다.
+        assertThat(resultPage.getTotalElements()).isEqualTo(2);
+        assertThat(resultPage.getContent().size()).isEqualTo(2);
+        // 2. Page에 담긴 내용(DTO)을 검증합니다.
+        assertThat(resultPage.getContent()).extracting(RecipientResponse.SimpleDTO::getRecipientName)
+                .containsExactly("홍길동", "임꺽정");
+
+        verify(workspaceValidator, times(1)).validateAndGetWorkspace(workspaceId, userId);
+        verify(recipientRepository, times(1)).findAllByWorkspace_WorkspaceId(workspaceId, pageable);
+    }
+
+    @Test
+    @DisplayName("수신자 목록 페이징 조회 실패 테스트 - 존재하지 않거나 권한이 없는 워크스페이스")
+    void readRecipients_Paging_Fail_Unauthorized_Test() {
+        // given
+        // 1. 존재하지 않거나 권한이 없는 workspaceId와 Pageable 객체를 준비합니다.
+        Integer workspaceId = 999;
+        Integer userId = 1;
+        Pageable pageable = PageRequest.of(0, 10);
+
+        when(workspaceValidator.validateAndGetWorkspace(workspaceId, userId))
+                .thenThrow(new IllegalArgumentException("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + workspaceId));
+
+        // when
+        Throwable thrown = assertThrows(IllegalArgumentException.class,
+                () -> recipientService.readRecipients(workspaceId, userId, pageable));
+
+        // then
+        assertEquals("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + workspaceId, thrown.getMessage());
+        verify(recipientRepository, never()).findAllByWorkspace_WorkspaceId(anyInt(), any(Pageable.class));
     }
 }
