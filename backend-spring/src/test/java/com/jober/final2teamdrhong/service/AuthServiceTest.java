@@ -2,6 +2,7 @@ package com.jober.final2teamdrhong.service;
 
 import com.jober.final2teamdrhong.config.AuthProperties;
 import com.jober.final2teamdrhong.config.JwtConfig;
+import com.jober.final2teamdrhong.dto.userLogin.TokenRefreshResponse;
 import com.jober.final2teamdrhong.dto.userLogin.UserLoginRequest;
 import com.jober.final2teamdrhong.dto.userLogin.UserLoginResponse;
 import com.jober.final2teamdrhong.dto.userSignup.UserSignupRequest;
@@ -62,6 +63,9 @@ class AuthServiceTest {
 
     @Mock
     private TimingAttackProtection timingAttackProtection;
+
+    @Mock
+    private BlacklistService blacklistService;
 
     @InjectMocks
     private AuthService authService;
@@ -307,6 +311,109 @@ class AuthServiceTest {
         then(timingAttackProtection).should(atLeastOnce()).ensureMinimumResponseTime(500L);
         then(timingAttackProtection).should().clear();
         then(userRepository).should(never()).save(any());
+    }
+
+    @Test
+    @DisplayName("성공: 토큰 갱신")
+    void refreshTokens_success() {
+        // given
+        String authorizationHeader = "Bearer refresh-token";
+        String clientIp = "192.168.1.1";
+        String refreshToken = "refresh-token";
+        String newAccessToken = "new-access-token";
+        String newRefreshToken = "new-refresh-token";
+
+        given(jwtConfig.extractTokenFromHeader(authorizationHeader)).willReturn(refreshToken);
+
+        RefreshTokenService.TokenPair tokenPair = new RefreshTokenService.TokenPair(newAccessToken, newRefreshToken);
+        given(refreshTokenService.refreshTokens(refreshToken, clientIp)).willReturn(tokenPair);
+        given(jwtConfig.getAccessTokenValiditySeconds()).willReturn(3600L);
+
+        // when
+        TokenRefreshResponse response = authService.refreshTokens(authorizationHeader, clientIp);
+
+        // then
+        then(jwtConfig).should().extractTokenFromHeader(authorizationHeader);
+        then(refreshTokenService).should().refreshTokens(refreshToken, clientIp);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getAccessToken()).isEqualTo(newAccessToken);
+        assertThat(response.getRefreshToken()).isEqualTo(newRefreshToken);
+        assertThat(response.getExpiresIn()).isEqualTo(3600L);
+    }
+
+    @Test
+    @DisplayName("실패: Authorization 헤더 없이 토큰 갱신")
+    void refreshTokens_fail_noAuthorizationHeader() {
+        // given
+        String authorizationHeader = "Bearer ";
+        String clientIp = "192.168.1.1";
+
+        given(jwtConfig.extractTokenFromHeader(authorizationHeader)).willReturn(null);
+
+        // when & then
+        assertThatThrownBy(() -> authService.refreshTokens(authorizationHeader, clientIp))
+                .isInstanceOf(AuthenticationException.class)
+                .hasMessage("Authorization 헤더가 필요합니다.");
+
+        then(refreshTokenService).should(never()).refreshTokens(anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("성공: 로그아웃 - Access Token과 Refresh Token 모두 유효")
+    void logout_success_bothTokensValid() {
+        // given
+        String accessToken = "valid-access-token";
+        String refreshToken = "valid-refresh-token";
+        String clientIp = "192.168.1.1";
+
+        given(jwtConfig.validateToken(accessToken)).willReturn(true);
+        given(jwtConfig.isAccessToken(accessToken)).willReturn(true);
+        given(jwtConfig.validateToken(refreshToken)).willReturn(true);
+        given(jwtConfig.isRefreshToken(refreshToken)).willReturn(true);
+
+        // when
+        authService.logout(accessToken, refreshToken, clientIp);
+
+        // then
+        then(blacklistService).should().addAccessTokenToBlacklist(accessToken);
+        then(refreshTokenService).should().revokeRefreshToken(refreshToken);
+    }
+
+    @Test
+    @DisplayName("성공: 로그아웃 - Access Token만 유효")
+    void logout_success_onlyAccessTokenValid() {
+        // given
+        String accessToken = "valid-access-token";
+        String refreshToken = "invalid-refresh-token";
+        String clientIp = "192.168.1.1";
+
+        given(jwtConfig.validateToken(accessToken)).willReturn(true);
+        given(jwtConfig.isAccessToken(accessToken)).willReturn(true);
+        given(jwtConfig.validateToken(refreshToken)).willReturn(false);
+
+        // when
+        authService.logout(accessToken, refreshToken, clientIp);
+
+        // then
+        then(blacklistService).should().addAccessTokenToBlacklist(accessToken);
+        then(refreshTokenService).should(never()).revokeRefreshToken(anyString());
+    }
+
+    @Test
+    @DisplayName("성공: 로그아웃 - 토큰이 null인 경우")
+    void logout_success_nullTokens() {
+        // given
+        String accessToken = null;
+        String refreshToken = null;
+        String clientIp = "192.168.1.1";
+
+        // when
+        authService.logout(accessToken, refreshToken, clientIp);
+
+        // then
+        then(blacklistService).should(never()).addAccessTokenToBlacklist(anyString());
+        then(refreshTokenService).should(never()).revokeRefreshToken(anyString());
     }
 
     private User createMockUser() {
