@@ -173,15 +173,21 @@ class PhoneBookServiceTest {
         // 4. Mock Repository들의 동작을 정의합니다.
         when(groupMappingRepository.findRecipientIdsByPhoneBook(mockPhoneBook))
                 .thenReturn(existingRecipientIds); // 기존 수신자 ID 목록 반환
-        when(groupMappingRepository.saveAll(anyList()))
-                .thenAnswer(invocation -> { // saveAll 호출 시
-                    List<GroupMapping> mappings = invocation.getArgument(0);
-                    // createdAt이 채워진 엔티티를 반환하는 것을 모방합니다.
-                    return mappings.stream().map(m -> GroupMapping.builder()
-                            .phoneBook(m.getPhoneBook())
-                            .recipient(m.getRecipient())
-                            .build()).toList();
-                });
+
+        // 벌크 INSERT 후 생성된 매핑들을 모방합니다.
+        List<GroupMapping> savedMappings = List.of(
+                GroupMapping.builder()
+                        .phoneBook(mockPhoneBook)
+                        .recipient(mockRecipients.get(0))
+                        .build(),
+                GroupMapping.builder()
+                        .phoneBook(mockPhoneBook)
+                        .recipient(mockRecipients.get(1))
+                        .build()
+        );
+        when(groupMappingRepository.findLatestMappingsByPhoneBookAndRecipients(
+                eq(phoneBookId), eq(List.of(2, 3))))
+                .thenReturn(savedMappings);
 
         // when
         // 1. 테스트 대상 서비스 메서드를 호출합니다.
@@ -196,8 +202,9 @@ class PhoneBookServiceTest {
         assertThat(result.getRecipientList().size()).isEqualTo(2);
         // 4. 추가된 수신자들의 ID가 2와 3인지 확인합니다.
         assertThat(result.getRecipientList()).extracting("recipientId").containsExactlyInAnyOrder(2, 3);
-        // 5. groupMappingRepository.saveAll이 정확히 1번 호출되었는지 검증합니다.
-        verify(groupMappingRepository, times(1)).saveAll(anyList());
+        // 5. bulkInsertMappings와 findLatestMappingsByPhoneBookAndRecipients가 정확히 1번씩 호출되었는지 검증합니다.
+        verify(groupMappingRepository, times(1)).bulkInsertMappings(eq(phoneBookId), eq(List.of(2, 3)), any(LocalDateTime.class));
+        verify(groupMappingRepository, times(1)).findLatestMappingsByPhoneBookAndRecipients(eq(phoneBookId), eq(List.of(2, 3)));
     }
 
     @Test
@@ -240,8 +247,17 @@ class PhoneBookServiceTest {
                 .thenReturn(mockRecipients);
         when(groupMappingRepository.findRecipientIdsByPhoneBook(mockPhoneBook))
                 .thenReturn(existingRecipientIds);
-        when(groupMappingRepository.saveAll(anyList()))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        // 새로 추가될 수신자(ID=2)에 대한 매핑을 모방합니다.
+        List<GroupMapping> savedMappings = List.of(
+                GroupMapping.builder()
+                        .phoneBook(mockPhoneBook)
+                        .recipient(mockRecipients.get(1)) // ID=2인 수신자
+                        .build()
+        );
+        when(groupMappingRepository.findLatestMappingsByPhoneBookAndRecipients(
+                eq(phoneBookId), eq(List.of(2))))
+                .thenReturn(savedMappings);
 
         // when
         // 1. 테스트 대상 서비스 메서드를 호출합니다.
@@ -254,8 +270,9 @@ class PhoneBookServiceTest {
         assertThat(result.getRecipientList().size()).isEqualTo(1);
         // 3. 추가된 수신자의 ID가 2번인지 확인합니다.
         assertThat(result.getRecipientList().getFirst().getRecipientId()).isEqualTo(2);
-        // 4. groupMappingRepository.saveAll이 정확히 1번 호출되었는지 검증합니다.
-        verify(groupMappingRepository, times(1)).saveAll(anyList());
+        // 4. bulkInsertMappings와 findLatestMappingsByPhoneBookAndRecipients가 정확히 1번씩 호출되었는지 검증합니다.
+        verify(groupMappingRepository, times(1)).bulkInsertMappings(eq(phoneBookId), eq(List.of(2)), any(LocalDateTime.class));
+        verify(groupMappingRepository, times(1)).findLatestMappingsByPhoneBookAndRecipients(eq(phoneBookId), eq(List.of(2)));
     }
 
     @Test
@@ -300,8 +317,9 @@ class PhoneBookServiceTest {
         assertThat(result).isNotNull();
         // 2. 추가된 수신자 목록이 비어있는지 확인합니다.
         assertThat(result.getRecipientList()).isEmpty();
-        // 3. (중요) 신규 추가할 수신자가 없으므로 saveAll 메서드가 호출되지 않아야 합니다.
-        verify(groupMappingRepository, never()).saveAll(anyList());
+        // 3. (중요) 신규 추가할 수신자가 없으므로 bulkInsertMappings와 findLatestMappingsByPhoneBookAndRecipients 메서드가 호출되지 않아야 합니다.
+        verify(groupMappingRepository, never()).bulkInsertMappings(any(), any(), any());
+        verify(groupMappingRepository, never()).findLatestMappingsByPhoneBookAndRecipients(any(), any());
     }
 
     @Test
