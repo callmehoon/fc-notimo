@@ -44,8 +44,11 @@ public class FavoriteController {
                             schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/individual/favorite")
-    public ResponseEntity<FavoriteResponse> createIndividualTemplateFavorite(@AuthenticationPrincipal JwtClaims jwtClaims, @Valid @RequestBody IndividualTemplateFavoriteRequest request) {
-        FavoriteResponse response = favoriteService.createIndividualTemplateFavorite(jwtClaims, request);
+    public ResponseEntity<FavoriteResponse> createIndividualTemplateFavorite(
+            @AuthenticationPrincipal JwtClaims jwtClaims,
+            @Valid @RequestBody IndividualTemplateFavoriteRequest request) {
+        Integer userId = jwtClaims.getUserId();
+        FavoriteResponse response = favoriteService.createIndividualTemplateFavorite(request, userId);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
@@ -63,8 +66,11 @@ public class FavoriteController {
                             schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/public/favorite")
-    public ResponseEntity<FavoriteResponse> createPublicTemplateFavorite(@AuthenticationPrincipal JwtClaims jwtClaims, @Valid @RequestBody PublicTemplateFavoriteRequest request) {
-        FavoriteResponse response = favoriteService.createPublicTemplateFavorite(jwtClaims, request);
+    public ResponseEntity<FavoriteResponse> createPublicTemplateFavorite(
+            @AuthenticationPrincipal JwtClaims jwtClaims,
+            @Valid @RequestBody PublicTemplateFavoriteRequest request) {
+        Integer userId = jwtClaims.getUserId();
+        FavoriteResponse response = favoriteService.createPublicTemplateFavorite(request, userId);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
@@ -86,8 +92,8 @@ public class FavoriteController {
             @RequestParam("workspaceId") Integer workspaceId,
             @RequestParam(value = "templateType", required = false) TemplateType templateType,
             @ModelAttribute FavoritePageRequest favoritePageRequest) {
-
-        Page<FavoriteResponse> favorites = favoriteService.getFavoritesByWorkspace(jwtClaims, workspaceId, templateType, favoritePageRequest);
+        Integer userId = jwtClaims.getUserId();
+        Page<FavoriteResponse> favorites = favoriteService.getFavoritesByWorkspace(workspaceId, templateType, favoritePageRequest, userId);
         return ResponseEntity.ok(favorites);
     }
 
@@ -103,8 +109,11 @@ public class FavoriteController {
                             schema = @Schema(implementation = ErrorResponse.class)))
     })
     @DeleteMapping("/favorites/{favoriteId}")
-    public ResponseEntity<?> deleteFavorite(@AuthenticationPrincipal JwtClaims jwtClaims, @PathVariable Integer favoriteId) {
-        favoriteService.deleteFavorite(jwtClaims, favoriteId);
+    public ResponseEntity<?> deleteFavorite(
+            @AuthenticationPrincipal JwtClaims jwtClaims,
+            @PathVariable Integer favoriteId) {
+        Integer userId = jwtClaims.getUserId();
+        favoriteService.deleteFavorite(favoriteId, userId);
         return ResponseEntity.noContent().build();
     }
 }
