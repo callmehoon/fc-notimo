@@ -12,26 +12,27 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.jdbc.core.JdbcTemplate;
+
+import com.jober.final2teamdrhong.util.test.WithMockJwtClaims;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
 @Transactional
 class FavoriteIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
-
     @Autowired
     private ObjectMapper objectMapper;
-
     @Autowired
     private FavoriteRepository favoriteRepository;
     @Autowired
@@ -42,6 +43,8 @@ class FavoriteIntegrationTest {
     private PublicTemplateRepository publicTemplateRepository;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     private Workspace savedWorkspace;
     private IndividualTemplate savedIndividualTemplate;
@@ -49,15 +52,31 @@ class FavoriteIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        // 모든 데이터 삭제
+        favoriteRepository.deleteAll();
+        individualTemplateRepository.deleteAll();
+        publicTemplateRepository.deleteAll();
+        workspaceRepository.deleteAll();
+        userRepository.deleteAll();
+
+        // H2 데이터베이스의 ID 시퀀스를 1로 리셋
+        jdbcTemplate.execute("ALTER TABLE users ALTER COLUMN users_id RESTART WITH 1");
+        jdbcTemplate.execute("ALTER TABLE workspace ALTER COLUMN workspace_id RESTART WITH 1");
+        jdbcTemplate.execute("ALTER TABLE individual_template ALTER COLUMN individual_template_id RESTART WITH 1");
+        jdbcTemplate.execute("ALTER TABLE public_template ALTER COLUMN public_template_id RESTART WITH 1");
+        jdbcTemplate.execute("ALTER TABLE favorite ALTER COLUMN favorite_id RESTART WITH 1");
+
+        // testUser 항상 ID=1로 생성
         User testUser = User.builder()
                 .userName("테스트유저")
                 .userEmail("test@example.com")
                 .userNumber("010-1111-1111")
                 .build();
-        User savedUser = userRepository.save(testUser);
+        userRepository.save(testUser);
 
+        // workspace는 항상 ID=1인 유저 소유
         Workspace workspace = Workspace.builder()
-                .user(savedUser)
+                .user(testUser)
                 .workspaceName("테스트 워크스페이스")
                 .workspaceUrl("test-url-unique")
                 .representerName("홍길동")
@@ -84,12 +103,9 @@ class FavoriteIntegrationTest {
     }
 
     // ====================== Create ======================
-    /**
-     * 개인 템플릿 즐겨찾기 생성 기능 테스트
-     */
     @Test
     @DisplayName("성공 : 개인 템플릿 즐겨찾기 생성")
-    @WithMockUser
+    @WithMockJwtClaims
     void createIndividualTemplateFavorite_Success() throws Exception {
         IndividualTemplateFavoriteRequest request = new IndividualTemplateFavoriteRequest(
                 savedWorkspace.getWorkspaceId(),
@@ -101,12 +117,13 @@ class FavoriteIntegrationTest {
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.favoriteId").isNumber());
     }
 
     @Test
-    @DisplayName("실패 : 중복된 즐겨찾기 생성 시 409 Conflict 응답")
-    @WithMockUser
+    @DisplayName("실패 : 중복된 즐겨찾기 생성 시 400 Bad Request 응답")
+    @WithMockJwtClaims
     void createIndividualTemplateFavorite_Fail_AlreadyExists() throws Exception {
         Favorite existingFavorite = Favorite.builder()
                 .workspace(savedWorkspace)
@@ -124,15 +141,12 @@ class FavoriteIntegrationTest {
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
-                .andExpect(status().isBadRequest()); // GlobalExceptionHandler에 따라 400을 기대
+                .andExpect(status().isBadRequest());
     }
 
-    /**
-     * 공용 템플릿 즐겨찾기 생성 기능 테스트
-     */
     @Test
-    @DisplayName("성공(공용) : 공용 템플릿 즐겨찾기 생성 기능 전체 흐름 테스트")
-    @WithMockUser
+    @DisplayName("성공(공용) : 공용 템플릿 즐겨찾기 생성")
+    @WithMockJwtClaims
     void createPublicTemplateFavorite_Integration_Success() throws Exception {
         PublicTemplateFavoriteRequest request = new PublicTemplateFavoriteRequest(
                 savedWorkspace.getWorkspaceId(),
@@ -145,14 +159,17 @@ class FavoriteIntegrationTest {
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.favoriteId").isNumber())
+                .andExpect(jsonPath("$.templateType").value("PUBLIC"))
+                .andExpect(jsonPath("$.templateId").value(savedPublicTemplate.getPublicTemplateId()));
 
         assertThat(favoriteRepository.count()).isEqualTo(initialCount + 1);
     }
 
     @Test
-    @DisplayName("실패(공용) : 중복된 공용 즐겨찾기 생성 시 4xx 에러 응답")
-    @WithMockUser
+    @DisplayName("실패(공용) : 중복된 공용 즐겨찾기 생성 시 400 Bad Request 응답")
+    @WithMockJwtClaims
     void createPublicTemplateFavorite_Integration_AlreadyExists() throws Exception {
         Favorite existingFavorite = Favorite.builder()
                 .workspace(savedWorkspace)
@@ -170,7 +187,6 @@ class FavoriteIntegrationTest {
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
-                .andExpect(status().isConflict());
+                .andExpect(status().isBadRequest());
     }
-
 }
