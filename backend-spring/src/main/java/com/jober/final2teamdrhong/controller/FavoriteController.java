@@ -1,12 +1,11 @@
 package com.jober.final2teamdrhong.controller;
 
-import com.jober.final2teamdrhong.dto.favorite.FavoritePageRequest;
 import com.jober.final2teamdrhong.dto.favorite.FavoriteResponse;
 import com.jober.final2teamdrhong.dto.favorite.IndividualTemplateFavoriteRequest;
 import com.jober.final2teamdrhong.dto.favorite.PublicTemplateFavoriteRequest;
 import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
-import com.jober.final2teamdrhong.entity.Favorite.TemplateType;
 import com.jober.final2teamdrhong.exception.ErrorResponse;
+import com.jober.final2teamdrhong.entity.Favorite.TemplateType;
 import com.jober.final2teamdrhong.service.FavoriteService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
