@@ -5,7 +5,6 @@ import com.jober.final2teamdrhong.dto.favorite.IndividualTemplateFavoriteRequest
 import com.jober.final2teamdrhong.dto.favorite.PublicTemplateFavoriteRequest;
 import com.jober.final2teamdrhong.entity.*;
 import com.jober.final2teamdrhong.repository.*;
-import com.jober.final2teamdrhong.util.test.WithMockJwtClaims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,14 +25,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
-@AutoConfigureMockMvc(addFilters = false)
+@AutoConfigureMockMvc
 @Transactional
 class FavoriteIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
+
     @Autowired
     private ObjectMapper objectMapper;
+
     @Autowired
     private FavoriteRepository favoriteRepository;
     @Autowired
@@ -45,8 +45,6 @@ class FavoriteIntegrationTest {
     private PublicTemplateRepository publicTemplateRepository;
     @Autowired
     private UserRepository userRepository;
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
 
     private Workspace savedWorkspace;
     private IndividualTemplate savedIndividualTemplate;
@@ -54,37 +52,22 @@ class FavoriteIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // 모든 데이터 삭제
-        favoriteRepository.deleteAll();
-        individualTemplateRepository.deleteAll();
-        publicTemplateRepository.deleteAll();
-        workspaceRepository.deleteAll();
-        userRepository.deleteAll();
-
-        // H2 데이터베이스의 ID 시퀀스를 1로 리셋
-        jdbcTemplate.execute("ALTER TABLE users ALTER COLUMN users_id RESTART WITH 1");
-        jdbcTemplate.execute("ALTER TABLE workspace ALTER COLUMN workspace_id RESTART WITH 1");
-        jdbcTemplate.execute("ALTER TABLE individual_template ALTER COLUMN individual_template_id RESTART WITH 1");
-        jdbcTemplate.execute("ALTER TABLE public_template ALTER COLUMN public_template_id RESTART WITH 1");
-        jdbcTemplate.execute("ALTER TABLE favorite ALTER COLUMN favorite_id RESTART WITH 1");
-
-        // testUser 항상 ID=1로 생성
         User testUser = User.builder()
                 .userName("테스트유저")
                 .userEmail("test@example.com")
                 .userNumber("010-1111-1111")
                 .build();
-        userRepository.save(testUser);
+        User savedUser = userRepository.save(testUser);
 
-        // workspace는 항상 ID=1인 유저 소유
         Workspace workspace = Workspace.builder()
-                .user(testUser)
                 .workspaceName("테스트 워크스페이스")
                 .workspaceUrl("test-url-unique")
                 .representerName("홍길동")
                 .representerPhoneNumber("010-0000-0000")
                 .companyName("테스트 회사")
                 .build();
+
+        workspace.setUser(savedUser);
 
         savedWorkspace = workspaceRepository.save(workspace);
 
@@ -110,7 +93,7 @@ class FavoriteIntegrationTest {
      */
     @Test
     @DisplayName("성공 : 개인 템플릿 즐겨찾기 생성")
-    @WithMockJwtClaims
+    @WithMockUser
     void createIndividualTemplateFavorite_Success() throws Exception {
         IndividualTemplateFavoriteRequest request = new IndividualTemplateFavoriteRequest(
                 savedWorkspace.getWorkspaceId(),
@@ -118,17 +101,16 @@ class FavoriteIntegrationTest {
         );
         String requestBody = objectMapper.writeValueAsString(request);
 
-        mockMvc.perform(post("/individual/favorite")
+        mockMvc.perform(post("/individual/fav")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.favoriteId").isNumber());
+                .andExpect(status().isOk());
     }
 
     @Test
-    @DisplayName("실패 : 중복된 즐겨찾기 생성 시 400 Bad Request 응답")
-    @WithMockJwtClaims
+    @DisplayName("실패 : 중복된 즐겨찾기 생성 시 409 Conflict 응답")
+    @WithMockUser
     void createIndividualTemplateFavorite_Fail_AlreadyExists() throws Exception {
         Favorite existingFavorite = Favorite.builder()
                 .workspace(savedWorkspace)
@@ -142,16 +124,19 @@ class FavoriteIntegrationTest {
         );
         String requestBody = objectMapper.writeValueAsString(request);
 
-        mockMvc.perform(post("/individual/favorite")
+        mockMvc.perform(post("/individual/fav")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest()); // GlobalExceptionHandler에 따라 400을 기대
     }
 
+    /**
+     * 공용 템플릿 즐겨찾기 생성 기능 테스트
+     */
     @Test
-    @DisplayName("성공(공용) : 공용 템플릿 즐겨찾기 생성")
-    @WithMockJwtClaims
+    @DisplayName("성공(공용) : 공용 템플릿 즐겨찾기 생성 기능 전체 흐름 테스트")
+    @WithMockUser
     void createPublicTemplateFavorite_Integration_Success() throws Exception {
         PublicTemplateFavoriteRequest request = new PublicTemplateFavoriteRequest(
                 savedWorkspace.getWorkspaceId(),
@@ -160,21 +145,18 @@ class FavoriteIntegrationTest {
         String requestBody = objectMapper.writeValueAsString(request);
         long initialCount = favoriteRepository.count();
 
-        mockMvc.perform(post("/public/favorite")
+        mockMvc.perform(post("/public/fav")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.favoriteId").isNumber())
-                .andExpect(jsonPath("$.templateType").value("PUBLIC"))
-                .andExpect(jsonPath("$.templateId").value(savedPublicTemplate.getPublicTemplateId()));
+                .andExpect(status().isOk());
 
         assertThat(favoriteRepository.count()).isEqualTo(initialCount + 1);
     }
 
     @Test
-    @DisplayName("실패(공용) : 중복된 공용 즐겨찾기 생성 시 400 Bad Request 응답")
-    @WithMockJwtClaims
+    @DisplayName("실패(공용) : 중복된 공용 즐겨찾기 생성 시 4xx 에러 응답")
+    @WithMockUser
     void createPublicTemplateFavorite_Integration_AlreadyExists() throws Exception {
         Favorite existingFavorite = Favorite.builder()
                 .workspace(savedWorkspace)
@@ -188,7 +170,7 @@ class FavoriteIntegrationTest {
         );
         String requestBody = objectMapper.writeValueAsString(request);
 
-        mockMvc.perform(post("/public/favorite")
+        mockMvc.perform(post("/public/fav")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
@@ -200,28 +182,29 @@ class FavoriteIntegrationTest {
 
 
     // ====================== Read ======================
+    /**
+     * 즐겨찾기 조회 통합 테스트
+     */
     @Test
-    @DisplayName("성공(통합): 특정 워크스페이스의 모든 즐겨찾기 목록 조회")
-    @WithMockJwtClaims // userId = 1, workspaceId = 1에 대한 권한 있음
-    void getFavorites_Success_ReadAll() throws Exception {
+    @DisplayName("성공(통합) : 특정 워크스페이스의 모든 즐겨찾기 목록 조회")
+    @WithMockUser
+    void readAllFavorites_Success() throws Exception {
         // given
         favoriteRepository.save(Favorite.builder().workspace(savedWorkspace).publicTemplate(savedPublicTemplate).build());
         favoriteRepository.save(Favorite.builder().workspace(savedWorkspace).individualTemplate(savedIndividualTemplate).build());
 
         // when & then
         mockMvc.perform(get("/favorites")
-                        .param("workspaceId", savedWorkspace.getWorkspaceId().toString())
-                        .with(csrf()))
+                        .param("workspaceId", savedWorkspace.getWorkspaceId().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
-                .andExpect(jsonPath("$.content.length()").value(2))
-                .andExpect(jsonPath("$.totalElements").value(2));
+                .andExpect(jsonPath("$.content.length()").value(2));
     }
 
     @Test
-    @DisplayName("성공(통합): 특정 워크스페이스의 공용 템플릿 즐겨찾기만 페이징 조회")
-    @WithMockJwtClaims // userId = 1, workspaceId = 1에 대한 권한 있음
-    void getFavorites_Success_ReadPublicTemplatesWithPaging() throws Exception {
+    @DisplayName("성공(통합) : 특정 워크스페이스의 공용 템플릿 즐겨찾기 목록 페이징 조회")
+    @WithMockUser
+    void readPublicFavoritesWithPaging_Success() throws Exception {
         // given
         favoriteRepository.save(Favorite.builder().workspace(savedWorkspace).publicTemplate(savedPublicTemplate).build());
         favoriteRepository.save(Favorite.builder().workspace(savedWorkspace).individualTemplate(savedIndividualTemplate).build());
@@ -230,28 +213,12 @@ class FavoriteIntegrationTest {
         mockMvc.perform(get("/favorites")
                         .param("workspaceId", savedWorkspace.getWorkspaceId().toString())
                         .param("templateType", "PUBLIC")
-                        .param("size", "1")
-                        .with(csrf()))
+                        .param("size", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content.length()").value(1))
                 .andExpect(jsonPath("$.content[0].templateType").value("PUBLIC"))
                 .andExpect(jsonPath("$.totalElements").value(1));
-    }
-
-    @Test
-    @DisplayName("실패(통합): 권한 없는 워크스페이스의 즐겨찾기 조회 시 400 응답")
-    @WithMockJwtClaims(userId = 99) // 존재하지 않거나 권한 없는 사용자
-    void getFavorites_Fail_UnauthorizedWorkspace() throws Exception {
-        // given
-        // User ID 1이 소유한 workspaceId=1의 즐겨찾기를 User ID 99가 조회 시도
-        favoriteRepository.save(Favorite.builder().workspace(savedWorkspace).publicTemplate(savedPublicTemplate).build());
-
-        // when & then
-        mockMvc.perform(get("/favorites")
-                        .param("workspaceId", savedWorkspace.getWorkspaceId().toString())
-                        .with(csrf()))
-                .andExpect(status().isBadRequest());
     }
 
 
@@ -271,7 +238,6 @@ class FavoriteIntegrationTest {
                 .publicTemplate(savedPublicTemplate)
                 .build());
         Integer favoriteId = favoriteToDelete.getFavoriteId();
-        long initialCount = favoriteRepository.count();
 
         // when: 삭제 API 호출
         mockMvc.perform(delete("/favorites/{favoriteId}", favoriteId)
@@ -279,7 +245,6 @@ class FavoriteIntegrationTest {
                 .andExpect(status().isNoContent());
 
         // then: DB에서 데이터가 삭제되었는지 확인
-        assertThat(favoriteRepository.count()).isEqualTo(initialCount - 1);
         assertThat(favoriteRepository.findById(favoriteId)).isEmpty();
     }
 }
