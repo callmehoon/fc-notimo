@@ -106,12 +106,12 @@ public class FavoriteService {
     /**
      * 즐겨찾기를 삭제(delete)
      * @param favoriteId 삭제할 즐겨찾기 ID
-     * @throws IllegalArgumentException 해당 즐겨찾기가 존재하지 않을 경우 발생
+     * @throws IllegalArgumentException 해당 즐겨찾기가 존재하지 않거나, 사용자에게 권한이 없을 경우 발생
      */
     @Transactional
-    public void deleteFavorite(Integer favoriteId) {
-        Favorite favorite = favoriteRepository.findById(favoriteId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 즐겨찾기를 찾을 수 없습니다."));
+    public void deleteFavorite(JwtClaims jwtClaims, Integer favoriteId) {
+        Integer userId = jwtClaims.getUserId();
+        Favorite favorite = favoriteRepository.findByIdOrThrow(favoriteId, userId);
 
         favoriteRepository.delete(favorite);
     }
