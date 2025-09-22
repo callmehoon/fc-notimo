@@ -111,13 +111,11 @@ class FavoriteControllerTest {
     }
 
 
-
-
-
     // ====================== Read ======================
     @Test
     @DisplayName("성공(컨트롤러): 즐겨찾기 목록 페이징 조회")
-    @WithMockJwtClaims // userId = 1
+    @WithMockJwtClaims
+    // userId = 1
     void getFavoritesByWorkspace_Success() throws Exception {
         // given
         Integer workspaceId = 1;
@@ -161,146 +159,36 @@ class FavoriteControllerTest {
     }
 
 
-
-
     // ====================== Delete ======================
-    /**
-     * 즐겨찾기 삭제 테스트
-     */
     @Test
-    @DisplayName("성공(단위): 즐겨찾기 삭제 API 호출")
-    void deleteFavorite_ApiCall_Success() throws Exception {
+    @DisplayName("성공(컨트롤러): 즐겨찾기 삭제")
+    @WithMockJwtClaims
+    void deleteFavorite_Success() throws Exception {
         // given
         Integer favoriteId = 1;
-        doNothing().when(favoriteService).deleteFavorite(favoriteId);
+        doNothing().when(favoriteService).deleteFavorite(any(JwtClaims.class), eq(favoriteId));
 
         // when & then
         mockMvc.perform(delete("/favorites/{favoriteId}", favoriteId))
                 .andExpect(status().isNoContent());
 
-        verify(favoriteService, times(1)).deleteFavorite(favoriteId);
+        verify(favoriteService, times(1)).deleteFavorite(any(JwtClaims.class), eq(favoriteId));
     }
 
     @Test
-    @DisplayName("실패(단위): 존재하지 않는 즐겨찾기 삭제 시 400 에러 발생")
-    void deleteFavorite_ApiCall_NotFound() throws Exception {
+    @DisplayName("실패(컨트롤러): 존재하지 않거나 권한 없는 즐겨찾기 삭제 시 400 에러 발생")
+    @WithMockJwtClaims
+    void deleteFavorite_Fail_UnauthorizedOrNotFound() throws Exception {
         // given
         Integer favoriteId = 999;
-        doThrow(new IllegalArgumentException("해당 즐겨찾기를 찾을 수 없습니다."))
-                .when(favoriteService).deleteFavorite(favoriteId);
+        doThrow(new IllegalArgumentException("해당 즐겨찾기를 찾을 수 없거나, 권한이 없습니다."))
+                .when(favoriteService).deleteFavorite(any(JwtClaims.class), eq(favoriteId));
 
         // when & then
         mockMvc.perform(delete("/favorites/{favoriteId}", favoriteId))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("해당 즐겨찾기를 찾을 수 없거나, 권한이 없습니다."));
 
-        verify(favoriteService, times(1)).deleteFavorite(favoriteId);
-    }
-
-
-
-
-    // ====================== Delete ======================
-    /**
-     * 즐겨찾기 삭제 테스트
-     */
-    @Test
-    @DisplayName("성공(단위): 즐겨찾기 삭제 API 호출")
-    void deleteFavorite_ApiCall_Success() throws Exception {
-        // given
-        Integer favoriteId = 1;
-        doNothing().when(favoriteService).deleteFavorite(favoriteId);
-
-        // when & then
-        mockMvc.perform(delete("/favorites/{favoriteId}", favoriteId))
-                .andExpect(status().isNoContent());
-
-        verify(favoriteService, times(1)).deleteFavorite(favoriteId);
-    }
-
-    @Test
-    @DisplayName("실패(단위): 존재하지 않는 즐겨찾기 삭제 시 400 에러 발생")
-    void deleteFavorite_ApiCall_NotFound() throws Exception {
-        // given
-        Integer favoriteId = 999;
-        doThrow(new IllegalArgumentException("해당 즐겨찾기를 찾을 수 없습니다."))
-                .when(favoriteService).deleteFavorite(favoriteId);
-
-        // when & then
-        mockMvc.perform(delete("/favorites/{favoriteId}", favoriteId))
-                .andExpect(status().isBadRequest());
-
-        verify(favoriteService, times(1)).deleteFavorite(favoriteId);
-    }
-
-
-
-
-    // ====================== Delete ======================
-    /**
-     * 즐겨찾기 삭제 테스트
-     */
-    @Test
-    @DisplayName("성공(단위): 즐겨찾기 삭제 API 호출")
-    void deleteFavorite_ApiCall_Success() throws Exception {
-        // given
-        Integer favoriteId = 1;
-        doNothing().when(favoriteService).deleteFavorite(favoriteId);
-
-        // when & then
-        mockMvc.perform(delete("/favorites/{favoriteId}", favoriteId))
-                .andExpect(status().isNoContent());
-
-        verify(favoriteService, times(1)).deleteFavorite(favoriteId);
-    }
-
-    @Test
-    @DisplayName("실패(단위): 존재하지 않는 즐겨찾기 삭제 시 400 에러 발생")
-    void deleteFavorite_ApiCall_NotFound() throws Exception {
-        // given
-        Integer favoriteId = 999;
-        doThrow(new IllegalArgumentException("해당 즐겨찾기를 찾을 수 없습니다."))
-                .when(favoriteService).deleteFavorite(favoriteId);
-
-        // when & then
-        mockMvc.perform(delete("/favorites/{favoriteId}", favoriteId))
-                .andExpect(status().isBadRequest());
-
-        verify(favoriteService, times(1)).deleteFavorite(favoriteId);
-    }
-
-
-
-
-    // ====================== Delete ======================
-    /**
-     * 즐겨찾기 삭제 테스트
-     */
-    @Test
-    @DisplayName("성공(단위): 즐겨찾기 삭제 API 호출")
-    void deleteFavorite_ApiCall_Success() throws Exception {
-        // given
-        Integer favoriteId = 1;
-        doNothing().when(favoriteService).deleteFavorite(favoriteId);
-
-        // when & then
-        mockMvc.perform(delete("/favorites/{favoriteId}", favoriteId))
-                .andExpect(status().isNoContent());
-
-        verify(favoriteService, times(1)).deleteFavorite(favoriteId);
-    }
-
-    @Test
-    @DisplayName("실패(단위): 존재하지 않는 즐겨찾기 삭제 시 400 에러 발생")
-    void deleteFavorite_ApiCall_NotFound() throws Exception {
-        // given
-        Integer favoriteId = 999;
-        doThrow(new IllegalArgumentException("해당 즐겨찾기를 찾을 수 없습니다."))
-                .when(favoriteService).deleteFavorite(favoriteId);
-
-        // when & then
-        mockMvc.perform(delete("/favorites/{favoriteId}", favoriteId))
-                .andExpect(status().isBadRequest());
-
-        verify(favoriteService, times(1)).deleteFavorite(favoriteId);
+        verify(favoriteService, times(1)).deleteFavorite(any(JwtClaims.class), eq(favoriteId));
     }
 }
