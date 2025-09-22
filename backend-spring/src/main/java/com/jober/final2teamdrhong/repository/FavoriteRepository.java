@@ -48,10 +48,12 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Integer>, Jp
     }
 
 
-
     /**
-     * 동적 조건에 따라 즐겨찾기 목록을 조회하는 default 메서드
-     * 서비스 레이어에서는 이 메서드만 호출하면 됩니다.
+     * 특정 워크스페이스에 속한 즐겨찾기 목록을 동적 조건에 따라 페이징하여 조회합니다.
+     * @param workspace 조회할 워크스페이스 엔티티
+     * @param templateType 템플릿의 유형(PUBLIC 또는 INDIVIDUAL). null일 경우 모든 유형을 조회
+     * @param pageable 페이징 및 정렬 정보
+     * @return 주어진 조건에 맞는 Favorite 엔티티를 담은 Page 객체
      */
     default Page<Favorite> findFavorites(Workspace workspace, TemplateType templateType, Pageable pageable) {
         Specification<Favorite> spec = hasWorkspace(workspace);
