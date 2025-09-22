@@ -19,6 +19,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -201,5 +204,111 @@ public class PhoneBookService {
         PhoneBook refreshedPhoneBook = phoneBookRepository.findById(phoneBookId).orElseThrow();
 
         return new PhoneBookResponse.SimpleDTO(refreshedPhoneBook);
+    }
+
+    /**
+     * 특정 주소록을 소프트 딜리트 처리합니다.
+     * <p>
+     * 이 메서드는 {@link PhoneBook} 엔티티에 적용된 {@code @SQLRestriction("is_deleted = false")}로 인해
+     * 일반적인 조회 메서드로는 소프트 딜리트된 엔티티를 재조회할 수 없는 문제를 해결합니다.
+     * 정확한 삭제 시간을 응답으로 반환하기 위해 다음의 과정을 거칩니다:
+     * <ol>
+     *     <li>엔티티의 상태를 변경합니다 (Dirty Checking 대상).</li>
+     *     <li>{@code entityManager.flush()}를 호출하여 변경사항을 DB에 즉시 동기화합니다.</li>
+     *     <li>{@code entityManager.clear()}를 호출하여 영속성 컨텍스트를 비웁니다.</li>
+     *     <li>{@code @SQLRestriction}을 우회하는 네이티브 쿼리 메서드
+     *         ({@link PhoneBookRepository#findByIdIncludingDeleted(Integer)})를 사용하여,
+     *         DB에 실제로 기록된 최종 상태를 다시 조회합니다.</li>
+     *     <li>재조회된 엔티티를 DTO로 변환하여 반환함으로써, 응답 시간과 DB 시간의 일관성을 보장합니다.</li>
+     * </ol>
+     *
+     * @param workspaceId 주소록이 속한 워크스페이스의 ID
+     * @param phoneBookId 소프트 딜리트할 주소록의 ID
+     * @param userId      요청을 보낸 사용자의 ID (인가에 사용)
+     * @return 소프트 딜리트 처리된 주소록의 정보({@link PhoneBookResponse.SimpleDTO})
+     * @throws IllegalArgumentException 유효하지 않은 ID(워크스페이스, 주소록)로 요청했을 경우 또는
+     *         소프트 딜리트 후 엔티티를 재조회하는 과정에서 문제가 발생했을 경우 발생
+     */
+    @Transactional
+    public PhoneBookResponse.SimpleDTO deletePhoneBook(Integer workspaceId, Integer phoneBookId, Integer userId) {
+        // 1. 인가: 사용자가 워크스페이스와 주소록에 접근 권한이 있는지 검증
+        workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
+
+        // 2. 주소록 조회 (워크스페이스 소속인지 함께 검증)
+        PhoneBook existingPhoneBook = phoneBookValidator.validateAndGetPhoneBook(workspaceId, phoneBookId);
+
+        // 3. 소프트 딜리트 처리
+        existingPhoneBook.softDelete();
+
+        // 4. 생성은 save() 반환값을 사용하는 반면, 수정과 소프트 삭제는 기존 엔티티를 직접 변경하기 때문에
+        // 즉시 DB에 반영, 및 Hibernate 1차 캐시 비우기 후 변경된 DB를 반환해야 정확한 시간이 응답으로 나옴
+        entityManager.flush();
+        entityManager.clear();
+
+        // 4. @SQLRestriction을 우회하는 네이티브 쿼리로 재조회하여 시간 동기화
+        PhoneBook deletedPhoneBook = phoneBookRepository.findByIdIncludingDeleted(phoneBookId)
+                .orElseThrow(() -> new IllegalStateException("소프트 딜리트 처리된 주소록을 재조회하는 데 실패했습니다. ID: " + phoneBookId));
+
+        return new PhoneBookResponse.SimpleDTO(deletedPhoneBook);
+    }
+
+    /**
+     * 주소록에서 다수의 수신자를 일괄 소프트 딜리트 처리합니다.
+     * <p>
+     * 전체 로직은 하나의 트랜잭션으로 처리되며, 성능과 데이터 정확성을 모두 보장합니다:
+     * <ol>
+     *     <li>요청된 워크스페이스, 주소록, 수신자 ID 목록의 유효성을 검증합니다.</li>
+     *     <li>요청된 수신자 중 실제로 해당 주소록에 매핑된 {@link GroupMapping} 엔티티만 조회합니다.</li>
+     *     <li>삭제할 매핑이 없는 경우, 빈 목록을 포함한 DTO를 즉시 반환합니다.</li>
+     *     <li>조회된 매핑들을 대상으로 JPQL을 이용한 Bulk Update를 실행하여,
+     *         단일 쿼리로 모든 대상을 효율적으로 소프트 딜리트 처리합니다.</li>
+     *     <li>Bulk 연산은 영속성 컨텍스트를 우회하므로, DB와 메모리 간의 데이터 정합성을 맞추기 위해
+     *         방금 삭제 처리된 {@link GroupMapping} 목록을 DB에서 재조회합니다.</li>
+     *     <li>최종적으로, 재조회된 최신 데이터를 기반으로
+     *         {@link PhoneBookResponse.ModifiedRecipientsDTO#ofDeletion(PhoneBook, List)}
+     *         팩토리 메소드를 호출하여 결과 DTO를 생성하고 반환합니다.</li>
+     * </ol>
+     *
+     * @param recipientIdListDTO 삭제할 수신자 ID 목록을 담은 DTO
+     * @param workspaceId      주소록이 속한 워크스페이스의 ID
+     * @param phoneBookId      수신자를 삭제할 주소록의 ID
+     * @param userId           요청을 보낸 사용자의 ID (인가에 사용)
+     * @return '삭제' 이벤트의 결과로 생성된 {@link PhoneBookResponse.ModifiedRecipientsDTO}.
+     *         실제로 삭제 처리된 수신자 목록과 DB에 기록된 작업 시간을 포함합니다.
+     * @throws IllegalArgumentException 유효하지 않은 ID(워크스페이스, 주소록, 수신자)로 요청했을 경우 발생
+     */
+    @Transactional
+    public PhoneBookResponse.ModifiedRecipientsDTO deleteRecipientsFromPhoneBook(PhoneBookRequest.RecipientIdListDTO recipientIdListDTO, Integer workspaceId, Integer phoneBookId, Integer userId) {
+        // 1. 폰북과 워크스페이스 권한 검증
+        workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
+        PhoneBook phoneBook = phoneBookValidator.validateAndGetPhoneBook(workspaceId, phoneBookId);
+        List<Recipient> allRequestedRecipients = recipientValidator.validateAndGetRecipients(workspaceId, recipientIdListDTO.getRecipientIds());
+
+        // 2. 삭제할 대상이 될 GroupMapping 엔티티들을 DB에서 조회합니다.
+        List<Integer> existingRecipientIds = allRequestedRecipients.stream()
+                .map(Recipient::getRecipientId)
+                .toList();
+        List<GroupMapping> recipientsToActuallyDelete = groupMappingRepository.findAllByPhoneBookAndRecipient_RecipientIdIn(phoneBook, existingRecipientIds);
+
+        // 3. 실제로 삭제할 매핑이 없는 경우, 즉시 빈 결과를 반환합니다.
+        if (recipientsToActuallyDelete.isEmpty()) {
+            return PhoneBookResponse.ModifiedRecipientsDTO.ofDeletion(phoneBook, new ArrayList<>());
+        }
+
+        // 4. "서울 시간"을 명시적으로 생성합니다.
+        LocalDateTime deletionTimestamp = ZonedDateTime.now(ZoneId.of("Asia/Seoul")).toLocalDateTime();
+
+        // 5. Bulk Update 실행 시, 생성한 시간을 파라미터로 전달합니다.
+        groupMappingRepository.softDeleteAllInBatch(recipientsToActuallyDelete, deletionTimestamp);
+
+        // 6. 재조회 로직은 그대로 유지하여 DB에 반영된 최신 상태를 가져옵니다.
+        List<Integer> mappingIds = recipientsToActuallyDelete.stream()
+                .map(GroupMapping::getGroupMappingId)
+                .toList();
+        List<GroupMapping> deletedMappings =
+                groupMappingRepository.findAllByIdIncludingDeleted(mappingIds);
+
+        // 7. 재조회한 최신 데이터로 DTO를 생성하고 반환합니다.
+        return PhoneBookResponse.ModifiedRecipientsDTO.ofDeletion(phoneBook, deletedMappings);
     }
 }
