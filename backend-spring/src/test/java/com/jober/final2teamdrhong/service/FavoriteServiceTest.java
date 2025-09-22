@@ -42,16 +42,18 @@ class  FavoriteServiceTest {
     private IndividualTemplateRepository individualTemplateRepository;
     @Mock
     private PublicTemplateRepository publicTemplateRepository;
-
+    @Mock
     private JwtClaims mockJwtClaims;
+
+    private Integer userId;
     private Workspace mockWorkspace;
     private IndividualTemplate mockIndividualTemplate;
     private PublicTemplate mockPublicTemplate;
 
     @BeforeEach
     void setUp() {
-        mockJwtClaims = JwtClaims.builder().userId(1).build();
-        User mockUser = User.builder().userId(1).build();
+        userId = 1;
+        User mockUser = User.builder().userId(userId).build();
         mockWorkspace = Workspace.builder()
                 .workspaceId(1)
                 .user(mockUser)
@@ -78,13 +80,13 @@ class  FavoriteServiceTest {
         when(favoriteRepository.save(any(Favorite.class))).thenReturn(savedFavorite);
 
         // when
-        FavoriteResponse response = favoriteService.createIndividualTemplateFavorite(mockJwtClaims, request);
+        FavoriteResponse response = favoriteService.createIndividualTemplateFavorite(request, userId);
 
         // then
         assertThat(response).isNotNull();
         assertThat(response.getFavoriteId()).isEqualTo(99);
         assertThat(response.getTemplateType()).isEqualTo("INDIVIDUAL");
-        verify(workspaceValidator).validateAndGetWorkspace(1, 1);
+        verify(workspaceValidator).validateAndGetWorkspace(request.getWorkspaceId(), mockJwtClaims.getUserId());
         verify(favoriteRepository).save(any(Favorite.class));
     }
 
@@ -99,7 +101,7 @@ class  FavoriteServiceTest {
                 .when(favoriteRepository).validateIndividualTemplateNotExists(mockWorkspace, mockIndividualTemplate);
 
         // when & then
-        assertThrows(IllegalArgumentException.class, () -> favoriteService.createIndividualTemplateFavorite(mockJwtClaims, request));
+        assertThrows(IllegalArgumentException.class, () -> favoriteService.createIndividualTemplateFavorite(request, userId));
         verify(favoriteRepository, never()).save(any(Favorite.class));
     }
 
@@ -116,13 +118,13 @@ class  FavoriteServiceTest {
         when(favoriteRepository.save(any(Favorite.class))).thenReturn(savedFavorite);
 
         // when
-        FavoriteResponse response = favoriteService.createPublicTemplateFavorite(mockJwtClaims, request);
+        FavoriteResponse response = favoriteService.createPublicTemplateFavorite(request, userId);
 
         // then
         assertThat(response).isNotNull();
         assertThat(response.getFavoriteId()).isEqualTo(101);
         assertThat(response.getTemplateType()).isEqualTo("PUBLIC");
-        verify(workspaceValidator).validateAndGetWorkspace(1, 1);
+        verify(workspaceValidator).validateAndGetWorkspace(request.getWorkspaceId(), mockJwtClaims.getUserId());
         verify(favoriteRepository).save(any(Favorite.class));
     }
 
@@ -137,7 +139,7 @@ class  FavoriteServiceTest {
                 .when(favoriteRepository).validatePublicTemplateNotExists(mockWorkspace, mockPublicTemplate);
 
         // when & then
-        assertThrows(IllegalArgumentException.class, () -> favoriteService.createPublicTemplateFavorite(mockJwtClaims, request));
+        assertThrows(IllegalArgumentException.class, () -> favoriteService.createPublicTemplateFavorite(request, userId));
         verify(favoriteRepository, never()).save(any(Favorite.class));
     }
 
@@ -157,7 +159,7 @@ class  FavoriteServiceTest {
         when(favoriteRepository.findFavorites(eq(mockWorkspace), any(), any(Pageable.class))).thenReturn(mockPage);
 
         // when
-        Page<FavoriteResponse> result = favoriteService.getFavoritesByWorkspace(mockJwtClaims, workspaceId, Favorite.TemplateType.PUBLIC, pageRequest);
+        Page<FavoriteResponse> result = favoriteService.getFavoritesByWorkspace(workspaceId, Favorite.TemplateType.PUBLIC, pageRequest, userId);
 
         // then
         assertThat(result).isNotNull();
@@ -178,8 +180,7 @@ class  FavoriteServiceTest {
                 .thenThrow(new IllegalArgumentException("해당 워크스페이스를 찾을 수 없거나 접근 권한이 없습니다."));
 
         // when & then
-        assertThrows(IllegalArgumentException.class, () -> favoriteService.getFavoritesByWorkspace(mockJwtClaims, workspaceId, null, pageRequest));
-
+        assertThrows(IllegalArgumentException.class, () -> favoriteService.getFavoritesByWorkspace(workspaceId, null, pageRequest, userId));
         verify(workspaceValidator).validateAndGetWorkspace(workspaceId, mockJwtClaims.getUserId());
         verify(favoriteRepository, never()).findFavorites(any(), any(), any());
     }
@@ -191,14 +192,13 @@ class  FavoriteServiceTest {
     void deleteFavorite_Success() {
         // given
         Integer favoriteId = 1;
-        Integer userId = mockJwtClaims.getUserId();
         Favorite mockFavorite = mock(Favorite.class);
 
         when(favoriteRepository.findByIdOrThrow(favoriteId, userId)).thenReturn(mockFavorite);
         doNothing().when(favoriteRepository).delete(mockFavorite);
 
         // when
-        favoriteService.deleteFavorite(mockJwtClaims, favoriteId);
+        favoriteService.deleteFavorite(favoriteId, userId);
 
         // then
         verify(favoriteRepository, times(1)).findByIdOrThrow(favoriteId, userId);
@@ -210,12 +210,11 @@ class  FavoriteServiceTest {
     void deleteFavorite_Fail_UnauthorizedOrNotFound() {
         // given
         Integer favoriteId = 999;
-        Integer userId = mockJwtClaims.getUserId();
         when(favoriteRepository.findByIdOrThrow(favoriteId, userId))
                 .thenThrow(new IllegalArgumentException("해당 즐겨찾기를 찾을 수 없거나, 권한이 없습니다."));
 
         // when & then
-        assertThrows(IllegalArgumentException.class, () -> favoriteService.deleteFavorite(mockJwtClaims, favoriteId));
+        assertThrows(IllegalArgumentException.class, () -> favoriteService.deleteFavorite(favoriteId, userId));
         verify(favoriteRepository, times(1)).findByIdOrThrow(favoriteId, userId);
         verify(favoriteRepository, never()).delete(any(Favorite.class));
     }
