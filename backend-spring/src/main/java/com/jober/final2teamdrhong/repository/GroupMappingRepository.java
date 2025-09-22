@@ -71,7 +71,8 @@ public interface GroupMappingRepository extends JpaRepository<GroupMapping, Inte
      * @return 생성된 GroupMapping 엔티티 목록
      */
     @Query(value = """
-                    SELECT * FROM group_mapping
+                    SELECT * 
+                    FROM group_mapping
                     WHERE phone_book_id = :phoneBookId
                     AND recipient_id IN :recipientIds
                     AND is_deleted = false
