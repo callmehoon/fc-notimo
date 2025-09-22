@@ -2,28 +2,34 @@ package com.jober.final2teamdrhong.service;
 
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateResponse;
 import com.jober.final2teamdrhong.entity.IndividualTemplate;
+import com.jober.final2teamdrhong.entity.PublicTemplate;
 import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
+import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
 import com.jober.final2teamdrhong.repository.WorkspaceRepository;
+import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+
+import org.springframework.security.access.AccessDeniedException;
 
 import java.util.concurrent.CompletableFuture;
+
+import static com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateResponse.toResponse;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class IndividualTemplateService {
 
-    private final IndividualTemplateRepository individualTemplateRepo;
-    private final WorkspaceRepository workspaceRepo;
+    private final IndividualTemplateRepository individualTemplateRepository;
+    private final PublicTemplateRepository publicTemplateRepository;
+    private final WorkspaceRepository workspaceRepository;
 
     /**
      * 비어있는 템플릿 생성 (title/content/button 전부 "")
@@ -33,14 +39,15 @@ public class IndividualTemplateService {
         if (userId == null)
             throw new AccessDeniedException("인증이 필요합니다.");
 
-        boolean exists = workspaceRepo.existsByWorkspaceIdAndUser_UserId(workspaceId, userId);
+        boolean exists = workspaceRepository.existsByWorkspaceIdAndUser_UserId(workspaceId, userId);
         if(!exists)
             throw new AccessDeniedException("해당 워크스페이스에 접근 권한이 없습니다.");
     }
 
+
     @Transactional
     public IndividualTemplateResponse createTemplate(Integer workspaceId) {
-        Workspace workspace = workspaceRepo.findById(workspaceId)
+        Workspace workspace = workspaceRepository.findById(workspaceId)
                 .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 workspaceId 입니다. id=" + workspaceId));
 
         IndividualTemplate entity = IndividualTemplate.builder()
@@ -50,20 +57,10 @@ public class IndividualTemplateService {
                 .buttonTitle(null)                       // null 저장
                 .build();
 
-        IndividualTemplate saved = individualTemplateRepo.save(entity);
+        IndividualTemplate individualTemplate = individualTemplateRepository.save(entity);
 
         // save() 직후 createdAt, updatedAt은 Hibernate가 채워주기 때문에 사용 가능
-        return new IndividualTemplateResponse(
-                saved.getIndividualTemplateId(),
-                saved.getIndividualTemplateTitle(),
-                saved.getIndividualTemplateContent(),
-                saved.getButtonTitle(),
-                saved.getWorkspace().getWorkspaceId(),
-                saved.getCreatedAt(),
-                saved.getUpdatedAt(),
-                saved.getIsDeleted(),
-                saved.getStatus()
-        );
+        return toResponse(individualTemplate);
     }
 
     @Async
@@ -77,6 +74,47 @@ public class IndividualTemplateService {
     }
 
     /**
+     * 공용 템플릿을 기반으로 개인 템플릿 생성
+     */
+    @Transactional
+    public IndividualTemplateResponse createIndividualTemplateFromPublic(
+            Integer publicTemplateId,
+            Integer workspaceId
+    ) {
+        // 공용 템플릿 조회
+        PublicTemplate publicTemplate = publicTemplateRepository.findByIdOrThrow(publicTemplateId);
+
+        // 워크스페이스 조회
+        Workspace workspace = workspaceRepository.findByIdOrThrow(workspaceId);
+
+        // 복사 후 개인 템플릿 생성
+        IndividualTemplate newIndividualTemplate = IndividualTemplate.builder()
+                .individualTemplateTitle(publicTemplate.getPublicTemplateTitle())
+                .individualTemplateContent(publicTemplate.getPublicTemplateContent())
+                .buttonTitle(publicTemplate.getButtonTitle())
+                .workspace(workspace)
+                .build();
+
+        IndividualTemplate individualTemplate = individualTemplateRepository.save(newIndividualTemplate);
+
+        return toResponse(individualTemplate);
+    }
+
+    @Async
+    @Transactional
+    public CompletableFuture<IndividualTemplateResponse> createIndividualTemplateFromPublicAsync(
+            Integer publicTemplateId,
+            Integer workspaceId
+    ) {
+        boolean isVirtual = Thread.currentThread().isVirtual();
+        log.info("[@Async] thread={}, isVirtual={}", Thread.currentThread().getName(), isVirtual);
+
+        IndividualTemplateResponse individualTemplateResponse = createIndividualTemplateFromPublic(
+                publicTemplateId, workspaceId);
+        return CompletableFuture.completedFuture(individualTemplateResponse);
+    }
+
+    /**
      * 개인 템플릿 전체 조회
      */
     @Transactional(readOnly = true)
@@ -84,17 +122,17 @@ public class IndividualTemplateService {
             Integer workspaceId,
             Pageable pageable) {
 
-        return individualTemplateRepo.findByWorkspace_WorkspaceIdAndIsDeletedFalse(workspaceId, pageable)
-                .map(saved -> new IndividualTemplateResponse(
-                        saved.getIndividualTemplateId(),
-                        saved.getIndividualTemplateTitle(),
-                        saved.getIndividualTemplateContent(),
-                        saved.getButtonTitle(),
-                        saved.getWorkspace().getWorkspaceId(),
-                        saved.getCreatedAt(),
-                        saved.getUpdatedAt(),
-                        saved.getIsDeleted(),
-                        saved.getStatus()
+        return individualTemplateRepository.findByWorkspace_WorkspaceIdAndIsDeletedFalse(workspaceId, pageable)
+                .map(individualTemplate -> new IndividualTemplateResponse(
+                        individualTemplate.getIndividualTemplateId(),
+                        individualTemplate.getIndividualTemplateTitle(),
+                        individualTemplate.getIndividualTemplateContent(),
+                        individualTemplate.getButtonTitle(),
+                        individualTemplate.getWorkspace().getWorkspaceId(),
+                        individualTemplate.getCreatedAt(),
+                        individualTemplate.getUpdatedAt(),
+                        individualTemplate.getIsDeleted(),
+                        individualTemplate.getStatus()
                 ));
     }
 
@@ -116,18 +154,18 @@ public class IndividualTemplateService {
             IndividualTemplate.Status status,
             Pageable pageable) {
 
-        return individualTemplateRepo
+        return individualTemplateRepository
                 .findByWorkspace_WorkspaceIdAndIsDeletedFalseAndStatus(workspaceId, status, pageable)
-                .map(saved -> new IndividualTemplateResponse(
-                        saved.getIndividualTemplateId(),
-                        saved.getIndividualTemplateTitle(),
-                        saved.getIndividualTemplateContent(),
-                        saved.getButtonTitle(),
-                        saved.getWorkspace().getWorkspaceId(),
-                        saved.getCreatedAt(),
-                        saved.getUpdatedAt(),
-                        saved.getIsDeleted(),
-                        saved.getStatus()
+                .map(individualTemplate -> new IndividualTemplateResponse(
+                        individualTemplate.getIndividualTemplateId(),
+                        individualTemplate.getIndividualTemplateTitle(),
+                        individualTemplate.getIndividualTemplateContent(),
+                        individualTemplate.getButtonTitle(),
+                        individualTemplate.getWorkspace().getWorkspaceId(),
+                        individualTemplate.getCreatedAt(),
+                        individualTemplate.getUpdatedAt(),
+                        individualTemplate.getIsDeleted(),
+                        individualTemplate.getStatus()
                 ));
     }
 
@@ -147,20 +185,20 @@ public class IndividualTemplateService {
      */
     @Transactional(readOnly = true)
     public IndividualTemplateResponse getIndividualTemplate(Integer workspaceId, Integer individualTemplateId) {
-        IndividualTemplate saved = individualTemplateRepo
+        IndividualTemplate individualTemplate = individualTemplateRepository
                 .findByIndividualTemplateIdAndWorkspace_WorkspaceIdAndIsDeletedFalse(individualTemplateId, workspaceId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 템플릿이 존재하지 않습니다. id = " + individualTemplateId));
 
         return new IndividualTemplateResponse(
-                saved.getIndividualTemplateId(),
-                saved.getIndividualTemplateTitle(),
-                saved.getIndividualTemplateContent(),
-                saved.getButtonTitle(),
-                saved.getWorkspace().getWorkspaceId(),
-                saved.getCreatedAt(),
-                saved.getUpdatedAt(),
-                saved.getIsDeleted(),
-                saved.getStatus()
+                individualTemplate.getIndividualTemplateId(),
+                individualTemplate.getIndividualTemplateTitle(),
+                individualTemplate.getIndividualTemplateContent(),
+                individualTemplate.getButtonTitle(),
+                individualTemplate.getWorkspace().getWorkspaceId(),
+                individualTemplate.getCreatedAt(),
+                individualTemplate.getUpdatedAt(),
+                individualTemplate.getIsDeleted(),
+                individualTemplate.getStatus()
         );
     }
 

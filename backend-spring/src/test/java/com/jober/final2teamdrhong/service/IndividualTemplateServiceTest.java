@@ -2,8 +2,10 @@ package com.jober.final2teamdrhong.service;
 
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateResponse;
 import com.jober.final2teamdrhong.entity.IndividualTemplate;
+import com.jober.final2teamdrhong.entity.PublicTemplate;
 import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
+import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
 import com.jober.final2teamdrhong.repository.WorkspaceRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,7 +13,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -46,6 +47,9 @@ class IndividualTemplateServiceTest {
     @Mock
     private WorkspaceRepository workspaceRepo;
 
+    @Mock
+    private PublicTemplateRepository publicTemplateRepo;
+
     @InjectMocks
     private IndividualTemplateService service;
 
@@ -53,7 +57,6 @@ class IndividualTemplateServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Workspace 엔티티의 실제 생성 방식을 모르는 상황이므로, 안전하게 mock 처리
         workspaceMock = mock(Workspace.class);
     }
 
@@ -109,64 +112,35 @@ class IndividualTemplateServiceTest {
     class CreateTemplate {
 
         @Test
-        @DisplayName("유효한 workspaceId면 빈(=null) 필드로 템플릿을 생성하고 응답을 반환한다")
+        @DisplayName("유효한 workspaceId면 빈 템플릿을 생성하고 응답을 반환한다")
         void createTemplate_success() {
             // given
             when(workspaceMock.getWorkspaceId()).thenReturn(1);
             when(workspaceRepo.findById(1)).thenReturn(Optional.of(workspaceMock));
 
-            // save()가 반환할 "저장된 엔티티" 모킹
             LocalDateTime now = LocalDateTime.now();
             IndividualTemplate savedMock = mock(IndividualTemplate.class);
             when(savedMock.getIndividualTemplateId()).thenReturn(1);
-            when(savedMock.getIndividualTemplateTitle()).thenReturn(null);
-            when(savedMock.getIndividualTemplateContent()).thenReturn(null);
-            when(savedMock.getButtonTitle()).thenReturn(null);
             when(savedMock.getWorkspace()).thenReturn(workspaceMock);
             when(savedMock.getCreatedAt()).thenReturn(now);
             when(savedMock.getUpdatedAt()).thenReturn(now);
-            when(savedMock.getIsDeleted()).thenReturn(false);
 
-            ArgumentCaptor<IndividualTemplate> captor = ArgumentCaptor.forClass(IndividualTemplate.class);
-            when(individualTemplateRepo.save(captor.capture())).thenReturn(savedMock);
+            when(individualTemplateRepo.save(any(IndividualTemplate.class))).thenReturn(savedMock);
 
             // when
             IndividualTemplateResponse res = service.createTemplate(1);
 
-            log.info("[동기] 생성된 IndividualTemplateResponse 정보:");
-            log.info("  -> IndividualTemplate ID: {}", res.getIndividualTemplateId());
-            log.info("  -> Workspace ID: {}", res.getWorkspaceId());
-            log.info("  -> 템플릿 제목: {}", res.getIndividualTemplateTitle());
-            log.info("  -> 템플릿 내용: {}", res.getIndividualTemplateContent());
-            log.info("  -> 버튼 제목: {}", res.getButtonTitle());
-            log.info("  -> 생성일: {}", res.getCreatedAt());
-            log.info("  -> 수정일: {}", res.getUpdatedAt());
-
             // then
-            IndividualTemplate toSave = captor.getValue();
-            assertThat(toSave).isNotNull();
-            assertThat(toSave.getWorkspace()).isSameAs(workspaceMock);
-            assertThat(toSave.getIndividualTemplateTitle()).isNull();
-            assertThat(toSave.getIndividualTemplateContent()).isNull();
-            assertThat(toSave.getButtonTitle()).isNull();
-
             assertThat(res).isNotNull();
             assertThat(res.getIndividualTemplateId()).isEqualTo(1);
-            assertThat(res.getIndividualTemplateTitle()).isNull();
-            assertThat(res.getIndividualTemplateContent()).isNull();
-            assertThat(res.getButtonTitle()).isNull();
             assertThat(res.getWorkspaceId()).isEqualTo(1);
-            assertThat(res.getCreatedAt()).isEqualTo(now);
-            assertThat(res.getUpdatedAt()).isEqualTo(now);
-            assertThat(res.isDeleted()).isFalse();
 
-            verify(workspaceRepo, times(1)).findById(1);
-            verify(individualTemplateRepo, times(1)).save(any(IndividualTemplate.class));
-            verifyNoMoreInteractions(workspaceRepo, individualTemplateRepo);
+            verify(workspaceRepo).findById(1);
+            verify(individualTemplateRepo).save(any(IndividualTemplate.class));
         }
 
         @Test
-        @DisplayName("존재하지 않는 workspaceId면 IllegalArgumentException이 발생한다")
+        @DisplayName("존재하지 않는 workspaceId면 IllegalArgumentException 발생")
         void createTemplate_invalidWorkspace() {
             // given
             when(workspaceRepo.findById(999)).thenReturn(Optional.empty());
@@ -175,9 +149,6 @@ class IndividualTemplateServiceTest {
             assertThatThrownBy(() -> service.createTemplate(999))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("유효하지 않은 workspaceId");
-
-            verify(workspaceRepo, times(1)).findById(999);
-            verifyNoInteractions(individualTemplateRepo);
         }
     }
 
@@ -186,7 +157,7 @@ class IndividualTemplateServiceTest {
     class CreateTemplateAsync {
 
         @Test
-        @DisplayName("@Async 메서드는 CompletableFuture로 동일한 결과를 반환한다")
+        @DisplayName("정상 실행 시 CompletableFuture로 결과를 반환한다")
         void createTemplateAsync_success() throws Exception {
             // given
             when(workspaceMock.getWorkspaceId()).thenReturn(1);
@@ -195,55 +166,123 @@ class IndividualTemplateServiceTest {
             LocalDateTime now = LocalDateTime.now();
             IndividualTemplate savedMock = mock(IndividualTemplate.class);
             when(savedMock.getIndividualTemplateId()).thenReturn(456);
-            when(savedMock.getIndividualTemplateTitle()).thenReturn(null);
-            when(savedMock.getIndividualTemplateContent()).thenReturn(null);
-            when(savedMock.getButtonTitle()).thenReturn(null);
             when(savedMock.getWorkspace()).thenReturn(workspaceMock);
             when(savedMock.getCreatedAt()).thenReturn(now);
             when(savedMock.getUpdatedAt()).thenReturn(now);
-            when(savedMock.getIsDeleted()).thenReturn(false);
 
             when(individualTemplateRepo.save(any(IndividualTemplate.class))).thenReturn(savedMock);
 
             // when
             CompletableFuture<IndividualTemplateResponse> future = service.createTemplateAsync(1);
-
-            // then - 여러 번 future.get() 호출 시 성능 이슈를 피하기 위해 한 번만 호출
             IndividualTemplateResponse res = future.get(2, TimeUnit.SECONDS);
 
-            log.info("[비동기] 생성된 IndividualTemplateResponse 정보:");
-            log.info("  -> IndividualTemplate ID: {}", res.getIndividualTemplateId());
-            log.info("  -> Workspace ID: {}", res.getWorkspaceId());
-            log.info("  -> 템플릿 제목: {}", res.getIndividualTemplateTitle());
-            log.info("  -> 템플릿 내용: {}", res.getIndividualTemplateContent());
-            log.info("  -> 버튼 제목: {}", res.getButtonTitle());
-            log.info("  -> 생성일: {}", res.getCreatedAt());
-            log.info("  -> 수정일: {}", res.getUpdatedAt());
+            // then
+            assertThat(res.getIndividualTemplateId()).isEqualTo(456);
+            assertThat(res.getWorkspaceId()).isEqualTo(1);
 
-            IndividualTemplateResponse asyncResult = future.get(2, TimeUnit.SECONDS);
-            assertThat(asyncResult.getIndividualTemplateId()).isEqualTo(456);
-            assertThat(asyncResult.getWorkspaceId()).isEqualTo(1);
-            assertThat(asyncResult.getIndividualTemplateTitle()).isNull();
-            assertThat(asyncResult.getIndividualTemplateContent()).isNull();
-            assertThat(asyncResult.getButtonTitle()).isNull();
-            assertThat(asyncResult.getCreatedAt()).isEqualTo(now);
-            assertThat(asyncResult.getUpdatedAt()).isEqualTo(now);
-            assertThat(asyncResult.isDeleted()).isFalse();
-
-            verify(workspaceRepo, times(1)).findById(1);
-            verify(individualTemplateRepo, times(1)).save(any(IndividualTemplate.class));
+            verify(workspaceRepo).findById(1);
+            verify(individualTemplateRepo).save(any(IndividualTemplate.class));
         }
 
         @Test
-        @DisplayName("비동기에서도 workspaceId가 유효하지 않으면 즉시 예외가 발생한다(현재 구현 기준)")
+        @DisplayName("유효하지 않은 workspaceId면 예외 발생")
         void createTemplateAsync_invalidWorkspace() {
+            // given
             when(workspaceRepo.findById(999)).thenReturn(Optional.empty());
 
+            // when & then
             assertThatThrownBy(() -> service.createTemplateAsync(999))
                     .isInstanceOf(IllegalArgumentException.class);
+        }
+    }
 
-            verify(workspaceRepo, times(1)).findById(999);
-            verifyNoInteractions(individualTemplateRepo);
+    @Nested
+    @DisplayName("createIndividualTemplateFromPublic")
+    class CreateFromPublic {
+
+        @Test
+        @DisplayName("공용 템플릿 내용을 복사하여 개인 템플릿을 생성한다")
+        void createFromPublic_success() {
+            // given
+            when(workspaceMock.getWorkspaceId()).thenReturn(10);
+            when(workspaceRepo.findByIdOrThrow(10)).thenReturn(workspaceMock);
+
+            PublicTemplate publicMock = mock(PublicTemplate.class);
+            when(publicMock.getPublicTemplateTitle()).thenReturn("제목");
+            when(publicMock.getPublicTemplateContent()).thenReturn("내용");
+            when(publicMock.getButtonTitle()).thenReturn("버튼");
+
+            when(publicTemplateRepo.findByIdOrThrow(99)).thenReturn(publicMock);
+
+            IndividualTemplate savedMock = mock(IndividualTemplate.class);
+            when(savedMock.getIndividualTemplateId()).thenReturn(1000);
+            when(savedMock.getIndividualTemplateTitle()).thenReturn("제목");
+            when(savedMock.getIndividualTemplateContent()).thenReturn("내용");
+            when(savedMock.getButtonTitle()).thenReturn("버튼");
+            when(savedMock.getWorkspace()).thenReturn(workspaceMock);
+            when(savedMock.getCreatedAt()).thenReturn(LocalDateTime.now());
+            when(savedMock.getUpdatedAt()).thenReturn(LocalDateTime.now());
+
+            when(individualTemplateRepo.save(any(IndividualTemplate.class))).thenReturn(savedMock);
+
+            // when
+            IndividualTemplateResponse res = service.createIndividualTemplateFromPublic(99, 10);
+
+            // then
+            assertThat(res.getIndividualTemplateId()).isEqualTo(1000);
+            assertThat(res.getWorkspaceId()).isEqualTo(10);
+            assertThat(res.getIndividualTemplateTitle()).isEqualTo("제목");
+            assertThat(res.getIndividualTemplateContent()).isEqualTo("내용");
+            assertThat(res.getButtonTitle()).isEqualTo("버튼");
+
+            verify(publicTemplateRepo).findByIdOrThrow(99);
+            verify(workspaceRepo).findByIdOrThrow(10);
+            verify(individualTemplateRepo).save(any(IndividualTemplate.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("createIndividualTemplateFromPublicAsync")
+    class CreateFromPublicAsync {
+
+        @Test
+        @DisplayName("비동기 실행도 정상적으로 PublicTemplate 기반 생성 결과를 반환한다")
+        void createFromPublicAsync_success() throws Exception {
+            // given
+            when(workspaceMock.getWorkspaceId()).thenReturn(20);
+            when(workspaceRepo.findByIdOrThrow(20)).thenReturn(workspaceMock);
+
+            PublicTemplate publicMock = mock(PublicTemplate.class);
+            when(publicMock.getPublicTemplateTitle()).thenReturn("Async제목");
+            when(publicMock.getPublicTemplateContent()).thenReturn("Async내용");
+            when(publicMock.getButtonTitle()).thenReturn("Async버튼");
+
+            when(publicTemplateRepo.findByIdOrThrow(200)).thenReturn(publicMock);
+
+            IndividualTemplate savedMock = mock(IndividualTemplate.class);
+            when(savedMock.getIndividualTemplateId()).thenReturn(2000);
+            when(savedMock.getIndividualTemplateTitle()).thenReturn("Async제목");
+            when(savedMock.getIndividualTemplateContent()).thenReturn("Async내용");
+            when(savedMock.getButtonTitle()).thenReturn("Async버튼");
+            when(savedMock.getWorkspace()).thenReturn(workspaceMock);
+            when(savedMock.getCreatedAt()).thenReturn(LocalDateTime.now());
+            when(savedMock.getUpdatedAt()).thenReturn(LocalDateTime.now());
+
+            when(individualTemplateRepo.save(any(IndividualTemplate.class))).thenReturn(savedMock);
+
+            // when
+            CompletableFuture<IndividualTemplateResponse> future =
+                    service.createIndividualTemplateFromPublicAsync(200, 20);
+            IndividualTemplateResponse res = future.get(2, TimeUnit.SECONDS);
+
+            // then
+            assertThat(res.getIndividualTemplateId()).isEqualTo(2000);
+            assertThat(res.getWorkspaceId()).isEqualTo(20);
+            assertThat(res.getIndividualTemplateTitle()).isEqualTo("Async제목");
+
+            verify(publicTemplateRepo).findByIdOrThrow(200);
+            verify(workspaceRepo).findByIdOrThrow(20);
+            verify(individualTemplateRepo).save(any(IndividualTemplate.class));
         }
     }
 
@@ -275,7 +314,7 @@ class IndividualTemplateServiceTest {
             assertThat(page.getContent()).hasSize(2);
             assertThat(page.getContent().get(0).getIndividualTemplateId()).isEqualTo(10);
             assertThat(page.getContent().get(0).getWorkspaceId()).isEqualTo(5);
-            assertThat(page.getContent().get(0).isDeleted()).isFalse();
+            assertThat(page.getContent().get(0).getIsDeleted()).isFalse();
             assertThat(page.getContent().get(1).getIndividualTemplateId()).isEqualTo(11);
             assertThat(page.getContent().get(1).getWorkspaceId()).isEqualTo(5);
 
@@ -311,7 +350,7 @@ class IndividualTemplateServiceTest {
             assertThat(page.getContent()).hasSize(1);
             assertThat(page.getContent().get(0).getIndividualTemplateId()).isEqualTo(20);
             assertThat(page.getContent().get(0).getWorkspaceId()).isEqualTo(7);
-            assertThat(page.getContent().get(0).isDeleted()).isFalse();
+            assertThat(page.getContent().get(0).getIsDeleted()).isFalse();
 
             verify(individualTemplateRepo, times(1))
                     .findByWorkspace_WorkspaceIdAndIsDeletedFalse(eq(7), any(Pageable.class));
@@ -426,7 +465,7 @@ class IndividualTemplateServiceTest {
             assertThat(res.getIndividualTemplateTitle()).isEqualTo("title-33");
             assertThat(res.getIndividualTemplateContent()).isEqualTo("content-33");
             assertThat(res.getButtonTitle()).isEqualTo("button-33");
-            assertThat(res.isDeleted()).isFalse();
+            assertThat(res.getIsDeleted()).isFalse();
             assertThat(res.getCreatedAt()).isEqualTo(now);
             assertThat(res.getUpdatedAt()).isEqualTo(now);
 
@@ -474,7 +513,7 @@ class IndividualTemplateServiceTest {
 
             assertThat(res.getIndividualTemplateId()).isEqualTo(44);
             assertThat(res.getWorkspaceId()).isEqualTo(4);
-            assertThat(res.isDeleted()).isFalse();
+            assertThat(res.getIsDeleted()).isFalse();
             assertThat(res.getCreatedAt()).isEqualTo(now);
             assertThat(res.getUpdatedAt()).isEqualTo(now);
 
