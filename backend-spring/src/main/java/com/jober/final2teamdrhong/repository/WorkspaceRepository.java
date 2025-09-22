@@ -38,9 +38,9 @@ public interface WorkspaceRepository extends JpaRepository<Workspace, Integer> {
      */
     Optional<Workspace> findByWorkspaceIdAndUser_UserId(Integer workspaceId, Integer userId);
 
-    default Workspace findByIdOrThrow(Integer workspaceId) {
-        return findById(workspaceId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 워크스페이스를 찾을 수 없습니다."));
+    default Workspace findByIdOrThrow(Integer workspaceId, Integer userId) {
+        return findByWorkspaceIdAndUser_UserId(workspaceId, userId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 워크스페이스를 찾을 수 없거나 접근 권한이 없습니다."));
     }
 
     boolean existsByWorkspaceIdAndUser_UserId(Integer workspaceId, Integer userId);
