@@ -70,8 +70,8 @@ public class PhoneBookService {
      *     <li>실제로 추가할 신규 수신자가 없는 경우, 빈 목록을 포함한 DTO를 반환합니다.</li>
      *     <li>신규 수신자 목록을 GroupMapping 엔티티로 변환하여 DB에 Bulk Insert합니다.</li>
      *     <li>최종적으로, DB에 저장되어 'createdAt' 타임스탬프가 찍힌 GroupMapping 정보를 기반으로
-     *     {@link PhoneBookResponse.ModifiedRecipientsDTO#ofAddition(PhoneBook, List)} 팩토리 메소드를 호출하여
-     *     결과 DTO를 생성하고 반환합니다.</li>
+     *         {@link PhoneBookResponse.ModifiedRecipientsDTO#ofAddition(PhoneBook, List)}
+     *         팩토리 메소드를 호출하여 결과 DTO를 생성하고 반환합니다.</li>
      * </ol>
      *
      * @param recipientIdListDTO 추가할 수신자 ID 목록을 담은 DTO
