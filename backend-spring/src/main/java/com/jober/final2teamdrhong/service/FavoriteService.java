@@ -81,13 +81,19 @@ public class FavoriteService {
 
     // ========== read ==========
     /**
-     * 특정 워크스페이스에 속한 모든 즐겨찾기 목록을 페이징 없이 조회합니다.
+     * 특정 워크스페이스에 속한 즐겨찾기 목록을 조건에 따라 페이징하여 조회(read)합니다.
+     * templateType 파라미터가 주어지면 해당 타입의 템플릿만 필터링합니다.
      *
+     * @param jwtClaims 인증된 사용자 정보
      * @param workspaceId 조회의 기준이 되는 워크스페이스 ID
-     * @return 해당 워크스페이스의 FavoriteResponse DTO 리스트
+     * @param templateType 템플릿 유형 (PUBLIC 또는 INDIVIDUAL, optional)
+     * @param favoritePageRequest 페이징 정보 (page, size)
+     * @return 해당 워크스페이스의 FavoriteResponse DTO 페이지
+     * @throws IllegalArgumentException 워크스페이스가 존재하지 않거나 사용자에게 권한이 없을 경우 발생
      */
-    public Page<FavoriteResponse> getFavoritesByWorkspace(Integer workspaceId, TemplateType templateType, FavoritePageRequest favoritePageRequest) {
-        Workspace workspace = workspaceRepository.findByIdOrThrow(workspaceId);
+    public Page<FavoriteResponse> getFavoritesByWorkspace(JwtClaims jwtClaims, Integer workspaceId, TemplateType templateType, FavoritePageRequest favoritePageRequest) {
+        Integer userId = jwtClaims.getUserId();
+        Workspace workspace = workspaceRepository.findByIdOrThrow(workspaceId, userId);
         Pageable pageable = PageRequest.of(favoritePageRequest.getPage(), favoritePageRequest.getSize(), Sort.by(Sort.Direction.DESC, "favoriteId"));
 
         Page<Favorite> favorites = favoriteRepository.findFavorites(workspace, templateType, pageable);
