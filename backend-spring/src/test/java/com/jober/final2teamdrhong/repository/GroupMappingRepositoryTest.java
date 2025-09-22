@@ -12,7 +12,6 @@ import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -332,7 +331,7 @@ class GroupMappingRepositoryTest {
 
         // then
         // 1. 네이티브 쿼리를 사용하여 소프트 딜리트 상태를 확인합니다.
-        List<Object[]> results = testEntityManager.getEntityManager().createNativeQuery(
+        List<Object[]> results = entityManager.createNativeQuery(
                 "SELECT group_mapping_id, is_deleted, deleted_at FROM group_mapping WHERE group_mapping_id IN (?1, ?2)"
         ).setParameter(1, mapping1.getGroupMappingId())
          .setParameter(2, mapping2.getGroupMappingId())
