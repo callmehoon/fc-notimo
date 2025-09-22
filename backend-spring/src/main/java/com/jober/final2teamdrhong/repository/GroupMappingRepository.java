@@ -93,6 +93,11 @@ public interface GroupMappingRepository extends JpaRepository<GroupMapping, Inte
      * @param pageable  페이징 및 정렬 정보 (정렬 조건은 무시되고 수신자 생성 시간 기준으로 정렬됨)
      * @return 페이징된 GroupMapping 엔티티 목록 (Page<GroupMapping>)
      */
-    @Query("SELECT gm FROM GroupMapping gm WHERE gm.phoneBook = :phoneBook ORDER BY gm.recipient.createdAt DESC")
-    Page<GroupMapping> findByPhoneBook(@Param("phoneBook") PhoneBook phoneBook, Pageable pageable);
+    @Query("""
+            SELECT gm 
+            FROM GroupMapping gm 
+            WHERE gm.phoneBook = :phoneBook 
+            ORDER BY gm.recipient.createdAt DESC""")
+    Page<GroupMapping> findByPhoneBook(@Param("phoneBook") PhoneBook phoneBook,
+                                       Pageable pageable);
 }
