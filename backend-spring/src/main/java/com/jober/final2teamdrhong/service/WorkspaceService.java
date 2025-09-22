@@ -7,6 +7,7 @@ import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.WorkspaceRepository;
 import com.jober.final2teamdrhong.service.validator.UserValidator;
 import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,7 @@ public class WorkspaceService {
     private final WorkspaceRepository workspaceRepository;
     private final UserValidator userValidator;
     private final WorkspaceValidator workspaceValidator;
+    private final EntityManager entityManager;
 
     /**
      * 인증된 사용자를 위해 새로운 워크스페이스를 생성합니다.
@@ -161,6 +163,12 @@ public class WorkspaceService {
         // 2. 소프트 딜리트 처리
         existingWorkspace.softDelete();
 
-        return new WorkspaceResponse.SimpleDTO(existingWorkspace);
+        entityManager.flush();
+        entityManager.clear();
+
+        Workspace deletedWorkspace = workspaceRepository.findByIdIncludingDeleted(workspaceId)
+                .orElseThrow(() -> new IllegalStateException("소프트 딜리트 처리된 워크스페이스를 재조회하는 데 실패했습니다. ID: " + workspaceId));
+
+        return new WorkspaceResponse.SimpleDTO(deletedWorkspace);
     }
 }
