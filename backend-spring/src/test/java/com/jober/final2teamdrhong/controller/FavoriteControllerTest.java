@@ -1,6 +1,7 @@
 package com.jober.final2teamdrhong.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jober.final2teamdrhong.dto.favorite.FavoritePageRequest;
 import com.jober.final2teamdrhong.dto.favorite.FavoriteResponse;
 import com.jober.final2teamdrhong.dto.favorite.IndividualTemplateFavoriteRequest;
 import com.jober.final2teamdrhong.dto.favorite.PublicTemplateFavoriteRequest;
