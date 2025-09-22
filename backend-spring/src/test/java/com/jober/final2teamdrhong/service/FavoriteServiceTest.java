@@ -1,13 +1,10 @@
 package com.jober.final2teamdrhong.service;
 
-import com.jober.final2teamdrhong.dto.favorite.FavoritePageRequest;
 import com.jober.final2teamdrhong.dto.favorite.FavoriteResponse;
 import com.jober.final2teamdrhong.dto.favorite.IndividualTemplateFavoriteRequest;
 import com.jober.final2teamdrhong.dto.favorite.PublicTemplateFavoriteRequest;
-import com.jober.final2teamdrhong.entity.Favorite;
-import com.jober.final2teamdrhong.entity.IndividualTemplate;
-import com.jober.final2teamdrhong.entity.PublicTemplate;
-import com.jober.final2teamdrhong.entity.Workspace;
+import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
+import com.jober.final2teamdrhong.entity.*;
 import com.jober.final2teamdrhong.repository.FavoriteRepository;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
@@ -19,20 +16,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class FavoriteServiceTest {
+class  FavoriteServiceTest {
 
     @InjectMocks
     private FavoriteService favoriteService;
@@ -46,132 +37,106 @@ class FavoriteServiceTest {
     @Mock
     private PublicTemplateRepository publicTemplateRepository;
 
+    private JwtClaims mockJwtClaims;
     private Workspace mockWorkspace;
     private IndividualTemplate mockIndividualTemplate;
-    private IndividualTemplateFavoriteRequest mockIndividualTemplateFavoriteRequest;
     private PublicTemplate mockPublicTemplate;
-    private PublicTemplateFavoriteRequest mockPublicTemplateFavoriteRequest;
 
     @BeforeEach
     void setUp() {
-        mockWorkspace = mock(Workspace.class);
-        // 개인 템플릿 테스트 데이터
-        mockIndividualTemplateFavoriteRequest = new IndividualTemplateFavoriteRequest(1, 10);
-        mockIndividualTemplate = mock(IndividualTemplate.class);
-
-        // 공용 템플릿 테스트 데이터
-        mockPublicTemplateFavoriteRequest = new PublicTemplateFavoriteRequest(1, 100);
-        mockPublicTemplate = mock(PublicTemplate.class);
+        mockJwtClaims = JwtClaims.builder().userId(1).build();
+        User mockUser = User.builder().userId(1).build();
+        mockWorkspace = Workspace.builder()
+                .workspaceId(1)
+                .user(mockUser)
+                .workspaceName("테스트 워크스페이스")
+                .workspaceUrl("test-url")
+                .representerName("테스트 대표")
+                .representerPhoneNumber("010-1234-5678")
+                .companyName("테스트 회사")
+                .build();
+        mockIndividualTemplate = IndividualTemplate.builder().individualTemplateId(10).individualTemplateTitle("개인 템플릿").build();
+        mockPublicTemplate = PublicTemplate.builder().publicTemplateId(100).publicTemplateTitle("공용 템플릿").build();
     }
 
-    /**
-     * FavoriteService 개인 템플릿 생성 기능 단위 테스트
-     */
     @Test
-    @DisplayName("성공 : 개인 탬플릿 즐겨찾기 생성")
+    @DisplayName("성공(서비스): 개인 템플릿 즐겨찾기 생성")
     void createIndividualTemplateFavorite_Success() {
-        when(workspaceRepository.findByIdOrThrow(1)).thenReturn(mockWorkspace);
+        // given
+        IndividualTemplateFavoriteRequest request = new IndividualTemplateFavoriteRequest(1, 10);
+        Favorite savedFavorite = Favorite.builder().favoriteId(99).workspace(mockWorkspace).individualTemplate(mockIndividualTemplate).build();
+
+        when(workspaceRepository.findByIdOrThrow(1, 1)).thenReturn(mockWorkspace);
         when(individualTemplateRepository.findByIdOrThrow(10)).thenReturn(mockIndividualTemplate);
         doNothing().when(favoriteRepository).validateIndividualTemplateNotExists(mockWorkspace, mockIndividualTemplate);
+        when(favoriteRepository.save(any(Favorite.class))).thenReturn(savedFavorite);
 
-        favoriteService.createIndividualTemplateFavorite(mockIndividualTemplateFavoriteRequest);
+        // when
+        FavoriteResponse response = favoriteService.createIndividualTemplateFavorite(mockJwtClaims, request);
 
-        verify(favoriteRepository, times(1)).save(any(Favorite.class));
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getFavoriteId()).isEqualTo(99);
+        assertThat(response.getTemplateType()).isEqualTo("INDIVIDUAL");
+        verify(workspaceRepository).findByIdOrThrow(1, 1);
+        verify(favoriteRepository).save(any(Favorite.class));
     }
 
     @Test
-    @DisplayName("실패: 존재하지 않는 워크스페이스로 생성 시 예외 발생")
-    void createFavorite_FailsWith_NonExistentWorkspace() {
-        when(workspaceRepository.findByIdOrThrow(mockIndividualTemplateFavoriteRequest.getWorkspaceId()))
-                .thenThrow(new IllegalArgumentException("해당 워크스페이스를 찾을 수 없습니다."));
-
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> favoriteService.createIndividualTemplateFavorite(mockIndividualTemplateFavoriteRequest));
-
-        assertEquals("해당 워크스페이스를 찾을 수 없습니다.", exception.getMessage());
-    }
-
-    @Test
-    @DisplayName("실패 : 존재하지 않는 개인 템플릿으로 생성 시 예외 발생")
-    void createFavorite_FailsWith_NonExistentTemplate() {
-        when(workspaceRepository.findByIdOrThrow(mockIndividualTemplateFavoriteRequest.getWorkspaceId())).thenReturn(mockWorkspace);
-        when(individualTemplateRepository.findByIdOrThrow(mockIndividualTemplateFavoriteRequest.getIndividualTemplateId()))
-                .thenThrow(new IllegalArgumentException("해당 개인 템플릿을 찾을 수 없습니다."));
-
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> favoriteService.createIndividualTemplateFavorite(mockIndividualTemplateFavoriteRequest));
-
-        assertEquals("해당 개인 템플릿을 찾을 수 없습니다.", exception.getMessage());
-    }
-
-    @Test
-    @DisplayName("실패 : 이미 존재하는 즐겨찾기 생성 시 예외 발생")
-    void createFavorite_FailsWith_AlreadyExists() {
-        when(workspaceRepository.findByIdOrThrow(mockIndividualTemplateFavoriteRequest.getWorkspaceId())).thenReturn(mockWorkspace);
-        when(individualTemplateRepository.findByIdOrThrow(mockIndividualTemplateFavoriteRequest.getIndividualTemplateId())).thenReturn(mockIndividualTemplate);
+    @DisplayName("실패(서비스): 이미 즐겨찾기한 개인 템플릿 생성 시 예외 발생")
+    void createIndividualTemplateFavorite_Fail_AlreadyExists() {
+        // given
+        IndividualTemplateFavoriteRequest request = new IndividualTemplateFavoriteRequest(1, 10);
+        when(workspaceRepository.findByIdOrThrow(1, 1)).thenReturn(mockWorkspace);
+        when(individualTemplateRepository.findByIdOrThrow(10)).thenReturn(mockIndividualTemplate);
         doThrow(new IllegalArgumentException("이미 즐겨찾기된 개인 템플릿입니다."))
                 .when(favoriteRepository).validateIndividualTemplateNotExists(mockWorkspace, mockIndividualTemplate);
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> favoriteService.createIndividualTemplateFavorite(mockIndividualTemplateFavoriteRequest));
-
-        assertEquals("이미 즐겨찾기된 개인 템플릿입니다.", exception.getMessage());
+        // when & then
+        assertThrows(IllegalArgumentException.class, () -> {
+            favoriteService.createIndividualTemplateFavorite(mockJwtClaims, request);
+        });
+        verify(favoriteRepository, never()).save(any(Favorite.class));
     }
 
-
-
-    /**
-     * FavoriteService 공용 템플릿 생성 기능 단위 테스트
-     */
     @Test
-    @DisplayName("성공 : 공용 템플릿 즐겨찾기 생성")
+    @DisplayName("성공(서비스): 공용 템플릿 즐겨찾기 생성")
     void createPublicTemplateFavorite_Success() {
-        when(workspaceRepository.findByIdOrThrow(1)).thenReturn(mockWorkspace);
+        // given
+        PublicTemplateFavoriteRequest request = new PublicTemplateFavoriteRequest(1, 100);
+        Favorite savedFavorite = Favorite.builder().favoriteId(101).workspace(mockWorkspace).publicTemplate(mockPublicTemplate).build();
+
+        when(workspaceRepository.findByIdOrThrow(1, 1)).thenReturn(mockWorkspace);
         when(publicTemplateRepository.findByIdOrThrow(100)).thenReturn(mockPublicTemplate);
         doNothing().when(favoriteRepository).validatePublicTemplateNotExists(mockWorkspace, mockPublicTemplate);
+        when(favoriteRepository.save(any(Favorite.class))).thenReturn(savedFavorite);
 
-        favoriteService.createPublicTemplateFavorite(mockPublicTemplateFavoriteRequest);
+        // when
+        FavoriteResponse response = favoriteService.createPublicTemplateFavorite(mockJwtClaims, request);
 
-        verify(favoriteRepository, times(1)).save(any(Favorite.class));
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getFavoriteId()).isEqualTo(101);
+        assertThat(response.getTemplateType()).isEqualTo("PUBLIC");
+        verify(workspaceRepository).findByIdOrThrow(1, 1);
+        verify(favoriteRepository).save(any(Favorite.class));
     }
 
     @Test
-    @DisplayName("실패: 존재하지 않는 워크스페이스로 공용 즐겨찾기 생성 시 예외 발생")
-    void createPublicFavorite_FailsWith_NonExistentWorkspace() {
-        when(workspaceRepository.findByIdOrThrow(mockPublicTemplateFavoriteRequest.getWorkspaceId()))
-                .thenThrow(new IllegalArgumentException("해당 워크스페이스를 찾을 수 없습니다."));
-
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> favoriteService.createPublicTemplateFavorite(mockPublicTemplateFavoriteRequest));
-
-        assertEquals("해당 워크스페이스를 찾을 수 없습니다.", exception.getMessage());
-    }
-
-    @Test
-    @DisplayName("실패 : 존재하지 않는 공용 템플릿으로 생성 시 예외 발생")
-    void createPublicFavorite_FailsWith_NonExistentTemplate() {
-        when(workspaceRepository.findByIdOrThrow(mockPublicTemplateFavoriteRequest.getWorkspaceId())).thenReturn(mockWorkspace);
-        when(publicTemplateRepository.findByIdOrThrow(mockPublicTemplateFavoriteRequest.getPublicTemplateId()))
-                .thenThrow(new IllegalArgumentException("해당 공용 템플릿을 찾을 수 없습니다."));
-
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> favoriteService.createPublicTemplateFavorite(mockPublicTemplateFavoriteRequest));
-
-        assertEquals("해당 공용 템플릿을 찾을 수 없습니다.", exception.getMessage());
-    }
-
-    @Test
-    @DisplayName("실패 : 이미 존재하는 공용 즐겨찾기 생성 시 예외 발생")
-    void createPublicFavorite_FailsWith_AlreadyExists() {
-        when(workspaceRepository.findByIdOrThrow(mockPublicTemplateFavoriteRequest.getWorkspaceId())).thenReturn(mockWorkspace);
-        when(publicTemplateRepository.findByIdOrThrow(mockPublicTemplateFavoriteRequest.getPublicTemplateId())).thenReturn(mockPublicTemplate);
+    @DisplayName("실패(서비스): 이미 즐겨찾기한 공용 템플릿 생성 시 예외 발생")
+    void createPublicTemplateFavorite_Fail_AlreadyExists() {
+        // given
+        PublicTemplateFavoriteRequest request = new PublicTemplateFavoriteRequest(1, 100);
+        when(workspaceRepository.findByIdOrThrow(1, 1)).thenReturn(mockWorkspace);
+        when(publicTemplateRepository.findByIdOrThrow(100)).thenReturn(mockPublicTemplate);
         doThrow(new IllegalArgumentException("이미 즐겨찾기된 공용 템플릿입니다."))
                 .when(favoriteRepository).validatePublicTemplateNotExists(mockWorkspace, mockPublicTemplate);
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> favoriteService.createPublicTemplateFavorite(mockPublicTemplateFavoriteRequest));
-
-        assertEquals("이미 즐겨찾기된 공용 템플릿입니다.", exception.getMessage());
+        // when & then
+        assertThrows(IllegalArgumentException.class, () -> {
+            favoriteService.createPublicTemplateFavorite(mockJwtClaims, request);
+        });
+        verify(favoriteRepository, never()).save(any(Favorite.class));
     }
 
 

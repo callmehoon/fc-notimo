@@ -1,9 +1,10 @@
 package com.jober.final2teamdrhong.service;
 
-import com.jober.final2teamdrhong.dto.favorite.FavoritePageRequest;
 import com.jober.final2teamdrhong.dto.favorite.FavoriteResponse;
+import com.jober.final2teamdrhong.dto.favorite.FavoritePageRequest;
 import com.jober.final2teamdrhong.dto.favorite.IndividualTemplateFavoriteRequest;
 import com.jober.final2teamdrhong.dto.favorite.PublicTemplateFavoriteRequest;
+import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
 import com.jober.final2teamdrhong.entity.Favorite;
 import com.jober.final2teamdrhong.entity.Favorite.TemplateType;
 import com.jober.final2teamdrhong.entity.IndividualTemplate;
@@ -31,15 +32,15 @@ public class FavoriteService {
     private final IndividualTemplateRepository individualTemplateRepository;
     private final PublicTemplateRepository publicTemplateRepository;
 
-    // ========== create ==========
     /**
      * 개인 템플릿을 즐겨찾기에 추가(create)
      * @param request 즐겨찾기 생성을 위한 정보 (workspaceId, templateId)
      * @throws IllegalArgumentException 워크스페이스, 템플릿이 존재하지 않거나 이미 즐겨찾기로 등록되었을 경우 발생
      */
     @Transactional
-    public void createIndividualTemplateFavorite(IndividualTemplateFavoriteRequest request) {
-        Workspace workspace = workspaceRepository.findByIdOrThrow(request.getWorkspaceId());
+    public FavoriteResponse createIndividualTemplateFavorite(JwtClaims jwtClaims, IndividualTemplateFavoriteRequest request) {
+        Integer userId = jwtClaims.getUserId();
+        Workspace workspace = workspaceRepository.findByIdOrThrow(request.getWorkspaceId(), userId);
 
         IndividualTemplate individualTemplate = individualTemplateRepository.findByIdOrThrow(request.getIndividualTemplateId());
 
@@ -49,7 +50,9 @@ public class FavoriteService {
                 .workspace(workspace)
                 .individualTemplate(individualTemplate)
                 .build();
-        favoriteRepository.save(favorite);
+        Favorite savedFavorite = favoriteRepository.save(favorite);
+
+        return FavoriteResponse.fromIndividualTemplate(savedFavorite);
     }
 
     /**
@@ -58,8 +61,9 @@ public class FavoriteService {
      * @throws IllegalArgumentException 워크스페이스, 템플릿이 존재하지 않거나 이미 즐겨찾기로 등록되었을 경우 발생
      */
     @Transactional
-    public void createPublicTemplateFavorite(PublicTemplateFavoriteRequest request) {
-        Workspace workspace = workspaceRepository.findByIdOrThrow(request.getWorkspaceId());
+    public FavoriteResponse createPublicTemplateFavorite(JwtClaims jwtClaims, PublicTemplateFavoriteRequest request) {
+        Integer userId = jwtClaims.getUserId();
+        Workspace workspace = workspaceRepository.findByIdOrThrow(request.getWorkspaceId(), userId);
 
         PublicTemplate publicTemplate = publicTemplateRepository.findByIdOrThrow(request.getPublicTemplateId());
 
@@ -69,7 +73,9 @@ public class FavoriteService {
                 .workspace(workspace)
                 .publicTemplate(publicTemplate)
                 .build();
-        favoriteRepository.save(favorite);
+        Favorite savedFavorite = favoriteRepository.save(favorite);
+
+        return FavoriteResponse.fromPublicTemplate(savedFavorite);
     }
 
 

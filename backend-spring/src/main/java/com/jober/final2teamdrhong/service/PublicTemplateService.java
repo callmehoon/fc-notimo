@@ -1,8 +1,12 @@
 package com.jober.final2teamdrhong.service;
 
+import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplateCreateRequest;
 import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplateResponse;
+import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import com.jober.final2teamdrhong.entity.PublicTemplate;
+import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
+import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
 
 import lombok.RequiredArgsConstructor;
 
@@ -17,31 +21,55 @@ import org.springframework.transaction.annotation.Transactional;
 public class PublicTemplateService {
 
     private final PublicTemplateRepository publicTemplateRepository;
-
+    private final IndividualTemplateRepository individualTemplateRepository;
+    private final WorkspaceValidator workspaceValidator;
+    
     /**
-     * 삭제되지 않은 공용 템플릿 목록을 페이징하여 조회합니다.
+     * 삭제되지 않은 공용 템플릿 목록을 페이징하여 조회한다.
      *
      * @param pageable 요청으로부터 바인딩된 페이징/정렬 정보
      * @return 페이징된 PublicTemplateResponse 목록
      */
     @Transactional(readOnly = true)
     public Page<PublicTemplateResponse> getTemplates(Pageable pageable) {
-        return publicTemplateRepository.findAllByIsDeletedFalse(pageable)
-            .map(this::toResponse);
+        return publicTemplateRepository.findAll(pageable)
+            .map(PublicTemplateResponse::from);
     }   
 
     /**
-     * PublicTemplate 엔티티를 PublicTemplateResponse DTO로 변환합니다.
+     * 개인 템플릿을 기반으로 공용 템플릿을 생성하고, 생성된 공용 템플릿 정보를 반환한다.
      *
-     * @param entity 변환할 PublicTemplate 엔티티
-     * @return 변환된 PublicTemplateResponse DTO
+     * @param request 개인 템플릿 ID를 담은 요청 DTO
+     * @return 생성된 공용 템플릿 정보 {@link PublicTemplateResponse}
+     * @throws IllegalArgumentException 요청한 개인 템플릿이 존재하지 않거나, 해당 개인 템플릿의 워크스페이스가 현재 사용자의 소유가 아닐 경우 발생
      */
-    private PublicTemplateResponse toResponse(PublicTemplate entity) {
-        return new PublicTemplateResponse(
-            entity.getPublicTemplateId(),
-            entity.getPublicTemplateTitle(),
-            entity.getPublicTemplateContent(),
-            entity.getButtonTitle()
-        );
+    public PublicTemplateResponse createPublicTemplate(PublicTemplateCreateRequest request, Integer userId) {
+        IndividualTemplate individualTemplate = individualTemplateRepository.findByIdOrThrow(request.individualTemplateId());
+
+        // IndividualTemplate의 Workspace가 현재 User의 소유인지 검증
+        workspaceValidator.validateAndGetWorkspace(individualTemplate.getWorkspace().getWorkspaceId(), userId);
+
+        // 개인 템플릿 값을 복사해서 PublicTemplate 생성
+        PublicTemplate publicTemplate = PublicTemplate.builder()
+            .publicTemplateTitle(individualTemplate.getIndividualTemplateTitle())
+            .publicTemplateContent(individualTemplate.getIndividualTemplateContent())
+            .buttonTitle(individualTemplate.getButtonTitle())
+            .build();
+
+        PublicTemplate savedPublicTemplate = publicTemplateRepository.save(publicTemplate);
+
+        return PublicTemplateResponse.from(savedPublicTemplate);
+    }
+
+    /**
+     * 공용 템플릿을 소프트 삭제 처리한다.
+     *
+     * @param publicTemplateId 삭제할 공용 템플릿의 ID
+     * @throws IllegalArgumentException 지정한 ID의 템플릿이 존재하지 않는 경우 발생
+     */
+    public void deletePublicTemplate(Integer publicTemplateId) {
+        PublicTemplate publicTemplate = publicTemplateRepository.findByIdOrThrow(publicTemplateId);
+
+        publicTemplate.softDelete();
     }
 } 

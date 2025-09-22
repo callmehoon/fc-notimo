@@ -3,8 +3,12 @@ package com.jober.final2teamdrhong.controller;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
+import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplateCreateRequest;
 import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplatePageableRequest;
 import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplateResponse;
 import com.jober.final2teamdrhong.exception.ErrorResponse;
@@ -19,10 +23,12 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 @RestController
 @RequiredArgsConstructor
-@Tag(name = "공용템플릿 관리 API", description = "공용 템플릿 생성, 조회, 삭제 기능을 제공합니다")
+@RequestMapping("/public-templates")
+@Tag(name = "공용템플릿 관리 API", description = "공용 템플릿 생성, 조회 기능을 제공합니다")
 public class PublicTemplateController {
     private final PublicTemplateService publicTemplateService;
 
@@ -37,7 +43,6 @@ public class PublicTemplateController {
      *                - 허용 정렬방향: ASC, DESC
      * @return 페이징된 공용 템플릿 응답 객체
      */
-    @GetMapping("/public-templates")
     @Operation(
         summary = "공용 템플릿 목록 조회",
         description = "삭제되지 않은 공용 템플릿 목록을 페이징하여 조회합니다. " +
@@ -84,10 +89,69 @@ public class PublicTemplateController {
             )
         )
     })
+    @GetMapping
     public Page<PublicTemplateResponse> getPublicTemplates(
         @ParameterObject @Valid PublicTemplatePageableRequest request
     ) {
         Pageable pageable = request.toPageable();
         return publicTemplateService.getTemplates(pageable);
+    }
+
+    /**
+     * 개인 템플릿을 기반으로 새로운 공용 템플릿을 생성합니다.
+     * 생성된 공용 템플릿은 수정할 수 없으며, 요청 시점의 개인 템플릿 데이터를 그대로 복사합니다.
+     *
+     * @param request 공용 템플릿 생성 요청 DTO (individualTemplateId 필수)
+     * @return 생성된 공용 템플릿 정보 {@link PublicTemplateResponse}
+     * @throws IllegalArgumentException 요청한 개인 템플릿이 존재하지 않을 경우
+     */
+    @Operation(
+        summary = "공용 템플릿 생성",
+        description = "사용자의 개인 템플릿 ID를 기반으로 새로운 공용 템플릿을 생성합니다. " +
+                    "생성된 템플릿은 수정 불가하며, 생성 시점의 title, content, buttonTitle을 그대로 복사합니다.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "201",
+            description = "공용 템플릿 생성 성공",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = PublicTemplateResponse.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "잘못된 요청 - 존재하지 않는 개인 템플릿 ID, 또는 해당 개인 템플릿의 워크스페이스가 현재 사용자의 소유가 아닐 경우",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "인증 실패 - 유효하지 않은 JWT 토큰",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "서버 내부 오류",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class)
+            )
+        )
+    })
+    @PostMapping
+    public ResponseEntity<PublicTemplateResponse> createPublicTemplate(
+        @Valid @RequestBody PublicTemplateCreateRequest request,
+        @AuthenticationPrincipal JwtClaims jwtClaims
+    ) {
+        Integer currentUserId = jwtClaims.getUserId();
+        PublicTemplateResponse response = publicTemplateService.createPublicTemplate(request, currentUserId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

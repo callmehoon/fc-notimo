@@ -45,3 +45,41 @@ Thumbs.db
 # =================================
 # 비밀번호 등 민감한 정보가 담길 수 있으므로 커밋하지 않음
 .env
+
+# =================================
+# 프론트엔드 (React App)
+# =================================
+# create-react-app이 생성한 .gitignore 내용을 여기에 통합합니다.
+# 경로 앞에 /frontend/ 또는 frontend/ 를 추가하여 적용 범위를 명확히 합니다.
+
+# dependencies
+/frontend/node_modules
+/frontend/.pnp
+/frontend/.pnp.js
+
+# testing
+/frontend/coverage
+
+# production
+/frontend/build
+
+# misc
+/frontend/.env.local
+/frontend/.env.development.local
+/frontend/.env.test.local
+/frontend/.env.production.local
+
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# =================================
+# 루트 Node.js
+# =================================
+/node_modules
+
+# 루트 빌드
+/build
+
+# Local Docker environment overrides
+docker-compose.override.yml

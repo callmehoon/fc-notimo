@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
-if os.getenv("IS_GPU_AVAILABLE") is "TRUE":
+if os.getenv("IS_GPU_AVAILABLE") == "TRUE":
     IS_GPU_AVAILABLE = True
 else:
     IS_GPU_AVAILABLE = False

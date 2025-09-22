@@ -10,8 +10,7 @@ import org.hibernate.annotations.SQLRestriction;
 @Getter
 @Entity
 @Table(name = "favorite", uniqueConstraints = {
-        // 스페이스와 템플릿들의 조합을 UNIQUE로 설정. 데이터 중복 방지
-        @UniqueConstraint(columnNames = {"workspace_id", "public_template_id"})
+        @UniqueConstraint(columnNames = {"workspace_id", "public_template_id", "individual_template_id"})
 })
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SuperBuilder
@@ -37,7 +36,7 @@ public class Favorite extends BaseEntity {
     @JoinColumn(name = "public_template_id")
     private PublicTemplate publicTemplate;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "individual_template_id")
     private IndividualTemplate individualTemplate;
 }

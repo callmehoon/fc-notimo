@@ -1,0 +1,24 @@
+.template-generator-container {
+  display: flex;
+  height: 100vh; /* Full viewport height */
+  width: 100vw; /* Full viewport width */
+  overflow: hidden; /* Prevent scrolling on the main container */
+}
+
+.chat-area-wrapper {
+  flex: 1; /* Takes up 1/3 of the space */
+  border-right: 1px solid #eee; /* Separator */
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.preview-area-wrapper {
+  flex: 2; /* Takes up 2/3 of the space */
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  box-sizing: border-box;
+  background-color: #f9f9f9; /* Light background for preview */
+}
