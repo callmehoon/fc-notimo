@@ -110,7 +110,7 @@ public class IndividualTemplateController {
         individualTemplateService.validateWorkspaceOwnership(workspaceId,userId);
 
         IndividualTemplateResponse response =
-                individualTemplateService.createIndividualTemplateFromPublic(publicTemplateId, workspaceId);
+                individualTemplateService.createIndividualTemplateFromPublic(publicTemplateId, workspaceId, userId);
 
         return ResponseEntity.ok(response);
     }
@@ -142,7 +142,7 @@ public class IndividualTemplateController {
 
         // 비동기 호출 후 join()으로 결과 가져오기 → 403 방지
         IndividualTemplateResponse response =
-                individualTemplateService.createIndividualTemplateFromPublicAsync(publicTemplateId, workspaceId).join();
+                individualTemplateService.createIndividualTemplateFromPublicAsync(publicTemplateId, workspaceId, userId).join();
 
         return ResponseEntity.status(200).body(response);
     }
