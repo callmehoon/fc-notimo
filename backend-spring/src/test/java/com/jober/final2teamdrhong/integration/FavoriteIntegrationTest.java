@@ -20,9 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -106,9 +104,6 @@ class FavoriteIntegrationTest {
     }
 
     // ====================== Create ======================
-    /**
-     * 개인 템플릿 즐겨찾기 생성 기능 테스트
-     */
     @Test
     @DisplayName("성공 : 개인 템플릿 즐겨찾기 생성")
     @WithMockJwtClaims
@@ -210,7 +205,7 @@ class FavoriteIntegrationTest {
         favoriteRepository.save(Favorite.builder().workspace(savedWorkspace).individualTemplate(savedIndividualTemplate).build());
 
         // when & then
-        mockMvc.perform(get("/workspace/{workspaceId}/favorites", savedWorkspace.getWorkspaceId())                        .param("workspaceId", savedWorkspace.getWorkspaceId().toString())
+        mockMvc.perform(get("/workspace/{workspaceId}/favorites", savedWorkspace.getWorkspaceId()).param("workspaceId", savedWorkspace.getWorkspaceId().toString())
                         .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
@@ -254,26 +249,48 @@ class FavoriteIntegrationTest {
 
 
     // ====================== Delete ======================
-    /**
-     * 즐겨찾기 삭제 통합 테스트
-     */
     @Test
-    @DisplayName("성공(통합) : 즐겨찾기 삭제 기능 전체 흐름 테스트")
-    @WithMockUser
-    void deleteFavorite_Integration_Success() throws Exception {
+    @DisplayName("성공(통합): 즐겨찾기 삭제")
+    @WithMockJwtClaims // userId = 1
+    void deleteFavorite_Success() throws Exception {
         // given: 삭제할 즐겨찾기 데이터를 미리 생성
         Favorite favoriteToDelete = favoriteRepository.save(Favorite.builder()
                 .workspace(savedWorkspace)
                 .publicTemplate(savedPublicTemplate)
                 .build());
         Integer favoriteId = favoriteToDelete.getFavoriteId();
+        long initialCount = favoriteRepository.count();
 
         // when: 삭제 API 호출
-        mockMvc.perform(delete("/favorites/{favoriteId}", favoriteId)
-                        .with(csrf()))
+        mockMvc.perform(delete("/favorites/{favoriteId}", favoriteId))
                 .andExpect(status().isNoContent());
 
         // then: DB에서 데이터가 삭제되었는지 확인
         assertThat(favoriteRepository.findById(favoriteId)).isEmpty();
+        assertThat(favoriteRepository.count()).isEqualTo(initialCount - 1);
+    }
+
+    @Test
+    @DisplayName("실패(통합): 다른 사용자의 즐겨찾기 삭제 시 400 에러 응답")
+    @WithMockJwtClaims(userId = 2) // 다른 사용자(ID=2)로 시도
+    void deleteFavorite_Fail_Unauthorized() throws Exception {
+        // given
+        // 즐겨찾기는 user 1이 소유
+        Favorite favoriteToDelete = favoriteRepository.save(Favorite.builder()
+                .workspace(savedWorkspace) // workspace는 user 1의 소유
+                .publicTemplate(savedPublicTemplate)
+                .build());
+        Integer favoriteId = favoriteToDelete.getFavoriteId();
+        long initialCount = favoriteRepository.count();
+
+        // when
+        mockMvc.perform(delete("/favorites/{favoriteId}", favoriteId))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("해당 즐겨찾기를 찾을 수 없거나, 권한이 없습니다."));
+
+        // then
+        // 데이터가 삭제되지 않았는지 확인
+        assertThat(favoriteRepository.findById(favoriteId)).isNotEmpty();
+        assertThat(favoriteRepository.count()).isEqualTo(initialCount);
     }
 }
