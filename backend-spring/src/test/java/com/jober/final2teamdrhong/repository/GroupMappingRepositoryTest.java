@@ -8,6 +8,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -131,6 +134,93 @@ class GroupMappingRepositoryTest {
         assertThat(recipientIds).isNotNull();
         // 2. 반환된 목록이 비어있는지 확인합니다.
         assertThat(recipientIds).isEmpty();
+    }
+
+    @Test
+    @DisplayName("벌크 INSERT로 여러 수신자를 주소록에 일괄 추가 테스트")
+    void bulkInsertMappings_Test() {
+        // given
+        // 1. 새로운 수신자들을 생성합니다.
+        Workspace workspace = entityManager.find(Workspace.class, testPhoneBook.getWorkspace().getWorkspaceId());
+
+        Recipient newRecipient1 = Recipient.builder()
+                .recipientName("신규수신자1")
+                .recipientPhoneNumber("010-2222-2222")
+                .workspace(workspace)
+                .build();
+        entityManager.persist(newRecipient1);
+
+        Recipient newRecipient2 = Recipient.builder()
+                .recipientName("신규수신자2")
+                .recipientPhoneNumber("010-3333-3333")
+                .workspace(workspace)
+                .build();
+        entityManager.persist(newRecipient2);
+
+        entityManager.flush();
+
+        // 2. 벌크 INSERT에 사용할 수신자 ID 목록과 타임스탬프를 준비합니다.
+        List<Integer> recipientIds = List.of(newRecipient1.getRecipientId(), newRecipient2.getRecipientId());
+        LocalDateTime timestamp = ZonedDateTime.now(ZoneId.of("Asia/Seoul")).toLocalDateTime();
+
+        // when
+        // 1. 벌크 INSERT를 실행합니다.
+        groupMappingRepository.bulkInsertMappings(testPhoneBook.getPhoneBookId(), recipientIds, timestamp);
+        entityManager.flush();
+        entityManager.clear();
+
+        // then
+        // 1. 주소록에 새로운 수신자들이 추가되었는지 확인합니다.
+        List<Integer> allRecipientIds = groupMappingRepository.findRecipientIdsByPhoneBook(testPhoneBook);
+        assertThat(allRecipientIds).hasSize(4); // 기존 2개 + 신규 2개
+        assertThat(allRecipientIds).contains(newRecipient1.getRecipientId(), newRecipient2.getRecipientId());
+    }
+
+    @Test
+    @DisplayName("벌크 INSERT 후 생성된 매핑들을 조회하는 테스트")
+    void findLatestMappingsByPhoneBookAndRecipients_Test() {
+        // given
+        // 1. 새로운 수신자들을 생성합니다.
+        Workspace workspace = entityManager.find(Workspace.class, testPhoneBook.getWorkspace().getWorkspaceId());
+
+        Recipient newRecipient1 = Recipient.builder()
+                .recipientName("신규수신자1")
+                .recipientPhoneNumber("010-2222-2222")
+                .workspace(workspace)
+                .build();
+        entityManager.persist(newRecipient1);
+
+        Recipient newRecipient2 = Recipient.builder()
+                .recipientName("신규수신자2")
+                .recipientPhoneNumber("010-3333-3333")
+                .workspace(workspace)
+                .build();
+        entityManager.persist(newRecipient2);
+
+        entityManager.flush();
+
+        // 2. 벌크 INSERT로 매핑을 생성합니다.
+        List<Integer> recipientIds = List.of(newRecipient1.getRecipientId(), newRecipient2.getRecipientId());
+        LocalDateTime timestamp = ZonedDateTime.now(ZoneId.of("Asia/Seoul")).toLocalDateTime();
+        groupMappingRepository.bulkInsertMappings(testPhoneBook.getPhoneBookId(), recipientIds, timestamp);
+        entityManager.flush();
+        entityManager.clear();
+
+        // when
+        // 1. 생성된 매핑들을 조회합니다.
+        List<GroupMapping> savedMappings = groupMappingRepository.findLatestMappingsByPhoneBookAndRecipients(
+                testPhoneBook.getPhoneBookId(), recipientIds);
+
+        // then
+        // 1. 조회된 매핑의 개수가 올바른지 확인합니다.
+        assertThat(savedMappings).hasSize(2);
+        // 2. 조회된 매핑들이 올바른 수신자 ID를 가지고 있는지 확인합니다.
+        assertThat(savedMappings).extracting("recipient.recipientId")
+                .containsExactlyInAnyOrder(newRecipient1.getRecipientId(), newRecipient2.getRecipientId());
+        // 3. 모든 매핑이 삭제되지 않은 상태인지 확인합니다.
+        assertThat(savedMappings).allMatch(mapping -> !mapping.getIsDeleted());
+        // 4. 모든 매핑의 생성 시간이 설정되어 있는지 확인합니다.
+        assertThat(savedMappings).allMatch(mapping -> mapping.getCreatedAt() != null);
     }
 
     @Test
