@@ -18,9 +18,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 주소록(PhoneBook) 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
@@ -71,8 +73,9 @@ public class PhoneBookService {
      *     <li>요청된 워크스페이스, 주소록, 수신자 ID 목록의 유효성을 검증합니다.</li>
      *     <li>요청된 수신자 중 이미 주소록에 존재하는 멤버를 필터링하여 중복 추가를 방지합니다.</li>
      *     <li>실제로 추가할 신규 수신자가 없는 경우, 빈 목록을 포함한 DTO를 반환합니다.</li>
-     *     <li>신규 수신자 목록을 GroupMapping 엔티티로 변환하여 DB에 Bulk Insert합니다.</li>
-     *     <li>최종적으로, DB에 저장되어 'createdAt' 타임스탬프가 찍힌 GroupMapping 정보를 기반으로
+     *     <li>서울 시간대로 통일된 타임스탬프를 생성하고, 네이티브 쿼리를 사용하여
+     *         신규 수신자들을 주소록에 일괄 추가합니다 (Bulk Insert).</li>
+     *     <li>벌크 INSERT 후 실제 DB에 저장된 GroupMapping 엔티티들을 재조회하여
      *         {@link PhoneBookResponse.ModifiedRecipientsDTO#ofAddition(PhoneBook, List)}
      *         팩토리 메소드를 호출하여 결과 DTO를 생성하고 반환합니다.</li>
      * </ol>
@@ -107,18 +110,22 @@ public class PhoneBookService {
             return PhoneBookResponse.ModifiedRecipientsDTO.ofAddition(phoneBook, new ArrayList<>());
         }
 
-        // 4. GroupMapping 엔티티 생성 및 DB에 Bulk Insert
-        List<GroupMapping> newMappings = recipientsToActuallyAdd.stream()
-                .map(recipient -> GroupMapping.builder()
-                        .phoneBook(phoneBook)
-                        .recipient(recipient)
-                        .build())
-                .collect(Collectors.toList());
+        // 4. 서울 시간대로 생성 시간을 설정
+        LocalDateTime creationTimestamp = ZonedDateTime.now(ZoneId.of("Asia/Seoul")).toLocalDateTime();
 
-        // 5. (핵심) saveAll의 반환값을 받아 DB에 기록된 createdAt 시간을 확보합니다.
-        List<GroupMapping> savedMappings = groupMappingRepository.saveAll(newMappings);
+        // 5. 추가할 수신자 ID 목록 추출
+        List<Integer> recipientIdsToAdd = recipientsToActuallyAdd.stream()
+                .map(Recipient::getRecipientId)
+                .toList();
 
-        // 6. '추가'용 팩토리 메소드를 호출하여 최종 DTO를 반환합니다.
+        // 6. 벌크 INSERT 실행 (단일 쿼리로 모든 매핑 생성, 동일한 시간 적용)
+        groupMappingRepository.bulkInsertMappings(phoneBook.getPhoneBookId(), recipientIdsToAdd, creationTimestamp);
+
+        // 7. 벌크 INSERT 후 실제 DB에서 생성된 매핑들을 재조회
+        List<GroupMapping> savedMappings =
+                groupMappingRepository.findLatestMappingsByPhoneBookAndRecipients(phoneBook.getPhoneBookId(), recipientIdsToAdd);
+
+        // 8. '추가'용 팩토리 메소드를 호출하여 최종 DTO를 반환합니다.
         return PhoneBookResponse.ModifiedRecipientsDTO.ofAddition(phoneBook, savedMappings);
     }
 
