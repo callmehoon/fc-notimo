@@ -82,7 +82,7 @@ public class PhoneBookService {
      * @param phoneBookId      수신자를 추가할 주소록의 ID
      * @param userId           요청을 보낸 사용자의 ID (인가에 사용)
      * @return '추가' 이벤트의 결과로 생성된 {@link PhoneBookResponse.ModifiedRecipientsDTO}.
-     * 실제로 추가된 수신자 목록과 DB에 기록된 작업 시간을 포함합니다.
+     *         실제로 추가된 수신자 목록과 DB에 기록된 작업 시간을 포함합니다.
      * @throws IllegalArgumentException 유효하지 않은 ID(워크스페이스, 주소록, 수신자)로 요청했을 경우 발생
      */
     @Transactional
