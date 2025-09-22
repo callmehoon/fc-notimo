@@ -20,10 +20,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.repository.CrudRepository;
 
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -144,9 +142,6 @@ class  FavoriteServiceTest {
     }
 
 
-
-
-
     // ====================== Read ======================
     @Test
     @DisplayName("성공(서비스): 즐겨찾기 목록 페이징 조회")
@@ -190,158 +185,38 @@ class  FavoriteServiceTest {
     }
 
 
-
-
     // ====================== Delete ======================
-    /**
-     * FavoriteService 즐겨찾기 삭제 기능 단위 테스트
-     */
     @Test
-    @DisplayName("성공(단위): 즐겨찾기 삭제")
+    @DisplayName("성공(서비스): 즐겨찾기 삭제")
     void deleteFavorite_Success() {
         // given
         Integer favoriteId = 1;
+        Integer userId = mockJwtClaims.getUserId();
         Favorite mockFavorite = mock(Favorite.class);
-        when(favoriteRepository.findById(favoriteId)).thenReturn(Optional.of(mockFavorite));
-        doNothing().when((CrudRepository<Favorite, Integer>) favoriteRepository).delete(mockFavorite);
 
-        // when
-        favoriteService.deleteFavorite(favoriteId);
-
-        // then
-        verify(favoriteRepository, times(1)).findById(favoriteId);
-        verify((CrudRepository<Favorite, Integer>) favoriteRepository, times(1)).delete(mockFavorite);
-    }
-
-    @Test
-    @DisplayName("실패(단위): 존재하지 않는 즐겨찾기 삭제 시 예외 발생")
-    void deleteFavorite_FailsWith_NotFound() {
-        // given
-        Integer favoriteId = 999;
-        when(favoriteRepository.findById(favoriteId)).thenReturn(Optional.empty());
-
-        // when & then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> favoriteService.deleteFavorite(favoriteId));
-
-        assertEquals("해당 즐겨찾기를 찾을 수 없습니다.", exception.getMessage());
-        verify((CrudRepository<Favorite, Integer>) favoriteRepository, never()).delete(any(Favorite.class));
-    }
-
-
-
-
-    // ====================== Delete ======================
-    /**
-     * FavoriteService 즐겨찾기 삭제 기능 단위 테스트
-     */
-    @Test
-    @DisplayName("성공(단위): 즐겨찾기 삭제")
-    void deleteFavorite_Success() {
-        // given
-        Integer favoriteId = 1;
-        Favorite mockFavorite = mock(Favorite.class);
-        when(favoriteRepository.findById(favoriteId)).thenReturn(Optional.of(mockFavorite));
+        when(favoriteRepository.findByIdOrThrow(favoriteId, userId)).thenReturn(mockFavorite);
         doNothing().when(favoriteRepository).delete(mockFavorite);
 
         // when
-        favoriteService.deleteFavorite(favoriteId);
+        favoriteService.deleteFavorite(mockJwtClaims, favoriteId);
 
         // then
-        verify(favoriteRepository, times(1)).findById(favoriteId);
+        verify(favoriteRepository, times(1)).findByIdOrThrow(favoriteId, userId);
         verify(favoriteRepository, times(1)).delete(mockFavorite);
     }
 
     @Test
-    @DisplayName("실패(단위): 존재하지 않는 즐겨찾기 삭제 시 예외 발생")
-    void deleteFavorite_FailsWith_NotFound() {
+    @DisplayName("실패(서비스): 존재하지 않거나 권한 없는 즐겨찾기 삭제 시 예외 발생")
+    void deleteFavorite_Fail_UnauthorizedOrNotFound() {
         // given
         Integer favoriteId = 999;
-        when(favoriteRepository.findById(favoriteId)).thenReturn(Optional.empty());
+        Integer userId = mockJwtClaims.getUserId();
+        when(favoriteRepository.findByIdOrThrow(favoriteId, userId))
+                .thenThrow(new IllegalArgumentException("해당 즐겨찾기를 찾을 수 없거나, 권한이 없습니다."));
 
         // when & then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> favoriteService.deleteFavorite(favoriteId));
-
-        assertEquals("해당 즐겨찾기를 찾을 수 없습니다.", exception.getMessage());
-        verify(favoriteRepository, never()).delete(any());
-    }
-
-
-
-
-    // ====================== Delete ======================
-    /**
-     * FavoriteService 즐겨찾기 삭제 기능 단위 테스트
-     */
-    @Test
-    @DisplayName("성공(단위): 즐겨찾기 삭제")
-    void deleteFavorite_Success() {
-        // given
-        Integer favoriteId = 1;
-        Favorite mockFavorite = mock(Favorite.class);
-        when(favoriteRepository.findById(favoriteId)).thenReturn(Optional.of(mockFavorite));
-        doNothing().when((CrudRepository<Favorite, Integer>) favoriteRepository).delete(mockFavorite);
-
-        // when
-        favoriteService.deleteFavorite(favoriteId);
-
-        // then
-        verify(favoriteRepository, times(1)).findById(favoriteId);
-        verify((CrudRepository<Favorite, Integer>) favoriteRepository, times(1)).delete(mockFavorite);
-    }
-
-    @Test
-    @DisplayName("실패(단위): 존재하지 않는 즐겨찾기 삭제 시 예외 발생")
-    void deleteFavorite_FailsWith_NotFound() {
-        // given
-        Integer favoriteId = 999;
-        when(favoriteRepository.findById(favoriteId)).thenReturn(Optional.empty());
-
-        // when & then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> favoriteService.deleteFavorite(favoriteId));
-
-        assertEquals("해당 즐겨찾기를 찾을 수 없습니다.", exception.getMessage());
-        verify((CrudRepository<Favorite, Integer>) favoriteRepository, never()).delete(any(Favorite.class));
-    }
-
-
-
-
-    // ====================== Delete ======================
-    /**
-     * FavoriteService 즐겨찾기 삭제 기능 단위 테스트
-     */
-    @Test
-    @DisplayName("성공(단위): 즐겨찾기 삭제")
-    void deleteFavorite_Success() {
-        // given
-        Integer favoriteId = 1;
-        Favorite mockFavorite = mock(Favorite.class);
-        when(favoriteRepository.findById(favoriteId)).thenReturn(Optional.of(mockFavorite));
-        doNothing().when(favoriteRepository).delete(mockFavorite);
-
-        // when
-        favoriteService.deleteFavorite(favoriteId);
-
-        // then
-        verify(favoriteRepository, times(1)).findById(favoriteId);
-        verify(favoriteRepository, times(1)).delete(mockFavorite);
-    }
-
-    @Test
-    @DisplayName("실패(단위): 존재하지 않는 즐겨찾기 삭제 시 예외 발생")
-    void deleteFavorite_FailsWith_NotFound() {
-        // given
-        Integer favoriteId = 999;
-        when(favoriteRepository.findById(favoriteId)).thenReturn(Optional.empty());
-
-        // when & then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> favoriteService.deleteFavorite(favoriteId));
-
-        assertEquals("해당 즐겨찾기를 찾을 수 없습니다.", exception.getMessage());
-        verify(favoriteRepository, never()).delete(any());
+        assertThrows(IllegalArgumentException.class, () -> favoriteService.deleteFavorite(mockJwtClaims, favoriteId));
+        verify(favoriteRepository, times(1)).findByIdOrThrow(favoriteId, userId);
+        verify(favoriteRepository, never()).delete(any(Favorite.class));
     }
 }
