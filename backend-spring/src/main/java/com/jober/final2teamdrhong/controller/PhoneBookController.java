@@ -97,9 +97,9 @@ public class PhoneBookController {
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/{phoneBookId}/recipients")
     public ResponseEntity<PhoneBookResponse.ModifiedRecipientsDTO> addRecipientsToPhoneBook(@RequestBody PhoneBookRequest.RecipientIdListDTO recipientIdListDTO,
-                                                     @PathVariable Integer workspaceId,
-                                                     @PathVariable Integer phoneBookId,
-                                                     @AuthenticationPrincipal JwtClaims jwtClaims) {
+                                                                                            @PathVariable Integer workspaceId,
+                                                                                            @PathVariable Integer phoneBookId,
+                                                                                            @AuthenticationPrincipal JwtClaims jwtClaims) {
         Integer currentUserId = jwtClaims.getUserId();
         PhoneBookResponse.ModifiedRecipientsDTO addedRecipients = phoneBookService.addRecipientsToPhoneBook(recipientIdListDTO, workspaceId, phoneBookId, currentUserId);
 
