@@ -61,23 +61,18 @@ public interface GroupMappingRepository extends JpaRepository<GroupMapping, Inte
                             @Param("now") LocalDateTime now);
 
     /**
-     * 벌크 INSERT 후 생성된 GroupMapping들을 조회합니다.
+     * 특정 주소록과 수신자 ID 목록에 해당하는 GroupMapping들을 조회합니다.
      * <p>
-     * 벌크 INSERT는 영속성 컨텍스트를 우회하므로, 실제 DB에 저장된 상태를
-     * 정확히 조회하기 위해 네이티브 쿼리를 사용합니다.
+     * 이 메서드는 벌크 INSERT 후 생성된 매핑들을 재조회하는 용도로 사용됩니다.
+     * {@code @SQLRestriction("is_deleted = false")} 제약 조건이 자동으로 적용되어
+     * 삭제되지 않은 매핑만 조회됩니다.
+     * <p>
+     * 네이티브 쿼리 대신 JPA 쿼리 메서드를 사용하여 타입 안전성과 유지보수성을 향상시킵니다.
+     * 벌크 INSERT로 생성된 매핑들은 동일한 생성 시간을 가지므로 별도 정렬은 불필요합니다.
      *
-     * @param phoneBookId  조회할 주소록 ID
+     * @param phoneBookId  조회할 주소록의 ID
      * @param recipientIds 조회할 수신자 ID 목록
-     * @return 생성된 GroupMapping 엔티티 목록
+     * @return 조건에 일치하는 GroupMapping 엔티티 목록
      */
-    @Query(value = """
-                    SELECT * 
-                    FROM group_mapping
-                    WHERE phone_book_id = :phoneBookId
-                    AND recipient_id IN :recipientIds
-                    AND is_deleted = false
-                    ORDER BY created_at DESC""",
-                    nativeQuery = true)
-    List<GroupMapping> findLatestMappingsByPhoneBookAndRecipients(@Param("phoneBookId") Integer phoneBookId,
-                                                                  @Param("recipientIds") List<Integer> recipientIds);
+    List<GroupMapping> findAllByPhoneBook_PhoneBookIdAndRecipient_RecipientIdIn(Integer phoneBookId, List<Integer> recipientIds);
 }
