@@ -188,6 +188,41 @@ class RecipientControllerTest {
     }
 
     @Test
+    @DisplayName("수신자 생성 실패 테스트 - 중복 수신자 존재")
+    @WithMockJwtClaims(userId = 1)
+    void createRecipient_Fail_DuplicateRecipient_Test() throws Exception {
+        // given
+        // 1. DB에 기존 수신자를 미리 저장합니다.
+        recipientRepository.save(Recipient.builder()
+                .recipientName("김철수")
+                .recipientPhoneNumber("010-1111-1111")
+                .workspace(testWorkspace)
+                .build());
+
+        // 2. 동일한 이름과 번호를 가진 수신자 생성을 시도하는 DTO를 준비합니다.
+        RecipientRequest.CreateDTO createDTO = RecipientRequest.CreateDTO.builder()
+                .recipientName("김철수")  // 기존과 동일한 이름
+                .recipientPhoneNumber("010-1111-1111")  // 기존과 동일한 번호
+                .recipientMemo("중복 시도")
+                .build();
+
+        String requestBody = objectMapper.writeValueAsString(createDTO);
+
+        // when
+        // 1. 중복 수신자 생성을 시도하는 API를 호출합니다.
+        ResultActions resultActions = mockMvc.perform(
+                post("/workspaces/" + testWorkspace.getWorkspaceId() + "/recipients")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody)
+        );
+
+        // then
+        // 1. RecipientValidator의 중복 검증 로직에서 예외를 던지고, GlobalExceptionHandler에 의해
+        //    최종적으로 HTTP 상태 코드 400 Bad Request가 반환되는지 확인합니다.
+        resultActions.andExpect(status().isBadRequest());
+    }
+
+    @Test
     @DisplayName("수신자 목록 페이징 조회 성공 테스트")
     @WithMockJwtClaims(userId = 1)
     void readRecipients_Paging_Success_Test() throws Exception {
