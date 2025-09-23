@@ -1,6 +1,7 @@
 package com.jober.final2teamdrhong.repository;
 
 import com.jober.final2teamdrhong.entity.Recipient;
+import com.jober.final2teamdrhong.entity.Workspace;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -10,6 +11,16 @@ import java.util.Optional;
 
 @Repository
 public interface RecipientRepository extends JpaRepository<Recipient, Integer> {
+
+    /**
+     * 특정 워크스페이스 내에서 동일한 이름과 전화번호를 가진 수신자가 존재하는지 확인합니다.
+     *
+     * @param workspace            검사를 수행할 워크스페이스 엔티티
+     * @param recipientName        중복 여부를 확인할 수신자 이름
+     * @param recipientPhoneNumber 중복 여부를 확인할 수신자 전화번호
+     * @return 중복되는 수신자가 존재하면 {@code true}, 그렇지 않으면 {@code false}
+     */
+    boolean existsByWorkspaceAndRecipientNameAndRecipientPhoneNumber(Workspace workspace, String recipientName, String recipientPhoneNumber);
 
     /**
      * 특정 워크스페이스 ID에 해당하는 모든 수신자 목록을 조회합니다.
