@@ -1,5 +1,6 @@
 package com.jober.final2teamdrhong.dto.publicTemplate;
 
+import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -52,7 +53,9 @@ public class PublicTemplatePageableRequest {
     )
     private String direction = "DESC";
 
-    
+    @Valid
+    private PublicTemplateSearchRequest search = new PublicTemplateSearchRequest();
+
     /**
      * 공용 템플릿용 Pageable 객체로 변환한다.
      * 
