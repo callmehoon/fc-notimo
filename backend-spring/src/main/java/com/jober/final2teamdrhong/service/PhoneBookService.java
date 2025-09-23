@@ -238,12 +238,11 @@ public class PhoneBookService {
         // 3. 소프트 딜리트 처리
         existingPhoneBook.softDelete();
 
-        // 4. 생성은 save() 반환값을 사용하는 반면, 수정과 소프트 삭제는 기존 엔티티를 직접 변경하기 때문에
-        // 즉시 DB에 반영, 및 Hibernate 1차 캐시 비우기 후 변경된 DB를 반환해야 정확한 시간이 응답으로 나옴
+        // 4. 즉시 DB에 반영, 및 Hibernate 1차 캐시 비우기 후 변경된 DB를 반환해야 정확한 시간이 응답으로 나옴
         entityManager.flush();
         entityManager.clear();
 
-        // 4. @SQLRestriction을 우회하는 네이티브 쿼리로 재조회하여 시간 동기화
+        // 5. @SQLRestriction을 우회하는 네이티브 쿼리로 재조회하여 시간 동기화
         PhoneBook deletedPhoneBook = phoneBookRepository.findByIdIncludingDeleted(phoneBookId)
                 .orElseThrow(() -> new IllegalStateException("소프트 딜리트 처리된 주소록을 재조회하는 데 실패했습니다. ID: " + phoneBookId));
 
