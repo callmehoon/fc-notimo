@@ -7,6 +7,7 @@ import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.RecipientRepository;
 import com.jober.final2teamdrhong.service.validator.RecipientValidator;
 import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,6 +25,7 @@ public class RecipientService {
     private final RecipientRepository recipientRepository;
     private final RecipientValidator recipientValidator;
     private final WorkspaceValidator workspaceValidator;
+    private final EntityManager entityManager;
 
     /**
      * 특정 워크스페이스에 새로운 수신자를 생성합니다.
@@ -127,7 +129,9 @@ public class RecipientService {
      * 요청한 사용자가 해당 워크스페이스의 소유자인지 확인하는 인가 과정이 포함되며,
      * 실제 데이터베이스에서 삭제되지 않고 is_deleted 플래그를 true로 변경하고 deleted_at에 현재 시간을 설정합니다.
      * <p>
-     * JPA의 Dirty Checking 기능을 통해 변경사항이 자동으로 데이터베이스에 UPDATE됩니다.
+     * 소프트 딜리트 처리 후, EntityManager의 flush()와 clear()를 통해 즉시 DB에 반영하고
+     * 1차 캐시를 비운 다음, 네이티브 쿼리를 사용하여 삭제된 엔티티를 재조회합니다.
+     * 이를 통해 정확한 삭제 시간(deletedAt)이 포함된 응답을 반환할 수 있습니다.
      *
      * @param workspaceId 삭제할 수신자가 속한 워크스페이스의 ID
      * @param recipientId 삭제할 수신자의 ID
@@ -135,6 +139,7 @@ public class RecipientService {
      * @return 삭제 처리된 수신자의 정보가 담긴 {@link RecipientResponse.SimpleDTO}
      * @throws IllegalArgumentException 해당 워크스페이스가 존재하지 않거나, 사용자가 접근 권한이 없거나,
      *                                  수신자가 해당 워크스페이스에 존재하지 않을 경우 발생
+     * @throws IllegalStateException    소프트 딜리트 후 엔티티를 재조회하는 과정에서 문제가 발생했을 경우 발생
      */
     @Transactional
     public RecipientResponse.SimpleDTO deleteRecipient(Integer workspaceId, Integer recipientId, Integer userId) {
@@ -147,6 +152,14 @@ public class RecipientService {
         // 3. 소프트 딜리트 처리
         existingRecipient.softDelete();
 
-        return new RecipientResponse.SimpleDTO(existingRecipient);
+        // 4. 즉시 DB에 반영, 및 Hibernate 1차 캐시 비우기 후 변경된 DB를 반환해야 정확한 시간이 응답으로 나옴
+        entityManager.flush();
+        entityManager.clear();
+
+        // 5. @SQLRestriction을 우회하는 네이티브 쿼리로 재조회하여 시간 동기화
+        Recipient deletedRecipient = recipientRepository.findByIdIncludingDeleted(recipientId)
+                .orElseThrow(() -> new IllegalStateException("소프트 딜리트 처리된 수신자를 재조회하는 데 실패했습니다. ID: " + recipientId));
+
+        return new RecipientResponse.SimpleDTO(deletedRecipient);
     }
 }
