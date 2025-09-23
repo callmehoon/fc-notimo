@@ -552,39 +552,76 @@ class IndividualTemplateServiceTest {
     }
 
     // SoftDelete
-    @Test
-    @DisplayName("updated=0 && 존재하지 않음 -> EntityNotFoundException (404)")
-    void deleteTemplate_updated0_notExists_throw404() {
-        // given
-        Integer workspaceId = 10;
-        Integer id = 999;
-        when(individualTemplateRepo.softDeleteByIdAndWorkspace(id, workspaceId)).thenReturn(0);
-        when(individualTemplateRepo.existsById(id)).thenReturn(false);
+    @Nested
+    @DisplayName("deleteTemplate")
+    class DeleteTemplate {
 
-        // when & then
-        assertThrows(EntityNotFoundException.class, () -> service.deleteTemplate(id, workspaceId));
+        @Test
+        @DisplayName("존재하는 템플릿을 삭제하면 softDelete가 호출되고 저장된다")
+        void deleteTemplate_success() {
+            // given
+            Integer workspaceId = 10;
+            Integer id = 1;
 
-        // verify
-        verify(individualTemplateRepo).softDeleteByIdAndWorkspace(id, workspaceId);
-        verify(individualTemplateRepo).existsById(id);
-        verifyNoMoreInteractions(individualTemplateRepo);
+            Workspace workspaceMock = mock(Workspace.class);
+            when(workspaceMock.getWorkspaceId()).thenReturn(workspaceId);
+
+            IndividualTemplate templateMock = mock(IndividualTemplate.class);
+            when(templateMock.getWorkspace()).thenReturn(workspaceMock);
+
+            when(individualTemplateRepo.findById(id)).thenReturn(Optional.of(templateMock));
+            when(individualTemplateRepo.save(templateMock)).thenReturn(templateMock);
+
+            // when
+            assertDoesNotThrow(() -> service.deleteTemplate(id, workspaceId));
+
+            // then
+            verify(individualTemplateRepo).findById(id);
+            verify(templateMock).getWorkspace();
+            verify(templateMock).softDelete();
+            verify(individualTemplateRepo).save(templateMock);
+        }
+
+        @Test
+        @DisplayName("없는 템플릿 ID면 EntityNotFoundException 발생")
+        void deleteTemplate_notFound_throw404() {
+            // given
+            Integer workspaceId = 10;
+            Integer missingId = 999;
+            when(individualTemplateRepo.findById(missingId)).thenReturn(Optional.empty());
+
+            // when & then
+            assertThrows(EntityNotFoundException.class,
+                    () -> service.deleteTemplate(missingId, workspaceId));
+
+            verify(individualTemplateRepo).findById(missingId);
+            verifyNoMoreInteractions(individualTemplateRepo);
+        }
+
+        @Test
+        @DisplayName("템플릿은 있지만 다른 workspaceId에 속하면 AccessDeniedException 발생")
+        void deleteTemplate_wrongWorkspace_throw403() {
+            // given
+            Integer correctWorkspaceId = 10;
+            Integer wrongWorkspaceId = 99;
+            Integer id = 5;
+
+            Workspace workspaceMock = mock(Workspace.class);
+            when(workspaceMock.getWorkspaceId()).thenReturn(correctWorkspaceId);
+
+            IndividualTemplate templateMock = mock(IndividualTemplate.class);
+            when(templateMock.getWorkspace()).thenReturn(workspaceMock);
+
+            when(individualTemplateRepo.findById(id)).thenReturn(Optional.of(templateMock));
+
+            // when & then
+            assertThrows(AccessDeniedException.class,
+                    () -> service.deleteTemplate(id, wrongWorkspaceId));
+
+            verify(individualTemplateRepo).findById(id);
+            verify(templateMock).getWorkspace();
+            verifyNoMoreInteractions(individualTemplateRepo);
+        }
     }
 
-    @Test
-    @DisplayName("updated=0 && 이미 삭제됨(existsById=true) -> 멱등 처리(예외 없음)")
-    void deleteTemplate_updated0_alreadyDeleted_ok() {
-        // given
-        Integer workspaceId = 10;
-        Integer id = 8;
-        when(individualTemplateRepo.softDeleteByIdAndWorkspace(id, workspaceId)).thenReturn(0);
-        when(individualTemplateRepo.existsById(id)).thenReturn(true);
-
-        // when & then
-        assertDoesNotThrow(() -> service.deleteTemplate(id, workspaceId));
-
-        // verify
-        verify(individualTemplateRepo).softDeleteByIdAndWorkspace(id, workspaceId);
-        verify(individualTemplateRepo).existsById(id);
-        verifyNoMoreInteractions(individualTemplateRepo);
-    }
 }
