@@ -151,6 +151,54 @@ class RecipientServiceTest {
     }
 
     @Test
+    @DisplayName("수신자 정보 수정 실패 테스트 - 다른 수신자와 중복")
+    void updateRecipient_Fail_DuplicateWithOtherRecipient_Test() {
+        // given
+        // 1. 테스트에 사용할 ID와 요청 DTO를 준비합니다.
+        Integer userId = 1;
+        Integer workspaceId = 1;
+        Integer recipientId = 1;
+        RecipientRequest.UpdateDTO updateDTO = RecipientRequest.UpdateDTO.builder()
+                .newRecipientName("김철수")
+                .newRecipientPhoneNumber("010-3333-3333")
+                .newRecipientMemo("수정된 메모")
+                .build();
+
+        // 2. Mock 객체를 준비합니다.
+        Workspace mockWorkspace = mock(Workspace.class);
+        Recipient mockRecipient = mock(Recipient.class);
+
+        // 3. Mockito 행동 정의
+        //    - 수신자 검증은 통과시킵니다.
+        when(recipientValidator.validateAndGetRecipient(workspaceId, recipientId)).thenReturn(mockRecipient);
+        //    - 수정 시 중복 검증에서 예외를 발생시킵니다.
+        doThrow(new IllegalArgumentException("해당 정보와 동일한 다른 수신자가 이미 존재합니다."))
+                .when(recipientValidator).validateNoDuplicateRecipientExistsOnUpdate(
+                        any(Workspace.class),
+                        eq(updateDTO.getNewRecipientName()),
+                        eq(updateDTO.getNewRecipientPhoneNumber()),
+                        eq(recipientId)
+                );
+        //    - mockRecipient의 getWorkspace 메소드 행동 정의
+        when(mockRecipient.getWorkspace()).thenReturn(mockWorkspace);
+
+        // when
+        // 서비스 메소드를 호출했을 때 예외가 발생하는지 검증합니다.
+        Throwable thrown = assertThrows(IllegalArgumentException.class, () ->
+                recipientService.updateRecipient(updateDTO, workspaceId, recipientId, userId));
+
+        // then
+        // 1. 발생한 예외의 메시지가 예상과 일치하는지 확인합니다.
+        assertEquals("해당 정보와 동일한 다른 수신자가 이미 존재합니다.", thrown.getMessage());
+
+        // 2. (Quality) 중복 검증 실패 시, 엔티티 수정 로직이 실행되지 않았음을 검증합니다.
+        verify(mockRecipient, never()).setRecipientName(anyString());
+        verify(mockRecipient, never()).setRecipientPhoneNumber(anyString());
+        verify(mockRecipient, never()).setRecipientMemo(anyString());
+        verify(mockRecipient, never()).update();
+    }
+
+    @Test
     @DisplayName("수신자 목록 페이징 조회 성공 테스트")
     void readRecipients_Paging_Success_Test() {
         // given
