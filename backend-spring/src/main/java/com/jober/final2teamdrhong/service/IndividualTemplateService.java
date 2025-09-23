@@ -1,6 +1,7 @@
 package com.jober.final2teamdrhong.service;
 
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateResponse;
+import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateUpdateRequest;
 import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import com.jober.final2teamdrhong.entity.PublicTemplate;
 import com.jober.final2teamdrhong.entity.Workspace;
@@ -226,5 +227,27 @@ public class IndividualTemplateService {
         individualTemplate.softDelete();
         individualTemplateRepository.save(individualTemplate);
         log.info("Soft deleted template id = {}", individualTemplateId);
+    }
+
+    @Transactional
+    public IndividualTemplateResponse updateTemplate(
+            Integer workspaceId,
+            Integer individualTemplateId,
+            IndividualTemplateUpdateRequest request) {
+
+        IndividualTemplate individualTemplate = individualTemplateRepository.findById(individualTemplateId)
+                .orElseThrow(() -> new EntityNotFoundException("템플릿이 존재하지 않습니다. id = " + individualTemplateId));
+
+        if(!individualTemplate.getWorkspace().getWorkspaceId().equals(workspaceId)) {
+            throw new AccessDeniedException("해당 워크스페이스 접근 권한이 없습니다.");
+        }
+
+        individualTemplate.update(
+                request.getIndividualTemplateTitle(),
+                request.getIndividualTemplateContent(),
+                request.getButtonTitle(),
+                IndividualTemplate.Status.DRAFT
+        );
+        return IndividualTemplateResponse.toResponse(individualTemplate);
     }
 }
