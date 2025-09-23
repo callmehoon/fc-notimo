@@ -86,6 +86,7 @@ public class RecipientService {
      * <ol>
      *     <li>요청한 사용자가 대상 워크스페이스에 대한 접근 권한이 있는지 확인합니다.</li>
      *     <li>수정하려는 수신자가 해당 워크스페이스에 실제로 속해 있는지 검증합니다.</li>
+     *     <li>변경하려는 이름과 전화번호가 (자기 자신을 제외한) 다른 수신자와 중복되지 않는지 검증합니다.</li>
      *     <li>검증이 완료되면, DTO로부터 받은 새로운 정보로 수신자 엔티티의 상태를 변경합니다.</li>
      * </ol>
      * 메소드에 {@link Transactional} 어노테이션이 적용되어 있어,
@@ -96,7 +97,8 @@ public class RecipientService {
      * @param recipientId 수정할 수신자의 ID
      * @param userId      요청을 보낸 사용자의 ID (인가에 사용)
      * @return 수정된 수신자의 정보가 담긴 {@link RecipientResponse.SimpleDTO}
-     * @throws IllegalArgumentException 워크스페이스나 수신자를 찾을 수 없거나, 사용자가 접근 권한이 없을 경우 발생
+     * @throws IllegalArgumentException 워크스페이스나 수신자를 찾을 수 없거나, 사용자가 접근 권한이 없거나,
+     *                                  변경하려는 정보가 다른 수신자와 중복될 경우 발생
      */
     @Transactional
     public RecipientResponse.SimpleDTO updateRecipient(RecipientRequest.UpdateDTO updateDTO,
@@ -107,7 +109,10 @@ public class RecipientService {
         // 2. 수신자 조회 (워크스페이스 소속인지 함께 검증)
         Recipient existingRecipient = recipientValidator.validateAndGetRecipient(workspaceId, recipientId);
 
-        // 3. 정보 업데이트
+        // 3. 수정하려는 정보가 다른 수신자와 중복되는지 검증
+        recipientValidator.validateNoDuplicateRecipientExistsOnUpdate(existingRecipient.getWorkspace(), updateDTO.getNewRecipientName(), updateDTO.getNewRecipientPhoneNumber(), recipientId);
+
+        // 4. 정보 업데이트
         existingRecipient.setRecipientName(updateDTO.getNewRecipientName());
         existingRecipient.setRecipientPhoneNumber(updateDTO.getNewRecipientPhoneNumber());
         existingRecipient.setRecipientMemo(updateDTO.getNewRecipientMemo());
