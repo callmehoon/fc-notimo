@@ -97,15 +97,7 @@ public class FavoriteService {
         Pageable pageable = PageRequest.of(favoritePageRequest.getPage(), favoritePageRequest.getSize(), Sort.by(Sort.Direction.DESC, "favoriteId"));
 
         Page<Favorite> favorites = favoriteRepository.findFavorites(workspace, templateType, pageable);
-        return favorites.map(this::convertToFavoriteResponse);
-    }
-
-    // getFavoritesByWorkspace 메서드를 위한 Favorite 엔티티 -> DTO 변환 메서드
-    private FavoriteResponse convertToFavoriteResponse(Favorite favorite) {
-        if (favorite.getPublicTemplate() != null) {
-            return FavoriteResponse.fromPublicTemplate(favorite);
-        }
-        return FavoriteResponse.fromIndividualTemplate(favorite);
+        return favorites.map(FavoriteResponse::convertToFavoriteResponse);
     }
 
 }
