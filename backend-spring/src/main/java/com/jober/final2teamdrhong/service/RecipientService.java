@@ -27,19 +27,25 @@ public class RecipientService {
 
     /**
      * 특정 워크스페이스에 새로운 수신자를 생성합니다.
+     * <p>
+     * 수신자를 생성하기 전에, 해당 워크스페이스에 동일한 이름과 전화번호를 가진 수신자가 이미 존재하는지 확인합니다.
      *
      * @param createDTO   수신자 생성을 위한 요청 데이터
      * @param workspaceId 수신자를 추가할 워크스페이스의 ID
      * @param userId      요청을 보낸 사용자의 ID (인가에 사용)
      * @return 생성된 수신자의 정보({@link RecipientResponse.SimpleDTO})
-     * @throws IllegalArgumentException 해당 워크스페이스가 존재하지 않거나, 사용자가 접근 권한이 없을 경우 발생
+     * @throws IllegalArgumentException 해당 워크스페이스가 존재하지 않거나, 사용자가 접근 권한이 없을 경우,
+     *                                  또는 동일한 이름과 번호의 수신자가 이미 존재할 경우 발생
      */
     @Transactional
     public RecipientResponse.SimpleDTO createRecipient(RecipientRequest.CreateDTO createDTO, Integer workspaceId, Integer userId) {
         // 1. 인가(Authorization): 요청한 사용자가 워크스페이스에 접근 권한이 있는지 확인합니다.
         Workspace workspace = workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
 
-        // 2. 엔티티 생성: DTO의 데이터를 기반으로 Recipient 엔티티를 생성합니다.
+        // 2. 중복 확인: 해당 워크스페이스에 동일한 이름과 번호의 수신자가 이미 존재하는지 검증합니다.
+        recipientValidator.validateNoDuplicateRecipientExists(workspace, createDTO.getRecipientName(), createDTO.getRecipientPhoneNumber());
+
+        // 3. 엔티티 생성: DTO의 데이터를 기반으로 Recipient 엔티티를 생성합니다.
         Recipient recipient = Recipient.builder()
                 .recipientName(createDTO.getRecipientName())
                 .recipientPhoneNumber(createDTO.getRecipientPhoneNumber())
@@ -47,7 +53,7 @@ public class RecipientService {
                 .workspace(workspace)
                 .build();
 
-        // 3. 엔티티 저장 및 DTO 변환 후 반환
+        // 4. 엔티티 저장 및 DTO 변환 후 반환
         Recipient savedRecipient = recipientRepository.save(recipient);
 
         return new RecipientResponse.SimpleDTO(savedRecipient);
