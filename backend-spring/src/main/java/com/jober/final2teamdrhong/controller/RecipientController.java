@@ -110,6 +110,7 @@ public class RecipientController {
      * <p>
      * 요청한 사용자가 해당 워크스페이스에 대한 접근 권한이 있는지 확인 후,
      * URL 경로의 recipientId에 해당하는 수신자 정보를 요청 본문의 데이터로 업데이트합니다.
+     * 수정하려는 이름과 전화번호가 다른 수신자와 중복될 경우 에러를 반환합니다.
      *
      * @param updateDTO   수신자 수정을 위한 데이터 (JSON, @Valid로 검증됨)
      * @param workspaceId 수정할 수신자가 속한 워크스페이스의 ID
@@ -122,7 +123,7 @@ public class RecipientController {
             @ApiResponse(responseCode = "200", description = "수신자 정보 수정 성공",
                     content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = RecipientResponse.SimpleDTO.class))),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청: 요청 데이터 유효성 검사 실패 또는 존재하지 않는 리소스(워크스페이스, 수신자)",
+            @ApiResponse(responseCode = "400", description = "잘못된 요청: 요청 데이터 유효성 검사 실패, 존재하지 않는 리소스(워크스페이스, 수신자), 또는 다른 수신자와 정보 중복",
                     content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "401", description = "인증 실패 (로그인 필요)",
