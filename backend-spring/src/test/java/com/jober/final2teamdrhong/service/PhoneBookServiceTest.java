@@ -185,7 +185,7 @@ class PhoneBookServiceTest {
                         .recipient(mockRecipients.get(1))
                         .build()
         );
-        when(groupMappingRepository.findLatestMappingsByPhoneBookAndRecipients(
+        when(groupMappingRepository.findAllByPhoneBook_PhoneBookIdAndRecipient_RecipientIdIn(
                 eq(phoneBookId), eq(List.of(2, 3))))
                 .thenReturn(savedMappings);
 
@@ -202,9 +202,9 @@ class PhoneBookServiceTest {
         assertThat(result.getRecipientList().size()).isEqualTo(2);
         // 4. 추가된 수신자들의 ID가 2와 3인지 확인합니다.
         assertThat(result.getRecipientList()).extracting("recipientId").containsExactlyInAnyOrder(2, 3);
-        // 5. bulkInsertMappings와 findLatestMappingsByPhoneBookAndRecipients가 정확히 1번씩 호출되었는지 검증합니다.
+        // 5. bulkInsertMappings와 findAllByPhoneBook_PhoneBookIdAndRecipient_RecipientIdIn가 정확히 1번씩 호출되었는지 검증합니다.
         verify(groupMappingRepository, times(1)).bulkInsertMappings(eq(phoneBookId), eq(List.of(2, 3)), any(LocalDateTime.class));
-        verify(groupMappingRepository, times(1)).findLatestMappingsByPhoneBookAndRecipients(eq(phoneBookId), eq(List.of(2, 3)));
+        verify(groupMappingRepository, times(1)).findAllByPhoneBook_PhoneBookIdAndRecipient_RecipientIdIn(eq(phoneBookId), eq(List.of(2, 3)));
     }
 
     @Test
@@ -255,7 +255,7 @@ class PhoneBookServiceTest {
                         .recipient(mockRecipients.get(1)) // ID=2인 수신자
                         .build()
         );
-        when(groupMappingRepository.findLatestMappingsByPhoneBookAndRecipients(
+        when(groupMappingRepository.findAllByPhoneBook_PhoneBookIdAndRecipient_RecipientIdIn(
                 eq(phoneBookId), eq(List.of(2))))
                 .thenReturn(savedMappings);
 
@@ -270,9 +270,9 @@ class PhoneBookServiceTest {
         assertThat(result.getRecipientList().size()).isEqualTo(1);
         // 3. 추가된 수신자의 ID가 2번인지 확인합니다.
         assertThat(result.getRecipientList().getFirst().getRecipientId()).isEqualTo(2);
-        // 4. bulkInsertMappings와 findLatestMappingsByPhoneBookAndRecipients가 정확히 1번씩 호출되었는지 검증합니다.
+        // 4. bulkInsertMappings와 findAllByPhoneBook_PhoneBookIdAndRecipient_RecipientIdIn가 정확히 1번씩 호출되었는지 검증합니다.
         verify(groupMappingRepository, times(1)).bulkInsertMappings(eq(phoneBookId), eq(List.of(2)), any(LocalDateTime.class));
-        verify(groupMappingRepository, times(1)).findLatestMappingsByPhoneBookAndRecipients(eq(phoneBookId), eq(List.of(2)));
+        verify(groupMappingRepository, times(1)).findAllByPhoneBook_PhoneBookIdAndRecipient_RecipientIdIn(eq(phoneBookId), eq(List.of(2)));
     }
 
     @Test
@@ -317,9 +317,9 @@ class PhoneBookServiceTest {
         assertThat(result).isNotNull();
         // 2. 추가된 수신자 목록이 비어있는지 확인합니다.
         assertThat(result.getRecipientList()).isEmpty();
-        // 3. (중요) 신규 추가할 수신자가 없으므로 bulkInsertMappings와 findLatestMappingsByPhoneBookAndRecipients 메서드가 호출되지 않아야 합니다.
+        // 3. (중요) 신규 추가할 수신자가 없으므로 bulkInsertMappings와 findAllByPhoneBook_PhoneBookIdAndRecipient_RecipientIdIn 메서드가 호출되지 않아야 합니다.
         verify(groupMappingRepository, never()).bulkInsertMappings(any(), any(), any());
-        verify(groupMappingRepository, never()).findLatestMappingsByPhoneBookAndRecipients(any(), any());
+        verify(groupMappingRepository, never()).findAllByPhoneBook_PhoneBookIdAndRecipient_RecipientIdIn(any(), any());
     }
 
     @Test

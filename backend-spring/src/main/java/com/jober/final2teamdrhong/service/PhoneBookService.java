@@ -125,7 +125,7 @@ public class PhoneBookService {
 
         // 7. 벌크 INSERT 후 실제 DB에서 생성된 매핑들을 재조회
         List<GroupMapping> savedMappings =
-                groupMappingRepository.findLatestMappingsByPhoneBookAndRecipients(phoneBook.getPhoneBookId(), recipientIdsToAdd);
+                groupMappingRepository.findAllByPhoneBook_PhoneBookIdAndRecipient_RecipientIdIn(phoneBook.getPhoneBookId(), recipientIdsToAdd);
 
         // 8. '추가'용 팩토리 메소드를 호출하여 최종 DTO를 반환합니다.
         return PhoneBookResponse.ModifiedRecipientsDTO.ofAddition(phoneBook, savedMappings);

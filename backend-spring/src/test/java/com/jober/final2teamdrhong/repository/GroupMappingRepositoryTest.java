@@ -183,8 +183,8 @@ class GroupMappingRepositoryTest {
     }
 
     @Test
-    @DisplayName("벌크 INSERT 후 생성된 매핑들을 조회하는 테스트")
-    void findLatestMappingsByPhoneBookAndRecipients_Test() {
+    @DisplayName("벌크 INSERT 후 생성된 매핑들을 JPA 쿼리 메서드로 조회하는 테스트")
+    void findAllByPhoneBook_PhoneBookIdAndRecipient_RecipientIdIn_Test() {
         // given
         // 1. 새로운 수신자들을 생성합니다.
         Workspace workspace = testEntityManager.find(Workspace.class, testPhoneBook.getWorkspace().getWorkspaceId());
@@ -213,8 +213,8 @@ class GroupMappingRepositoryTest {
         testEntityManager.clear();
 
         // when
-        // 1. 생성된 매핑들을 조회합니다.
-        List<GroupMapping> savedMappings = groupMappingRepository.findLatestMappingsByPhoneBookAndRecipients(
+        // 1. JPA 쿼리 메서드로 생성된 매핑들을 조회합니다.
+        List<GroupMapping> savedMappings = groupMappingRepository.findAllByPhoneBook_PhoneBookIdAndRecipient_RecipientIdIn(
                 testPhoneBook.getPhoneBookId(), recipientIds);
 
         // then
@@ -223,10 +223,12 @@ class GroupMappingRepositoryTest {
         // 2. 조회된 매핑들이 올바른 수신자 ID를 가지고 있는지 확인합니다.
         assertThat(savedMappings).extracting("recipient.recipientId")
                 .containsExactlyInAnyOrder(newRecipient1.getRecipientId(), newRecipient2.getRecipientId());
-        // 3. 모든 매핑이 삭제되지 않은 상태인지 확인합니다.
+        // 3. 모든 매핑이 삭제되지 않은 상태인지 확인합니다 (@SQLRestriction 자동 적용).
         assertThat(savedMappings).allMatch(mapping -> !mapping.getIsDeleted());
         // 4. 모든 매핑의 생성 시간이 설정되어 있는지 확인합니다.
         assertThat(savedMappings).allMatch(mapping -> mapping.getCreatedAt() != null);
+        // 5. 조회된 매핑들이 올바른 주소록에 속해 있는지 확인합니다.
+        assertThat(savedMappings).allMatch(mapping -> mapping.getPhoneBook().getPhoneBookId().equals(testPhoneBook.getPhoneBookId()));
     }
 
     @Test
