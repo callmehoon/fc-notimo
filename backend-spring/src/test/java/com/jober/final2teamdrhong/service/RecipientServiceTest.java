@@ -112,6 +112,45 @@ class RecipientServiceTest {
     }
 
     @Test
+    @DisplayName("수신자 생성 실패 테스트 - 중복된 수신자")
+    void createRecipient_Fail_DuplicateRecipient_Test() {
+        // given
+        // 1. 테스트에 사용할 ID와 요청 DTO를 준비합니다.
+        Integer userId = 1;
+        Integer workspaceId = 1;
+        RecipientRequest.CreateDTO createDTO = RecipientRequest.CreateDTO.builder()
+                .recipientName("홍길동")
+                .recipientPhoneNumber("010-1234-5678")
+                .build();
+
+        // 2. Mock 객체를 준비합니다.
+        Workspace mockWorkspace = mock(Workspace.class);
+
+        // 3. Mockito 행동 정의
+        //    - 워크스페이스 검증은 통과시킵니다.
+        when(workspaceValidator.validateAndGetWorkspace(workspaceId, userId)).thenReturn(mockWorkspace);
+        //    - 수신자 중복 검증 시 예외를 발생시킵니다.
+        doThrow(new IllegalArgumentException("해당 워크스페이스에 동일한 이름과 번호의 수신자가 이미 존재합니다."))
+                .when(recipientValidator).validateNoDuplicateRecipientExists(
+                        mockWorkspace,
+                        createDTO.getRecipientName(),
+                        createDTO.getRecipientPhoneNumber()
+                );
+
+        // when
+        // 서비스 메소드를 호출했을 때 예외가 발생하는지 검증합니다.
+        Throwable thrown = assertThrows(IllegalArgumentException.class, () ->
+                recipientService.createRecipient(createDTO, workspaceId, userId));
+
+        // then
+        // 1. 발생한 예외의 메시지가 예상과 일치하는지 확인합니다.
+        assertEquals("해당 워크스페이스에 동일한 이름과 번호의 수신자가 이미 존재합니다.", thrown.getMessage());
+
+        // 2. (Quality) 중복 검증 실패 시, DB 저장 로직이 실행되지 않았음을 검증합니다.
+        verify(recipientRepository, never()).save(any(Recipient.class));
+    }
+
+    @Test
     @DisplayName("수신자 목록 페이징 조회 성공 테스트")
     void readRecipients_Paging_Success_Test() {
         // given
