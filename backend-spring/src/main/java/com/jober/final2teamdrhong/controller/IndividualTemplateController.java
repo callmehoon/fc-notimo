@@ -238,8 +238,12 @@ public class IndividualTemplateController {
             @Parameter(description = "워크스페이스 ID", required = true, example = "10")
             @PathVariable("workspaceId") Integer workspaceId,
             @Parameter(description = "개인 템플릿 ID", required = true, example = "5")
-            @PathVariable("individualTemplateId") Integer individualTemplateId
+            @PathVariable("individualTemplateId") Integer individualTemplateId,
+            @AuthenticationPrincipal JwtClaims claims
     ) {
+        Integer userId = claims.getUserId();
+        individualTemplateService.validateWorkspaceOwnership(workspaceId, userId);
+
         individualTemplateService.deleteTemplate(individualTemplateId, workspaceId);
         return ResponseEntity.noContent().build();
     }
