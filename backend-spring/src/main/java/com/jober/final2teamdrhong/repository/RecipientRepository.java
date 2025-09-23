@@ -42,4 +42,16 @@ public interface RecipientRepository extends JpaRepository<Recipient, Integer> {
      * @return 수신자 엔티티를 담은 Optional 객체. 해당하는 수신자가 없으면 Optional.empty()를 반환합니다.
      */
     Optional<Recipient> findByRecipientIdAndWorkspace_WorkspaceId(Integer recipientId, Integer workspaceId);
+
+    /**
+     * 특정 수신자 ID를 제외하고, 워크스페이스 내에서 동일한 이름과 전화번호를 가진 수신자가 존재하는지 확인합니다.
+     * (수신자 정보 수정 시 중복 검증을 위해 사용)
+     *
+     * @param workspace            검사를 수행할 워크스페이스 엔티티
+     * @param recipientName        중복 여부를 확인할 수신자 이름
+     * @param recipientPhoneNumber 중복 여부를 확인할 수신자 전화번호
+     * @param recipientId          검사 대상에서 제외할 수신자의 ID
+     * @return 중복되는 수신자가 존재하면 {@code true}, 그렇지 않으면 {@code false}
+     */
+    boolean existsByWorkspaceAndRecipientNameAndRecipientPhoneNumberAndRecipientIdNot(Workspace workspace, String recipientName, String recipientPhoneNumber, Integer recipientId);
 }
