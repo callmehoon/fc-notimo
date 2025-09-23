@@ -155,4 +155,44 @@ class RecipientRepositoryTest {
         // 1. Optional 객체가 비어있는지 확인합니다. (조회 실패)
         assertThat(foundRecipientOpt).isNotPresent();
     }
+
+    @Test
+    @DisplayName("워크스페이스, 이름, 전화번호로 수신자 존재 여부 확인 성공 테스트")
+    void existsByWorkspaceAndRecipientNameAndRecipientPhoneNumber_Success_Test() {
+        // given
+        // 1. 테스트 데이터는 @BeforeEach 에서 이미 설정됨 ("홍길동", "010-1111-2222", testWorkspace)
+
+        // when
+        // 1. 존재하는 데이터로 존재 여부를 확인하는 메소드를 호출합니다.
+        boolean exists = recipientRepository.existsByWorkspaceAndRecipientNameAndRecipientPhoneNumber(
+                testWorkspace, "홍길동", "010-1111-2222");
+
+        // then
+        // 1. 결과가 true인지 검증합니다.
+        assertThat(exists).isTrue();
+    }
+
+    @Test
+    @DisplayName("워크스페이스, 이름, 전화번호로 수신자 존재 여부 확인 실패 테스트")
+    void existsByWorkspaceAndRecipientNameAndRecipientPhoneNumber_Fail_Test() {
+        // given
+        // 1. 테스트 데이터는 @BeforeEach 에서 이미 설정됨
+
+        // when
+        // 1. 존재하지 않는 이름으로 조회
+        boolean existsByName = recipientRepository.existsByWorkspaceAndRecipientNameAndRecipientPhoneNumber(
+                testWorkspace, "없는이름", "010-1111-2222");
+        // 2. 존재하지 않는 전화번호로 조회
+        boolean existsByPhoneNumber = recipientRepository.existsByWorkspaceAndRecipientNameAndRecipientPhoneNumber(
+                testWorkspace, "홍길동", "010-9999-9999");
+        // 3. 다른 워크스페이스로 조회
+        boolean existsByWorkspace = recipientRepository.existsByWorkspaceAndRecipientNameAndRecipientPhoneNumber(
+                anotherWorkspace, "홍길동", "010-1111-2222");
+
+        // then
+        // 1. 모든 결과가 false인지 검증합니다.
+        assertThat(existsByName).isFalse();
+        assertThat(existsByPhoneNumber).isFalse();
+        assertThat(existsByWorkspace).isFalse();
+    }
 }
