@@ -2,6 +2,7 @@ package com.jober.final2teamdrhong.controller;
 
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplatePageableRequest;
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateResponse;
+import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateUpdateRequest;
 import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
 import com.jober.final2teamdrhong.entity.User.UserRole;
 import com.jober.final2teamdrhong.service.IndividualTemplateService;
@@ -348,5 +349,34 @@ class IndividualTemplateControllerTest {
         verify(individualTemplateService).deleteTemplate(missingId, workspaceId);
     }
 
+    @Test
+    @DisplayName("없는 템플릿 수정 시 컨트롤러는 예외를 그대로 던짐 (404 매핑은 전역어드바이스 책임)")
+    void updateTemplate_notFound_throwsException_withoutMockMvc() {
+        // given
+        Integer workspaceId = 1;
+        Integer missingId = 999;
+        Integer userId = 100;
+        JwtClaims claims = createMockJwtClaims(userId, "update@example.com");
+
+        IndividualTemplateUpdateRequest request =
+                new IndividualTemplateUpdateRequest("제목", "내용", "버튼");
+
+        // 워크스페이스 소유권 검증은 정상 통과
+        doNothing().when(individualTemplateService)
+                .validateWorkspaceOwnership(workspaceId, userId);
+
+        // updateTemplate 호출 시 EntityNotFoundException 발생하도록 설정
+        doThrow(new EntityNotFoundException("not found"))
+                .when(individualTemplateService)
+                .updateTemplate(workspaceId, missingId, request);
+
+        // when & then
+        assertThrows(EntityNotFoundException.class,
+                () -> controller.updateTemplate(workspaceId, missingId, request, claims));
+
+        // 검증
+        verify(individualTemplateService).validateWorkspaceOwnership(workspaceId, userId);
+        verify(individualTemplateService).updateTemplate(workspaceId, missingId, request);
+    }
 
 }

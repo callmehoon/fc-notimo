@@ -1,6 +1,7 @@
 package com.jober.final2teamdrhong.service;
 
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateResponse;
+import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateUpdateRequest;
 import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import com.jober.final2teamdrhong.entity.PublicTemplate;
 import com.jober.final2teamdrhong.entity.Workspace;
@@ -623,5 +624,53 @@ class IndividualTemplateServiceTest {
             verifyNoMoreInteractions(individualTemplateRepo);
         }
     }
+
+    @Test
+    @DisplayName("없는 템플릿 ID면 EntityNotFoundException 발생")
+    void updateTemplate_notFound_throw404() {
+        // given
+        Integer workspaceId = 10;
+        Integer missingId = 999;
+        IndividualTemplateUpdateRequest request =
+                new IndividualTemplateUpdateRequest("제목", "내용", "버튼");
+
+        when(individualTemplateRepo.findById(missingId)).thenReturn(Optional.empty());
+
+        // when & then
+        assertThrows(EntityNotFoundException.class,
+                () -> service.updateTemplate(workspaceId, missingId, request));
+
+        verify(individualTemplateRepo).findById(missingId);
+        verifyNoMoreInteractions(individualTemplateRepo);
+    }
+
+    @Test
+    @DisplayName("템플릿은 있지만 다른 workspaceId에 속하면 AccessDeniedException 발생")
+    void updateTemplate_wrongWorkspace_throw403() {
+        // given
+        Integer correctWorkspaceId = 10;
+        Integer wrongWorkspaceId = 99;
+        Integer templateId = 5;
+
+        Workspace workspaceMock = mock(Workspace.class);
+        when(workspaceMock.getWorkspaceId()).thenReturn(correctWorkspaceId);
+
+        IndividualTemplate templateMock = mock(IndividualTemplate.class);
+        when(templateMock.getWorkspace()).thenReturn(workspaceMock);
+
+        IndividualTemplateUpdateRequest request =
+                new IndividualTemplateUpdateRequest("제목", "내용", "버튼");
+
+        when(individualTemplateRepo.findById(templateId)).thenReturn(Optional.of(templateMock));
+
+        // when & then
+        assertThrows(AccessDeniedException.class,
+                () -> service.updateTemplate(wrongWorkspaceId, templateId, request));
+
+        verify(individualTemplateRepo).findById(templateId);
+        verify(templateMock).getWorkspace();
+        verifyNoMoreInteractions(individualTemplateRepo);
+    }
+
 
 }
