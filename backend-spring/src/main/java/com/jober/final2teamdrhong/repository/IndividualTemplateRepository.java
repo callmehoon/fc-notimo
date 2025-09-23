@@ -16,15 +16,15 @@ public interface IndividualTemplateRepository extends JpaRepository<IndividualTe
     }
 
     // 개인 템플릿 목록 전체 조회
-    Page<IndividualTemplate> findByWorkspace_WorkspaceIdAndIsDeletedFalse(Integer workspaceId, Pageable pageable);
+    Page<IndividualTemplate> findByWorkspace_WorkspaceId(Integer workspaceId, Pageable pageable);
 
     // 개인 템플릿 목록 상태별 조회
-    Page<IndividualTemplate> findByWorkspace_WorkspaceIdAndIsDeletedFalseAndStatus(
+    Page<IndividualTemplate> findByWorkspace_WorkspaceIdAndStatus(
             Integer workspaceId,
             IndividualTemplate.Status status,
             Pageable pageable
     );
 
     // 개인 템플릿 단일 조회
-    Optional<IndividualTemplate> findByIndividualTemplateIdAndWorkspace_WorkspaceIdAndIsDeletedFalse(Integer individualTemplateId, Integer workspaceId);
+    Optional<IndividualTemplate> findByIndividualTemplateIdAndWorkspace_WorkspaceId(Integer individualTemplateId, Integer workspaceId);
 }
