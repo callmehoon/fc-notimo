@@ -44,6 +44,10 @@ public interface PhoneBookRepository extends JpaRepository<PhoneBook, Integer> {
      * @param phoneBookId 조회할 주소록의 ID
      * @return 조회된 PhoneBook 엔티티를 담은 Optional 객체. ID가 존재하지 않으면 빈 Optional을 반환합니다.
      */
-    @Query(value = "SELECT * FROM phone_book WHERE phone_book_id = :phoneBookId", nativeQuery = true)
+    @Query(value = """
+                    SELECT * 
+                    FROM phone_book 
+                    WHERE phone_book_id = :phoneBookId""",
+                    nativeQuery = true)
     Optional<PhoneBook> findByIdIncludingDeleted(@Param("phoneBookId") Integer phoneBookId);
 }
