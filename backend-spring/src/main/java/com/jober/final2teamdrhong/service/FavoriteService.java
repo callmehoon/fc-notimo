@@ -4,6 +4,7 @@ import com.jober.final2teamdrhong.dto.favorite.FavoriteResponse;
 import com.jober.final2teamdrhong.dto.favorite.FavoritePageRequest;
 import com.jober.final2teamdrhong.dto.favorite.IndividualTemplateFavoriteRequest;
 import com.jober.final2teamdrhong.dto.favorite.PublicTemplateFavoriteRequest;
+import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
 import com.jober.final2teamdrhong.entity.Favorite;
 import com.jober.final2teamdrhong.entity.Favorite.TemplateType;
 import com.jober.final2teamdrhong.entity.IndividualTemplate;
@@ -14,6 +15,10 @@ import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
 import com.jober.final2teamdrhong.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
