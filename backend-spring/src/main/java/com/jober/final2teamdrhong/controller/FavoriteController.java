@@ -17,6 +17,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -85,7 +86,7 @@ public class FavoriteController {
             @AuthenticationPrincipal JwtClaims jwtClaims,
             @RequestParam("workspaceId") Integer workspaceId,
             @RequestParam(value = "templateType", required = false) TemplateType templateType,
-            @ModelAttribute FavoritePageRequest favoritePageRequest) {
+            @Valid @ParameterObject FavoritePageRequest favoritePageRequest) {
 
         Page<FavoriteResponse> favorites = favoriteService.getFavoritesByWorkspace(jwtClaims, workspaceId, templateType, favoritePageRequest);
         return ResponseEntity.ok(favorites);
