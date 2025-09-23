@@ -14,6 +14,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
+import java.util.Optional;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
@@ -257,5 +259,65 @@ class RecipientRepositoryTest {
         // then
         // 1. 결과가 false인지 검증합니다. (자기 자신은 제외되므로 중복이 아님)
         assertThat(exists).isFalse();
+    }
+
+    @Test
+    @DisplayName("소프트 딜리트된 수신자 포함 조회 성공 테스트")
+    void findByIdIncludingDeleted_Success_ActiveRecipient_Test() {
+        // given
+        // 1. 테스트 데이터는 @BeforeEach 에서 이미 설정됨 (활성 상태의 recipient1)
+
+        // when
+        // 1. 네이티브 쿼리로 활성 상태의 수신자를 조회합니다.
+        java.util.Optional<Recipient> foundRecipientOpt =
+                recipientRepository.findByIdIncludingDeleted(recipient1.getRecipientId());
+
+        // then
+        // 1. Optional 객체가 비어있지 않은지 확인합니다. (조회 성공)
+        assertThat(foundRecipientOpt).isPresent();
+        // 2. 조회된 수신자의 정보가 올바른지 확인합니다.
+        assertThat(foundRecipientOpt.get().getRecipientName()).isEqualTo("홍길동");
+        assertThat(foundRecipientOpt.get().getIsDeleted()).isFalse();
+        assertThat(foundRecipientOpt.get().getDeletedAt()).isNull();
+    }
+
+    @Test
+    @DisplayName("소프트 딜리트된 수신자 포함 조회 성공 테스트 - 삭제된 수신자")
+    void findByIdIncludingDeleted_Success_DeletedRecipient_Test() {
+        // given
+        // 1. recipient1을 소프트 딜리트 처리합니다.
+        recipient1.softDelete();
+        recipientRepository.save(recipient1);
+        entityManager.flush();
+
+        // when
+        // 1. 네이티브 쿼리로 소프트 딜리트된 수신자를 조회합니다.
+        Optional<Recipient> foundRecipientOpt =
+                recipientRepository.findByIdIncludingDeleted(recipient1.getRecipientId());
+
+        // then
+        // 1. Optional 객체가 비어있지 않은지 확인합니다. (조회 성공)
+        assertThat(foundRecipientOpt).isPresent();
+        // 2. 조회된 수신자가 삭제된 상태인지 확인합니다.
+        assertThat(foundRecipientOpt.get().getRecipientName()).isEqualTo("홍길동");
+        assertThat(foundRecipientOpt.get().getIsDeleted()).isTrue();
+        assertThat(foundRecipientOpt.get().getDeletedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("소프트 딜리트된 수신자 포함 조회 실패 테스트 - 존재하지 않는 ID")
+    void findByIdIncludingDeleted_Fail_NonExistentId_Test() {
+        // given
+        // 1. 존재하지 않는 수신자 ID를 준비합니다.
+        Integer nonExistentId = 9999;
+
+        // when
+        // 1. 존재하지 않는 ID로 네이티브 쿼리 조회를 시도합니다.
+        Optional<Recipient> foundRecipientOpt =
+                recipientRepository.findByIdIncludingDeleted(nonExistentId);
+
+        // then
+        // 1. Optional 객체가 비어있는지 확인합니다. (조회 실패)
+        assertThat(foundRecipientOpt).isNotPresent();
     }
 }
