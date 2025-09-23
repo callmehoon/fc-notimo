@@ -29,14 +29,6 @@ public class PublicTemplateSpecification {
             }
             
             String keyword = "%" + search.getKeyword() + "%";
-
-            // searchTarget 이 null 이면 제목 또는 내용 OR 검색
-            if (search.getSearchTarget() == null) {
-                return cb.or(
-                    cb.like(root.get("publicTemplateTitle"), keyword),
-                    cb.like(root.get("publicTemplateContent"), keyword)
-                );
-            }
             
             // searchTarget 이 TITLE/CONTENT/ALL 인 경우 분기 처리
             return switch (search.getSearchTarget()) {
