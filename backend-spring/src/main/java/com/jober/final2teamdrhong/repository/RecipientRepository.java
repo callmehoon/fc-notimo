@@ -5,6 +5,8 @@ import com.jober.final2teamdrhong.entity.Workspace;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -54,4 +56,23 @@ public interface RecipientRepository extends JpaRepository<Recipient, Integer> {
      * @return 중복되는 수신자가 존재하면 {@code true}, 그렇지 않으면 {@code false}
      */
     boolean existsByWorkspaceAndRecipientNameAndRecipientPhoneNumberAndRecipientIdNot(Workspace workspace, String recipientName, String recipientPhoneNumber, Integer recipientId);
+
+    /**
+     * ID를 기준으로 수신자(Recipient) 엔티티를 조회합니다.
+     * <p>
+     * 이 메서드는 {@link Recipient} 엔티티에 적용된
+     * {@code @SQLRestriction("is_deleted = false")} 제약 조건을 우회하기 위해 네이티브 SQL 쿼리를 사용합니다.
+     * 따라서 소프트 딜리트 처리된 수신자를 포함하여 모든 상태의 수신자를 조회할 수 있습니다.
+     * <p>
+     * 주로 소프트 딜리트 트랜잭션 내에서 DB에 반영된 최종 상태(예: {@code deletedAt} 타임스탬프)를 정확히 다시 읽어와야 할 때 사용됩니다.
+     *
+     * @param recipientId 조회할 수신자의 ID
+     * @return 조회된 Recipient 엔티티를 담은 Optional 객체. ID가 존재하지 않으면 빈 Optional을 반환합니다.
+     */
+    @Query(value = """
+                    SELECT * 
+                    FROM recipient 
+                    WHERE recipient_id = :recipientId""",
+                    nativeQuery = true)
+    Optional<Recipient> findByIdIncludingDeleted(@Param("recipientId") Integer recipientId);
 }
