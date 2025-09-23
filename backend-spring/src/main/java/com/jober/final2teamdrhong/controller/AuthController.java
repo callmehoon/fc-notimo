@@ -168,7 +168,7 @@ public class AuthController {
         // Rate limiting과 회원가입 로직을 서비스로 위임
         authService.signupWithRateLimit(userSignupRequest, clientIp);
 
-        log.info("회원가입 성공: ip={}, email={}", clientIp, userSignupRequest.getEmail());
+        log.info("회원가입 성공: ip={}, email={}", clientIp, userSignupRequest.email());
         return ResponseEntity.ok(
             UserSignupResponse.success("회원가입이 성공적으로 완료되었습니다.")
         );
@@ -195,14 +195,14 @@ public class AuthController {
         String clientIp = ClientIpUtil.getClientIpAddress(request, isDevelopment);
 
         // 향상된 Rate limiting 체크 (IP + 이메일 기반)
-        rateLimitService.checkEnhancedLoginRateLimit(clientIp, userLoginRequest.getEmail());
+        rateLimitService.checkEnhancedLoginRateLimit(clientIp, userLoginRequest.email());
 
         UserLoginResponse response = authService.loginWithRefreshToken(userLoginRequest, clientIp);
 
         // 보안 강화: 민감한 정보 마스킹 후 로깅
         log.info("로그인 API 완료: ip={}, email={}",
                 LogMaskingUtil.maskIpAddress(clientIp),
-                LogMaskingUtil.maskEmail(userLoginRequest.getEmail()));
+                LogMaskingUtil.maskEmail(userLoginRequest.email()));
 
         // 보안 개선: Authorization 헤더에는 토큰을 포함하지 않고, 응답 바디에만 포함
         // 클라이언트는 응답 바디에서 토큰을 추출하여 이후 요청의 헤더에 포함해야 함
