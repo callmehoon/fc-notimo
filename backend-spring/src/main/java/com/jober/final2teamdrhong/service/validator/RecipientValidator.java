@@ -40,4 +40,20 @@ public class RecipientValidator {
         return recipientRepository.findByRecipientIdAndWorkspace_WorkspaceId(recipientId, workspaceId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 워크스페이스에 존재하지 않는 수신자입니다. ID: " + recipientId));
     }
+
+    /**
+     * 수신자 정보 수정 시, 변경하려는 이름과 전화번호가 다른 수신자와 중복되는지 검증합니다.
+     * 자기 자신은 중복 검사 대상에서 제외합니다.
+     *
+     * @param workspace            검사를 수행할 워크스페이스 엔티티
+     * @param recipientName        중복 여부를 확인할 수신자 이름
+     * @param recipientPhoneNumber 중복 여부를 확인할 수신자 전화번호
+     * @param recipientId          현재 수정 중인 수신자의 ID (검사 대상에서 제외됨)
+     * @throws IllegalArgumentException 변경하려는 정보가 다른 수신자와 중복될 경우
+     */
+    public void validateNoDuplicateRecipientExistsOnUpdate(Workspace workspace, String recipientName, String recipientPhoneNumber, Integer recipientId) {
+        if (recipientRepository.existsByWorkspaceAndRecipientNameAndRecipientPhoneNumberAndRecipientIdNot(workspace, recipientName, recipientPhoneNumber, recipientId)) {
+            throw new IllegalArgumentException("해당 정보와 동일한 다른 수신자가 이미 존재합니다.");
+        }
+    }
 }
