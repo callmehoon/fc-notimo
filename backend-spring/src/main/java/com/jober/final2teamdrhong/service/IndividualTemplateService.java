@@ -216,19 +216,15 @@ public class IndividualTemplateService {
      */
     @Transactional
     public void deleteTemplate(Integer individualTemplateId, Integer workspaceId){
-        int updated = individualTemplateRepo.softDeleteByIdAndWorkspace(individualTemplateId, workspaceId);
-        if(updated == 1){
-            log.info("Soft.deleted template id = {}", individualTemplateId);
-            return;
+        IndividualTemplate individualTemplate= individualTemplateRepository.findById(individualTemplateId)
+                .orElseThrow(() -> new EntityNotFoundException("템플릿이 존재하지 않습니다. id = " + individualTemplateId));
+
+        if (!individualTemplate.getWorkspace().getWorkspaceId().equals(workspaceId)) {
+            throw new AccessDeniedException("해당 워크스페이스 접근 권한이 없습니다.");
         }
 
-        // updated == 0 인 경우 (isDeleted != false 인 경우)만 해당 부분으로 옴. 존재 x 또는 이미 삭제됨.
-        boolean exists = individualTemplateRepo.existsById(individualTemplateId);
-        if(!exists) {
-            throw new EntityNotFoundException("템플릿이 존재하지 않습니다. id = " + individualTemplateId);
-        }
-
-        // 이미 삭제된 상태라면 그냥 성공으로 봄.
-        log.info("Template already soft-deleted. id = {}", individualTemplateId);
+        individualTemplate.softDelete();
+        individualTemplateRepository.save(individualTemplate);
+        log.info("Soft deleted template id = {}", individualTemplateId);
     }
 }
