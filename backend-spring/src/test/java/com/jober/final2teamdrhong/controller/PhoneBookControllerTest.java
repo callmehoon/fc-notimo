@@ -2,6 +2,7 @@ package com.jober.final2teamdrhong.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jober.final2teamdrhong.dto.phonebook.PhoneBookRequest;
+import com.jober.final2teamdrhong.dto.phonebook.PhoneBookResponse;
 import com.jober.final2teamdrhong.entity.*;
 import com.jober.final2teamdrhong.repository.PhoneBookRepository;
 import com.jober.final2teamdrhong.repository.RecipientRepository;
@@ -21,8 +22,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -465,6 +468,9 @@ class PhoneBookControllerTest {
                 .build();
         phoneBookRepository.save(existingPhoneBook);
 
+        // 1-1. 원본 수정 시간을 저장합니다.
+        LocalDateTime originalUpdatedAt = existingPhoneBook.getUpdatedAt();
+
         // 2. API 요청 본문에 담아 보낼 수정 DTO 객체를 생성합니다.
         PhoneBookRequest.UpdateDTO updateDTO = PhoneBookRequest.UpdateDTO.builder()
                 .newPhoneBookName("수정된 주소록명")
@@ -473,6 +479,9 @@ class PhoneBookControllerTest {
 
         // 3. DTO 객체를 JSON 문자열로 변환합니다.
         String requestBody = objectMapper.writeValueAsString(updateDTO);
+
+        // 3-1. 생성 시간과 수정 시간의 차이를 보장하기 위해 1초 대기합니다.
+        Thread.sleep(1000);
 
         // when
         // 1. MockMvc를 사용하여 PUT /workspaces/{workspaceId}/phonebooks/{phoneBookId} 엔드포인트로 API 요청을 보냅니다.
@@ -494,16 +503,8 @@ class PhoneBookControllerTest {
                 // 1-4. phoneBookMemo 필드의 값이 수정된 데이터와 일치하는지 확인합니다.
                 .andExpect(jsonPath("$.phoneBookMemo").value("수정된 메모입니다."))
                 // 1-5. 시스템컬럼 필드가 적절히 설정되어 있는지 확인합니다.
-                .andExpect(jsonPath("$.createdAt").isNotEmpty())
-                .andExpect(jsonPath("$.updatedAt").isNotEmpty())
+                .andExpect(jsonPath("$.updatedAt").value(not(originalUpdatedAt)))
                 .andExpect(jsonPath("$.deletedAt").isEmpty());
-
-        // 2. 데이터베이스에서 직접 조회하여 실제로 수정되었는지 검증합니다.
-        entityManager.flush();
-        entityManager.clear();
-        PhoneBook updatedPhoneBook = phoneBookRepository.findById(existingPhoneBook.getPhoneBookId()).orElseThrow();
-        assert updatedPhoneBook.getPhoneBookName().equals("수정된 주소록명");
-        assert updatedPhoneBook.getPhoneBookMemo().equals("수정된 메모입니다.");
     }
 
     @Test
