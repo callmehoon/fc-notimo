@@ -2,6 +2,8 @@ package com.jober.final2teamdrhong.repository;
 
 import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplateSearchRequest;
 import com.jober.final2teamdrhong.entity.PublicTemplate;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.springframework.data.jpa.domain.Specification;
 
 /**
@@ -12,7 +14,8 @@ import org.springframework.data.jpa.domain.Specification;
  * 모든 메소드는 정적(static)으로 제공되므로 인스턴스화할 필요가 없다.
  * </p>
  */
-public class PublicTemplateSpecification {
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public final class PublicTemplateSpecification {
     
     /**
      * 검색 요청에 맞춰 {@link PublicTemplate} 엔티티에 대한 JPA {@link Specification}을 만들어준다.
