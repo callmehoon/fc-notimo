@@ -27,6 +27,9 @@ class RecipientRepositoryTest {
 
     private Workspace testWorkspace;
     private Workspace anotherWorkspace;
+    private Recipient recipient1;
+    private Recipient recipient2;
+    private Recipient recipient3;
 
     @BeforeEach
     void setUp() {
@@ -58,17 +61,17 @@ class RecipientRepositoryTest {
                 .build();
         entityManager.persist(anotherWorkspace);
 
-        Recipient recipient1 = Recipient.builder()
+        recipient1 = Recipient.builder()
                 .recipientName("홍길동")
                 .recipientPhoneNumber("010-1111-2222")
                 .workspace(testWorkspace)
                 .build();
-        Recipient recipient2 = Recipient.builder()
+        recipient2 = Recipient.builder()
                 .recipientName("임꺽정")
                 .recipientPhoneNumber("010-2222-3333")
                 .workspace(testWorkspace)
                 .build();
-        Recipient recipient3 = Recipient.builder()
+        recipient3 = Recipient.builder()
                 .recipientName("김철수")
                 .recipientPhoneNumber("010-3333-4444")
                 .workspace(anotherWorkspace)
@@ -194,5 +197,65 @@ class RecipientRepositoryTest {
         assertThat(existsByName).isFalse();
         assertThat(existsByPhoneNumber).isFalse();
         assertThat(existsByWorkspace).isFalse();
+    }
+
+    @Test
+    @DisplayName("수정 시 자기 자신을 제외한 중복 수신자 존재 여부 확인 성공 테스트")
+    void existsByWorkspaceAndRecipientNameAndRecipientPhoneNumberAndRecipientIdNot_Success_NoDuplicate_Test() {
+        // given
+        // 1. 테스트 데이터는 @BeforeEach 에서 이미 설정됨 ("홍길동", "010-1111-2222", testWorkspace)
+        // 2. 추가로 다른 수신자를 저장합니다.
+        Recipient anotherRecipient = recipientRepository.save(Recipient.builder()
+                .recipientName("김철수")
+                .recipientPhoneNumber("010-3333-3333")
+                .workspace(testWorkspace)
+                .build());
+
+        // when
+        // 1. 자기 자신(recipient1)을 제외하고, 존재하지 않는 이름과 번호 조합으로 중복 확인
+        boolean exists = recipientRepository.existsByWorkspaceAndRecipientNameAndRecipientPhoneNumberAndRecipientIdNot(
+                testWorkspace, "박영수", "010-4444-4444", recipient1.getRecipientId());
+
+        // then
+        // 1. 결과가 false인지 검증합니다. (중복이 없음)
+        assertThat(exists).isFalse();
+    }
+
+    @Test
+    @DisplayName("수정 시 자기 자신을 제외한 중복 수신자 존재 여부 확인 실패 테스트 - 다른 수신자와 중복")
+    void existsByWorkspaceAndRecipientNameAndRecipientPhoneNumberAndRecipientIdNot_Fail_DuplicateWithOther_Test() {
+        // given
+        // 1. 테스트 데이터는 @BeforeEach 에서 이미 설정됨 ("홍길동", "010-1111-2222", testWorkspace)
+        // 2. 추가로 다른 수신자를 저장합니다.
+        Recipient anotherRecipient = recipientRepository.save(Recipient.builder()
+                .recipientName("김철수")
+                .recipientPhoneNumber("010-3333-3333")
+                .workspace(testWorkspace)
+                .build());
+
+        // when
+        // 1. 자기 자신(recipient1)을 제외하고, 다른 수신자(anotherRecipient)와 동일한 이름과 번호로 중복 확인
+        boolean exists = recipientRepository.existsByWorkspaceAndRecipientNameAndRecipientPhoneNumberAndRecipientIdNot(
+                testWorkspace, "김철수", "010-3333-3333", recipient1.getRecipientId());
+
+        // then
+        // 1. 결과가 true인지 검증합니다. (다른 수신자와 중복됨)
+        assertThat(exists).isTrue();
+    }
+
+    @Test
+    @DisplayName("수정 시 자기 자신을 제외한 중복 수신자 존재 여부 확인 성공 테스트 - 자기 자신과는 중복 허용")
+    void existsByWorkspaceAndRecipientNameAndRecipientPhoneNumberAndRecipientIdNot_Success_SelfExcluded_Test() {
+        // given
+        // 1. 테스트 데이터는 @BeforeEach 에서 이미 설정됨 ("홍길동", "010-1111-2222", testWorkspace)
+
+        // when
+        // 1. 자기 자신(recipient1)을 제외하고, 자기 자신과 동일한 이름과 번호로 중복 확인
+        boolean exists = recipientRepository.existsByWorkspaceAndRecipientNameAndRecipientPhoneNumberAndRecipientIdNot(
+                testWorkspace, "홍길동", "010-1111-2222", recipient1.getRecipientId());
+
+        // then
+        // 1. 결과가 false인지 검증합니다. (자기 자신은 제외되므로 중복이 아님)
+        assertThat(exists).isFalse();
     }
 }
