@@ -45,10 +45,14 @@ public class FavoriteController {
                             schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/individual/favorite")
-    public ResponseEntity<FavoriteResponse> createIndividualTemplateFavorite(@AuthenticationPrincipal JwtClaims jwtClaims, @Valid @RequestBody IndividualTemplateFavoriteRequest request) {
+    public ResponseEntity<FavoriteResponse> createIndividualTemplateFavorite(
+            @AuthenticationPrincipal JwtClaims jwtClaims,
+            @Valid @RequestBody IndividualTemplateFavoriteRequest request) {
         FavoriteResponse response = favoriteService.createIndividualTemplateFavorite(jwtClaims, request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
+
+
 
     @Operation(summary = "공용 템플릿 즐겨찾기 추가", description = "사용자가 공용 템플릿을 즐겨찾기에 추가합니다.",
             security = @SecurityRequirement(name = "bearerAuth"))
@@ -64,10 +68,13 @@ public class FavoriteController {
                             schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/public/favorite")
-    public ResponseEntity<FavoriteResponse> createPublicTemplateFavorite(@AuthenticationPrincipal JwtClaims jwtClaims, @Valid @RequestBody PublicTemplateFavoriteRequest request) {
+    public ResponseEntity<FavoriteResponse> createPublicTemplateFavorite(
+            @AuthenticationPrincipal JwtClaims jwtClaims,
+            @Valid @RequestBody PublicTemplateFavoriteRequest request) {
         FavoriteResponse response = favoriteService.createPublicTemplateFavorite(jwtClaims, request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
+
 
 
     @Operation(summary = "워크스페이스별 즐겨찾기 목록 조회", description = "특정 워크스페이스에 속한 즐겨찾기 목록을 조건에 따라 페이징하여 조회합니다.",
@@ -81,10 +88,10 @@ public class FavoriteController {
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class)))
     })
-    @GetMapping("/favorites")
+    @GetMapping("/workspace/{workspaceId}/favorites")
     public ResponseEntity<Page<FavoriteResponse>> getFavoritesByWorkspace(
             @AuthenticationPrincipal JwtClaims jwtClaims,
-            @RequestParam("workspaceId") Integer workspaceId,
+            @PathVariable("workspaceId") Integer workspaceId,
             @RequestParam(value = "templateType", required = false) TemplateType templateType,
             @Valid @ParameterObject FavoritePageRequest favoritePageRequest) {
 
