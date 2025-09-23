@@ -1,5 +1,6 @@
 package com.jober.final2teamdrhong.service;
 
+import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplatePageableRequest;
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateResponse;
 import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import com.jober.final2teamdrhong.entity.PublicTemplate;
@@ -119,29 +120,29 @@ public class IndividualTemplateService {
     @Transactional(readOnly = true)
     public Page<IndividualTemplateResponse> getAllTemplates(
             Integer workspaceId,
-            Pageable pageable) {
+            IndividualTemplatePageableRequest pageableRequest) {
 
-        return individualTemplateRepository.findByWorkspace_WorkspaceIdAndIsDeletedFalse(workspaceId, pageable)
-                .map(individualTemplate -> new IndividualTemplateResponse(
-                        individualTemplate.getIndividualTemplateId(),
-                        individualTemplate.getIndividualTemplateTitle(),
-                        individualTemplate.getIndividualTemplateContent(),
-                        individualTemplate.getButtonTitle(),
-                        individualTemplate.getWorkspace().getWorkspaceId(),
-                        individualTemplate.getCreatedAt(),
-                        individualTemplate.getUpdatedAt(),
-                        individualTemplate.getIsDeleted(),
-                        individualTemplate.getStatus()
-                ));
+        Pageable pageable = pageableRequest.toPageable();
+
+        if (pageableRequest.getStatus() == null) {
+            return individualTemplateRepository.findByWorkspace_WorkspaceId(workspaceId, pageable)
+                    .map(IndividualTemplateResponse::toResponse);
+        } else {
+            return individualTemplateRepository.findByWorkspace_WorkspaceIdAndStatus(
+                    workspaceId,
+                    pageableRequest.getStatus(),
+                    pageable)
+                    .map(IndividualTemplateResponse::toResponse);
+        }
     }
 
     @Async
     @Transactional(readOnly = true)
     public CompletableFuture<Page<IndividualTemplateResponse>> getAllTemplatesAsync(
             Integer workspaceId,
-            Pageable pageable) {
+            IndividualTemplatePageableRequest pageableRequest) {
         log.info("[@Async] thread={}, isVirtual={}", Thread.currentThread().getName(), Thread.currentThread().isVirtual());
-        return CompletableFuture.completedFuture(getAllTemplates(workspaceId, pageable));
+        return CompletableFuture.completedFuture(getAllTemplates(workspaceId, pageableRequest));
     }
 
     /**
@@ -154,18 +155,8 @@ public class IndividualTemplateService {
             Pageable pageable) {
 
         return individualTemplateRepository
-                .findByWorkspace_WorkspaceIdAndIsDeletedFalseAndStatus(workspaceId, status, pageable)
-                .map(individualTemplate -> new IndividualTemplateResponse(
-                        individualTemplate.getIndividualTemplateId(),
-                        individualTemplate.getIndividualTemplateTitle(),
-                        individualTemplate.getIndividualTemplateContent(),
-                        individualTemplate.getButtonTitle(),
-                        individualTemplate.getWorkspace().getWorkspaceId(),
-                        individualTemplate.getCreatedAt(),
-                        individualTemplate.getUpdatedAt(),
-                        individualTemplate.getIsDeleted(),
-                        individualTemplate.getStatus()
-                ));
+                .findByWorkspace_WorkspaceIdAndStatus(workspaceId, status, pageable)
+                .map(IndividualTemplateResponse::toResponse);
     }
 
     @Async
@@ -185,20 +176,10 @@ public class IndividualTemplateService {
     @Transactional(readOnly = true)
     public IndividualTemplateResponse getIndividualTemplate(Integer workspaceId, Integer individualTemplateId) {
         IndividualTemplate individualTemplate = individualTemplateRepository
-                .findByIndividualTemplateIdAndWorkspace_WorkspaceIdAndIsDeletedFalse(individualTemplateId, workspaceId)
+                .findByIndividualTemplateIdAndWorkspace_WorkspaceId(individualTemplateId, workspaceId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 템플릿이 존재하지 않습니다. id = " + individualTemplateId));
 
-        return new IndividualTemplateResponse(
-                individualTemplate.getIndividualTemplateId(),
-                individualTemplate.getIndividualTemplateTitle(),
-                individualTemplate.getIndividualTemplateContent(),
-                individualTemplate.getButtonTitle(),
-                individualTemplate.getWorkspace().getWorkspaceId(),
-                individualTemplate.getCreatedAt(),
-                individualTemplate.getUpdatedAt(),
-                individualTemplate.getIsDeleted(),
-                individualTemplate.getStatus()
-        );
+        return IndividualTemplateResponse.toResponse(individualTemplate);
     }
 
     @Async
