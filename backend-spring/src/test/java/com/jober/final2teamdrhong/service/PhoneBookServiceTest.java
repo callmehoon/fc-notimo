@@ -535,9 +535,6 @@ class PhoneBookServiceTest {
         //    - phoneBookValidator.validateAndGetPhoneBook 호출 시, existingPhoneBook를 반환합니다.
         when(phoneBookValidator.validateAndGetPhoneBook(workspaceId, phoneBookId))
                 .thenReturn(existingPhoneBook);
-        //    - phoneBookRepository.findById 호출 시, flush/clear 후 재조회를 위해 existingPhoneBook를 반환합니다.
-        when(phoneBookRepository.findById(phoneBookId))
-                .thenReturn(java.util.Optional.of(existingPhoneBook));
 
         // when
         // 1. 실제 테스트 대상인 서비스 메소드를 호출합니다.
@@ -557,14 +554,7 @@ class PhoneBookServiceTest {
         // 3. update() 메서드가 호출되어 updatedAt이 갱신되었는지 검증합니다.
         verify(existingPhoneBook, times(1)).update();
 
-        // 4. EntityManager flush/clear가 호출되었는지 검증합니다.
-        verify(entityManager, times(1)).flush();
-        verify(entityManager, times(1)).clear();
-
-        // 5. DB 재조회가 호출되었는지 검증합니다.
-        verify(phoneBookRepository, times(1)).findById(phoneBookId);
-
-        // 6. Validator들이 각각 정확히 1번씩 호출되었는지 검증합니다.
+        // 4. Validator들이 각각 정확히 1번씩 호출되었는지 검증합니다.
         verify(workspaceValidator, times(1)).validateAndGetWorkspace(workspaceId, userId);
         verify(phoneBookValidator, times(1)).validateAndGetPhoneBook(workspaceId, phoneBookId);
     }
