@@ -27,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
 @Transactional
-class FavoriteCreationIntegrationTest {
+class FavoriteIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -49,6 +49,7 @@ class FavoriteCreationIntegrationTest {
     private Workspace savedWorkspace;
     private IndividualTemplate savedIndividualTemplate;
     private PublicTemplate savedPublicTemplate;
+    private User testUser;
 
     @BeforeEach
     void setUp() {
@@ -204,8 +205,7 @@ class FavoriteCreationIntegrationTest {
         favoriteRepository.save(Favorite.builder().workspace(savedWorkspace).individualTemplate(savedIndividualTemplate).build());
 
         // when & then
-        mockMvc.perform(get("/favorites")
-                        .param("workspaceId", savedWorkspace.getWorkspaceId().toString())
+        mockMvc.perform(get("/workspace/{workspaceId}/favorites", savedWorkspace.getWorkspaceId())                        .param("workspaceId", savedWorkspace.getWorkspaceId().toString())
                         .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
@@ -222,8 +222,7 @@ class FavoriteCreationIntegrationTest {
         favoriteRepository.save(Favorite.builder().workspace(savedWorkspace).individualTemplate(savedIndividualTemplate).build());
 
         // when & then
-        mockMvc.perform(get("/favorites")
-                        .param("workspaceId", savedWorkspace.getWorkspaceId().toString())
+        mockMvc.perform(get("/workspace/{workspaceId}/favorites", savedWorkspace.getWorkspaceId())                        .param("workspaceId", savedWorkspace.getWorkspaceId().toString())
                         .param("templateType", "PUBLIC")
                         .param("size", "1")
                         .with(csrf()))
@@ -243,8 +242,7 @@ class FavoriteCreationIntegrationTest {
         favoriteRepository.save(Favorite.builder().workspace(savedWorkspace).publicTemplate(savedPublicTemplate).build());
 
         // when & then
-        mockMvc.perform(get("/favorites")
-                        .param("workspaceId", savedWorkspace.getWorkspaceId().toString())
+        mockMvc.perform(get("/workspace/{workspaceId}/favorites", savedWorkspace.getWorkspaceId())                        .param("workspaceId", savedWorkspace.getWorkspaceId().toString())
                         .with(csrf()))
                 .andExpect(status().isBadRequest());
     }

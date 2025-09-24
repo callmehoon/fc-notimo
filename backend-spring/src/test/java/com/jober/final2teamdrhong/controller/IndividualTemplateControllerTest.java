@@ -5,6 +5,7 @@ import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateRespo
 import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
 import com.jober.final2teamdrhong.entity.User.UserRole;
 import com.jober.final2teamdrhong.service.IndividualTemplateService;
+import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
 import org.junit.jupiter.api.DisplayName;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
@@ -38,6 +39,9 @@ class IndividualTemplateControllerTest {
 
     @Mock
     IndividualTemplateService individualTemplateService;
+
+    @Mock
+    WorkspaceValidator workspaceValidator;
 
     @InjectMocks
     IndividualTemplateController controller;
@@ -115,8 +119,9 @@ class IndividualTemplateControllerTest {
         assertThat(result.getBody().getIndividualTemplateId()).isEqualTo(3);
         assertThat(result.getBody().getWorkspaceId()).isEqualTo(55);
 
-        verify(individualTemplateService).validateWorkspaceOwnership(55, 3);
         verify(individualTemplateService).createIndividualTemplateFromPublic(10, 55, 3);
+        verify(workspaceValidator).validateAndGetWorkspace(eq(55), eq(3));
+
     }
 
     @Test

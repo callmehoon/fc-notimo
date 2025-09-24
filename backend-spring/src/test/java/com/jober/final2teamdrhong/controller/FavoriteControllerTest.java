@@ -127,8 +127,7 @@ class FavoriteControllerTest {
                 .thenReturn(mockPage);
 
         // when & then
-        mockMvc.perform(get("/favorites")
-                        .param("workspaceId", String.valueOf(workspaceId))
+        mockMvc.perform((get("/workspace/{workspaceId}/favorites", workspaceId))
                         .param("templateType", "PUBLIC")
                         .param("page", "0")
                         .param("size", "10"))
@@ -151,8 +150,7 @@ class FavoriteControllerTest {
                 .thenThrow(new IllegalArgumentException(errorMessage));
 
         // when & then
-        mockMvc.perform(get("/favorites")
-                        .param("workspaceId", String.valueOf(workspaceId)))
+        mockMvc.perform(get("/workspace/{workspaceId}/favorites", workspaceId))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value(errorMessage));
 
