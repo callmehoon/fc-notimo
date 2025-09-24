@@ -233,7 +233,7 @@ class GroupMappingRepositoryTest {
 
     @Test
     @DisplayName("특정 주소록의 GroupMapping 페이징 조회 테스트 - 수신자 생성 시간 내림차순 정렬")
-    void findByPhoneBook_Pageable_Test() {
+    void findByPhoneBookOrderByRecipient_CreatedAtDescRecipient_RecipientIdDesc_Pageable_Test() {
         // given
         // 1. @BeforeEach에서 testPhoneBook에 recipient1, recipient2가 매핑된 상태입니다.
         // 2. 페이징 정보를 설정합니다. (페이지 크기 10, 첫 번째 페이지)
@@ -241,7 +241,7 @@ class GroupMappingRepositoryTest {
 
         // when
         // 1. 테스트 대상 메서드를 호출하여 특정 주소록의 GroupMapping을 페이징 조회합니다.
-        Page<GroupMapping> groupMappingPage = groupMappingRepository.findByPhoneBook(testPhoneBook, pageable);
+        Page<GroupMapping> groupMappingPage = groupMappingRepository.findByPhoneBookOrderByRecipient_CreatedAtDescRecipient_RecipientIdDesc(testPhoneBook, pageable);
 
         // then
         // 1. 페이지 객체가 null이 아닌지 확인합니다.
@@ -261,19 +261,20 @@ class GroupMappingRepositoryTest {
 
     @Test
     @DisplayName("특정 주소록의 GroupMapping 페이징 조회 테스트 - 수신자 생성 시간 정렬 확인")
-    void findByPhoneBook_SortByRecipientCreatedAt_Test() {
+    void findByPhoneBookOrderByRecipient_CreatedAtDescRecipient_RecipientIdDesc_SortByRecipientCreatedAt_Test() {
         // given
-        // 1. recipient3이 가장 최신에 생성되었으므로 가장 먼저 나와야 합니다.
-        // 2. 페이징 정보를 설정합니다.
-        Pageable pageable = PageRequest.of(0, 10);
-
-        // 3. recipient3도 testPhoneBook에 추가하여 3개의 수신자를 만듭니다.
-        testEntityManager.persist(GroupMapping.builder().phoneBook(testPhoneBook).recipient(recipient3).build());
+        // 1. Detached 상태인 testPhoneBook을 DB에서 다시 조회하여 Managed 상태로 만듭니다.
+        PhoneBook managedTestPhoneBook = entityManager.find(PhoneBook.class, testPhoneBook.getPhoneBookId());
+        // 2. recipient3을 Managed 상태의 주소록에 추가합니다.
+        testEntityManager.persist(GroupMapping.builder().phoneBook(managedTestPhoneBook).recipient(recipient3).build());
         testEntityManager.flush();
+
+        // 3. 페이징 정보를 설정합니다.
+        Pageable pageable = PageRequest.of(0, 10);
 
         // when
         // 1. 테스트 대상 메서드를 호출합니다.
-        Page<GroupMapping> groupMappingPage = groupMappingRepository.findByPhoneBook(testPhoneBook, pageable);
+        Page<GroupMapping> groupMappingPage = groupMappingRepository.findByPhoneBookOrderByRecipient_CreatedAtDescRecipient_RecipientIdDesc(managedTestPhoneBook, pageable);
 
         // then
         // 1. 전체 요소 개수가 3개인지 확인합니다.
@@ -285,7 +286,7 @@ class GroupMappingRepositoryTest {
 
     @Test
     @DisplayName("GroupMapping이 없는 주소록 페이징 조회 시 빈 페이지 반환 테스트")
-    void findByPhoneBook_EmptyPage_Test() {
+    void findByPhoneBookOrderByRecipient_CreatedAtDescRecipient_RecipientIdDesc_EmptyPage_Test() {
         // given
         // 1. 테스트용 워크스페이스를 조회합니다.
         Workspace workspace = testEntityManager.find(Workspace.class, testPhoneBook.getWorkspace().getWorkspaceId());
@@ -297,7 +298,7 @@ class GroupMappingRepositoryTest {
 
         // when
         // 1. 비어있는 주소록을 대상으로 메서드를 호출합니다.
-        Page<GroupMapping> groupMappingPage = groupMappingRepository.findByPhoneBook(emptyPhoneBook, pageable);
+        Page<GroupMapping> groupMappingPage = groupMappingRepository.findByPhoneBookOrderByRecipient_CreatedAtDescRecipient_RecipientIdDesc(emptyPhoneBook, pageable);
 
         // then
         // 1. 페이지 객체가 null이 아닌지 확인합니다.

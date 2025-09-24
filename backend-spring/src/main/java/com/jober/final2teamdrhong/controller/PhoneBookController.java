@@ -165,10 +165,7 @@ public class PhoneBookController {
     @GetMapping("/{phoneBookId}/recipients")
     public ResponseEntity<Page<RecipientResponse.SimpleDTO>> readRecipientsInPhoneBook(@PathVariable Integer workspaceId,
                                                                                        @PathVariable Integer phoneBookId,
-                                                                                       @PageableDefault(size = 50,
-                                                                                               sort = "createdAt",
-                                                                                               direction = Sort.Direction.DESC)
-                                                                                       Pageable pageable,
+                                                                                       @PageableDefault(size = 50) Pageable pageable,
                                                                                        @AuthenticationPrincipal JwtClaims jwtClaims) {
         Integer currentUserId = jwtClaims.getUserId();
         Page<RecipientResponse.SimpleDTO> recipientsInPhoneBookPage = phoneBookService.readRecipientsInPhoneBook(workspaceId, phoneBookId, currentUserId, pageable);

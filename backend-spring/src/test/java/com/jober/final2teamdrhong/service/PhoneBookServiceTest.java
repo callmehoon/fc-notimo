@@ -444,7 +444,7 @@ class PhoneBookServiceTest {
                 .thenReturn(mockWorkspace);
         when(phoneBookValidator.validateAndGetPhoneBook(workspaceId, phoneBookId))
                 .thenReturn(mockPhoneBook);
-        when(groupMappingRepository.findByPhoneBook(mockPhoneBook, pageable))
+        when(groupMappingRepository.findByPhoneBookOrderByRecipient_CreatedAtDescRecipient_RecipientIdDesc(mockPhoneBook, pageable))
                 .thenReturn(mockGroupMappingPage);
 
         // when
@@ -470,7 +470,7 @@ class PhoneBookServiceTest {
         // 6. Validator와 Repository의 메소드가 각각 정확히 1번씩 호출되었는지 검증합니다.
         verify(workspaceValidator, times(1)).validateAndGetWorkspace(workspaceId, userId);
         verify(phoneBookValidator, times(1)).validateAndGetPhoneBook(workspaceId, phoneBookId);
-        verify(groupMappingRepository, times(1)).findByPhoneBook(mockPhoneBook, pageable);
+        verify(groupMappingRepository, times(1)).findByPhoneBookOrderByRecipient_CreatedAtDescRecipient_RecipientIdDesc(mockPhoneBook, pageable);
     }
 
     @Test
@@ -503,7 +503,7 @@ class PhoneBookServiceTest {
                 thrown.getMessage());
 
         // 2. (중요) 로직이 초반에 중단되었으므로, GroupMapping 조회 로직은 절대 호출되면 안됩니다.
-        verify(groupMappingRepository, never()).findByPhoneBook(any(PhoneBook.class), any(Pageable.class));
+        verify(groupMappingRepository, never()).findByPhoneBookOrderByRecipient_CreatedAtDescRecipient_RecipientIdDesc(any(PhoneBook.class), any(Pageable.class));
     }
 
     @Test
