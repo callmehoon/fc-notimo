@@ -7,7 +7,6 @@ import com.jober.final2teamdrhong.entity.PublicTemplate;
 import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
-import com.jober.final2teamdrhong.repository.WorkspaceRepository;
 import jakarta.persistence.EntityNotFoundException;
 import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,7 +19,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.access.AccessDeniedException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -48,9 +46,6 @@ class IndividualTemplateServiceTest {
     private IndividualTemplateRepository individualTemplateRepo;
 
     @Mock
-    private WorkspaceRepository workspaceRepo;
-
-    @Mock
     private WorkspaceValidator workspaceValidator;
 
     @Mock
@@ -64,37 +59,6 @@ class IndividualTemplateServiceTest {
     @BeforeEach
     void setUp() {
         workspaceMock = mock(Workspace.class);
-    }
-
-    @Nested
-    @DisplayName("validateWorkspaceOwnership")
-    class ValidateWorkspaceOwnership {
-
-        @Test
-        @DisplayName("userId가 null이면 AccessDeniedException이 발생한다")
-        void validateWorkspaceOwnership_nullUserId() {
-            // when & then
-            assertThatThrownBy(() -> service.validateWorkspaceOwnership(1, null))
-                    .isInstanceOf(AccessDeniedException.class)
-                    .hasMessage("인증이 필요합니다.");
-
-            verifyNoInteractions(workspaceRepo);
-        }
-
-        @Test
-        @DisplayName("워크스페이스 소유권이 있으면 정상적으로 통과한다")
-        void validateWorkspaceOwnership_hasOwnership() {
-            // given
-            when(workspaceRepo.existsByWorkspaceIdAndUser_UserId(1, 100))
-                    .thenReturn(true);
-
-            // when & then
-            assertThatCode(() -> service.validateWorkspaceOwnership(1, 100))
-                    .doesNotThrowAnyException();
-
-            verify(workspaceRepo, times(1)).existsByWorkspaceIdAndUser_UserId(1, 100);
-            verifyNoMoreInteractions(workspaceRepo);
-        }
     }
 
     @Nested
