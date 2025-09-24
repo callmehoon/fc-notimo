@@ -32,7 +32,7 @@ function TemplateGeneratorPage() {
     };
 
     try {
-      const response = await apiAi.post('/template/template', requestData);
+      const response = await apiAi.post('/template', requestData);
       const { template: newTemplate, chat_response: chatResponse } = response.data;
 
       setTemplate(newTemplate);
