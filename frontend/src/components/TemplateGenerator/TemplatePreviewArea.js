@@ -1,39 +1,47 @@
 import React from 'react';
+import { Box, Typography, Button, Paper } from '@mui/material';
 
-function TemplatePreviewArea() {
+function TemplatePreviewArea({ template }) {
   const handleSaveTemplate = () => {
-    console.log('템플릿 저장하기 버튼 클릭됨');
-    alert('템플릿이 저장되었습니다! (실제 저장 로직은 구현되지 않았습니다.)');
+    // TODO: Implement save functionality. This should likely be lifted up
+    // to the parent component and passed down as a prop.
+    console.log('Saving template:', template);
+    alert('템플릿 저장 기능은 아직 구현되지 않았습니다.');
   };
 
-  const templateContent = `
-쿠폰이 곧 만료됨을 알립니다.
-
-쿠폰 이름 : (쿠폰이름)
-만료 일자 : (만료일자)
-`;
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
-        <button
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '10px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+        <Typography variant="h6">템플릿 미리보기</Typography>
+        <Button
+          variant="contained"
+          color="primary"
           onClick={handleSaveTemplate}
-          style={{ padding: '8px 15px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
         >
           저장하기
-        </button>
+        </Button>
       </div>
-      <div style={{
+      <Paper elevation={2} style={{
         flexGrow: 1,
-        border: '1px solid #ddd',
-        borderRadius: '8px',
         padding: '20px',
         backgroundColor: 'white',
-        whiteSpace: 'pre-wrap', // Preserve whitespace and line breaks
-        overflowY: 'auto'
+        overflowY: 'auto',
+        whiteSpace: 'pre-wrap',
       }}>
-        {templateContent}
-      </div>
+        <Typography variant="h5" gutterBottom>
+          {template.title}
+        </Typography>
+        <Typography variant="body1">
+          {template.text}
+        </Typography>
+        {template.button_name && (
+          <Box sx={{ mt: 3, textAlign: 'center' }}>
+            <Button variant="contained" sx={{ minWidth: '200px' }}>
+              {template.button_name}
+            </Button>
+          </Box>
+        )}
+      </Paper>
     </div>
   );
 }
