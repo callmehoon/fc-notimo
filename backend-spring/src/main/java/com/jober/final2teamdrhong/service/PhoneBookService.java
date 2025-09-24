@@ -169,7 +169,7 @@ public class PhoneBookService {
         PhoneBook phoneBook = phoneBookValidator.validateAndGetPhoneBook(workspaceId, phoneBookId);
 
         // 2. Repository를 통해 해당 주소록의 GroupMapping 목록을 페이징 조회합니다. (Recipient의 createdAt 내림차순 정렬)
-        Page<GroupMapping> recipientsInPhoneBookPage = groupMappingRepository.findByPhoneBookOrderByRecipientCreatedAtDesc(phoneBook, pageable);
+        Page<GroupMapping> recipientsInPhoneBookPage = groupMappingRepository.findByPhoneBookOrderByRecipient_CreatedAtDescRecipient_RecipientIdDesc(phoneBook, pageable);
 
         // 3. GroupMapping에서 Recipient를 추출하여 RecipientResponse.SimpleDTO로 변환한 후 Page 형태로 반환합니다.
         return recipientsInPhoneBookPage
