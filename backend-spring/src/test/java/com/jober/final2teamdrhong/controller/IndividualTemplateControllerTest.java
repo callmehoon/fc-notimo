@@ -252,7 +252,7 @@ class IndividualTemplateControllerTest {
         Page<IndividualTemplateResponse> page =
                 new PageImpl<>(List.of(row), PageRequest.of(0, 10), 1);
 
-        given(individualTemplateService.getAllTemplates(eq(workspaceId), any(Pageable.class)))
+        given(individualTemplateService.getAllTemplates(eq(workspaceId), any(IndividualTemplatePageableRequest.class)))
                 .willReturn(page);
 
         ResponseEntity<Page<IndividualTemplateResponse>> res =
@@ -264,7 +264,7 @@ class IndividualTemplateControllerTest {
         assertThat(res.getBody().getContent().get(0).getIndividualTemplateTitle()).isEqualTo("Test Template");
 
         verify(individualTemplateService).validateWorkspaceOwnership(workspaceId, userId);
-        verify(individualTemplateService).getAllTemplates(eq(workspaceId), any(Pageable.class));
+        verify(individualTemplateService).getAllTemplates(eq(workspaceId), any(IndividualTemplatePageableRequest.class));
     }
 
     @Test
@@ -283,7 +283,7 @@ class IndividualTemplateControllerTest {
         Page<IndividualTemplateResponse> page =
                 new PageImpl<>(List.of(row), PageRequest.of(0, 10), 1);
 
-        given(individualTemplateService.getIndividualTemplateByStatus(eq(workspaceId), eq(IndividualTemplate.Status.DRAFT), any(Pageable.class)))
+        given(individualTemplateService.getAllTemplates(eq(workspaceId), any(IndividualTemplatePageableRequest.class)))
                 .willReturn(page);
 
         ResponseEntity<Page<IndividualTemplateResponse>> res =
@@ -295,7 +295,7 @@ class IndividualTemplateControllerTest {
         assertThat(res.getBody().getContent().get(0).getStatus()).isEqualTo(IndividualTemplate.Status.DRAFT);
 
         verify(individualTemplateService).validateWorkspaceOwnership(workspaceId, userId);
-        verify(individualTemplateService).getIndividualTemplateByStatus(eq(workspaceId), eq(IndividualTemplate.Status.DRAFT), any(Pageable.class));
+        verify(individualTemplateService).getAllTemplates(eq(workspaceId), any(IndividualTemplatePageableRequest.class));
     }
 
     // ----------------------

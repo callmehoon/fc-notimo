@@ -13,7 +13,6 @@ import org.springframework.data.domain.Pageable;
 
 @Getter
 @Setter
-@NoArgsConstructor
 @Slf4j
 public class IndividualTemplatePageableRequest {
 

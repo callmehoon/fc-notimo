@@ -38,6 +38,7 @@ public class RecipientController {
      * 특정 워크스페이스에 새로운 수신자를 생성하는 API
      * <p>
      * 요청한 사용자가 해당 워크스페이스에 대한 접근 권한이 있는지 확인 후, 수신자를 생성합니다.
+     * 만약 해당 워크스페이스에 동일한 이름과 전화번호를 가진 수신자가 이미 존재한다면 에러를 반환합니다.
      *
      * @param createDTO   클라이언트로부터 받은 수신자 생성을 위한 데이터 (JSON, @Valid로 검증됨)
      * @param workspaceId 수신자를 추가할 워크스페이스의 ID
@@ -49,7 +50,7 @@ public class RecipientController {
             @ApiResponse(responseCode = "201", description = "수신자 생성 성공",
                     content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = RecipientResponse.SimpleDTO.class))),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청: 요청 데이터 유효성 검사 실패 또는 비즈니스 규칙 위배 (예: 권한 없는 워크스페이스)",
+            @ApiResponse(responseCode = "400", description = "잘못된 요청: 요청 데이터 유효성 검사 실패 또는 비즈니스 규칙 위배 (예: 권한 없는 워크스페이스, 이미 존재하는 수신자)",
                     content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "401", description = "인증 실패 (로그인 필요)",
@@ -109,6 +110,7 @@ public class RecipientController {
      * <p>
      * 요청한 사용자가 해당 워크스페이스에 대한 접근 권한이 있는지 확인 후,
      * URL 경로의 recipientId에 해당하는 수신자 정보를 요청 본문의 데이터로 업데이트합니다.
+     * 수정하려는 이름과 전화번호가 다른 수신자와 중복될 경우 에러를 반환합니다.
      *
      * @param updateDTO   수신자 수정을 위한 데이터 (JSON, @Valid로 검증됨)
      * @param workspaceId 수정할 수신자가 속한 워크스페이스의 ID
@@ -121,7 +123,7 @@ public class RecipientController {
             @ApiResponse(responseCode = "200", description = "수신자 정보 수정 성공",
                     content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = RecipientResponse.SimpleDTO.class))),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청: 요청 데이터 유효성 검사 실패 또는 존재하지 않는 리소스(워크스페이스, 수신자)",
+            @ApiResponse(responseCode = "400", description = "잘못된 요청: 요청 데이터 유효성 검사 실패, 존재하지 않는 리소스(워크스페이스, 수신자), 또는 다른 수신자와 정보 중복",
                     content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "401", description = "인증 실패 (로그인 필요)",
@@ -138,5 +140,40 @@ public class RecipientController {
         RecipientResponse.SimpleDTO updatedRecipient = recipientService.updateRecipient(updateDTO, workspaceId, recipientId, currentUserId);
 
         return ResponseEntity.status(HttpStatus.OK).body(updatedRecipient);
+    }
+
+    /**
+     * 특정 워크스페이스에 속한 수신자를 삭제하는 API (소프트 딜리트)
+     * <p>
+     * 요청한 사용자가 해당 워크스페이스에 대한 접근 권한이 있는지 확인 후,
+     * URL 경로의 recipientId에 해당하는 수신자의 is_deleted 플래그를 true로 변경합니다.
+     *
+     * @param workspaceId 삭제할 수신자가 속한 워크스페이스의 ID
+     * @param recipientId 삭제할 수신자의 ID
+     * @param jwtClaims {@link AuthenticationPrincipal}을 통해 SecurityContext에서 직접 주입받는 현재 로그인된 사용자의 JWT 정보 객체
+     * @return 상태 코드 200 (OK)와 함께 삭제 처리된 수신자의 정보를 담은 ResponseEntity
+     */
+    @Operation(summary = "수신자 삭제", description = "특정 워크스페이스에 속한 수신자를 삭제합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "수신자 삭제 성공",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = RecipientResponse.SimpleDTO.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청: 존재하지 않거나 권한 없는 워크스페이스, " +
+                    "또는 해당 워크스페이스에 속하지 않는 수신자에 접근 시 발생",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "인증 실패 (로그인 필요)",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @DeleteMapping("/{recipientId}")
+    public ResponseEntity<RecipientResponse.SimpleDTO> deleteRecipient(@PathVariable Integer workspaceId,
+                                                                       @PathVariable Integer recipientId,
+                                                                       @AuthenticationPrincipal JwtClaims jwtClaims) {
+        Integer currentUserId = jwtClaims.getUserId();
+        RecipientResponse.SimpleDTO deletedRecipient = recipientService.deleteRecipient(workspaceId, recipientId, currentUserId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(deletedRecipient);
     }
 }

@@ -160,12 +160,9 @@ public class IndividualTemplateController {
         Integer userId = claims.getUserId();
         individualTemplateService.validateWorkspaceOwnership(workspaceId, userId);
 
-        Page<IndividualTemplateResponse> page =
-                (individualTemplatePageableRequest.getStatus() == null)
-                ? individualTemplateService.getAllTemplates(workspaceId, individualTemplatePageableRequest.toPageable())
-                        : individualTemplateService.getIndividualTemplateByStatus(workspaceId,
-                        individualTemplatePageableRequest.getStatus(),
-                        individualTemplatePageableRequest.toPageable());
+        Page<IndividualTemplateResponse> page = individualTemplateService.getAllTemplates(
+                workspaceId,
+                individualTemplatePageableRequest);
         return ResponseEntity.ok(page);
     }
 
@@ -180,15 +177,10 @@ public class IndividualTemplateController {
         Integer userId = claims.getUserId();
         individualTemplateService.validateWorkspaceOwnership(workspaceId, userId);
 
-        Page<IndividualTemplateResponse> page =
-                (individualTemplatePageableRequest.getStatus() == null)
-                        ? individualTemplateService.getAllTemplatesAsync(workspaceId,
-                                individualTemplatePageableRequest.toPageable())
-                        .join()
-                        : individualTemplateService.getIndividualTemplateByStatusAsync(workspaceId,
-                            individualTemplatePageableRequest.getStatus(),
-                            individualTemplatePageableRequest.toPageable())
-                        .join();
+        Page<IndividualTemplateResponse> page = individualTemplateService.getAllTemplatesAsync(
+                workspaceId,
+                individualTemplatePageableRequest
+        ).join();
         return ResponseEntity.status(200).body(page);
     }
 
