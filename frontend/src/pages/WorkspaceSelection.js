@@ -1,32 +1,53 @@
 // pages/WorkspaceSelection.js
-
-import React from 'react';
-import { Box, Typography, Container, IconButton } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, Container, IconButton, CircularProgress, Alert } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import { useNavigate } from 'react-router-dom';
 import CommonButton from '../components/button/CommonButton';
-
-// 기존 WorkspaceList 컴포넌트는 수정 없이 그대로 가져옵니다.
 import WorkspaceList from '../components/layout/WorkspaceList';
-
-// 목업 데이터 (원래 WorkspaceList에 있던 데이터)
-const allWorkspaces = ['워크스페이스 1', '워크스페이스 2', '워크스페이스 3'];
+import workspaceService from '../services/workspaceService';
 
 const WorkspaceSelection = () => {
     const navigate = useNavigate();
-    // 부모가 상태를 관리합니다.
-    const [selectedWorkspace, setSelectedWorkspace] = React.useState(allWorkspaces[0]);
-    const [open, setOpen] = React.useState(false);
+    const [workspaces, setWorkspaces] = useState([]);
+    const [selectedWorkspace, setSelectedWorkspace] = useState(null);
+    const [open, setOpen] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
+    useEffect(() => {
+        const fetchWorkspaces = async () => {
+            try {
+                setLoading(true);
+                const data = await workspaceService.getWorkspaces();
+                const mappedData = data.map(w => ({ id: w.workspaceId, name: w.workspaceName, subname: w.workspaceSubname }));
+                setWorkspaces(mappedData);
+                if (mappedData.length > 0) {
+                    setSelectedWorkspace(mappedData[0]);
+                }
+                setError(null);
+            } catch (err) {
+                setError('워크스페이스를 불러오는데 실패했습니다.');
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchWorkspaces();
+    }, []);
 
     const handleCreateWorkspace = () => {
         navigate('/createWorkspace');
     };
 
     const handleConfirmSelection = () => {
-        // 이제 선택된 워크스페이스 값을 정확히 알 수 있습니다.
-        alert(`${selectedWorkspace}가 선택되었습니다.`);
-        // 예: navigate(`/dashboard`);
+        if (selectedWorkspace) {
+            // alert(`${selectedWorkspace.name}가 선택되었습니다.`);
+            navigate('/publicTemplate');
+        } else {
+            alert('워크스페이스를 선택해주세요.');
+        }
     };
 
     return (
@@ -36,10 +57,9 @@ const WorkspaceSelection = () => {
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    gap: 2, // 컴포넌트 간의 수직 간격
+                    gap: 2,
                 }}
             >
-                {/* 로고 placeholder */}
                 <Box
                     sx={{
                         width: 80,
@@ -58,21 +78,27 @@ const WorkspaceSelection = () => {
                     워크스페이스 선택
                 </Typography>
 
-                {/* 기존 WorkspaceList (드롭다운) 컴포넌트 */}
                 <Box sx={{ width: '100%', my: 2 }}>
-                    <WorkspaceList
-                        allWorkspaces={allWorkspaces}
-                        selectedWorkspace={selectedWorkspace}
-                        open={open}
-                        onToggle={() => setOpen(!open)}
-                        onSelect={(workspace) => {
-                            setSelectedWorkspace(workspace);
-                            setOpen(false);
-                        }}
-                    />
+                    {loading ? (
+                        <CircularProgress />
+                    ) : error ? (
+                        <Alert severity="error">{error}</Alert>
+                    ) : workspaces.length > 0 && selectedWorkspace ? (
+                        <WorkspaceList
+                            allWorkspaces={workspaces}
+                            selectedWorkspace={selectedWorkspace}
+                            open={open}
+                            onToggle={() => setOpen(!open)}
+                            onSelect={(workspace) => {
+                                setSelectedWorkspace(workspace);
+                                setOpen(false);
+                            }}
+                        />
+                    ) : (
+                        <Typography>사용 가능한 워크스페이스가 없습니다. 새로 생성해주세요.</Typography>
+                    )}
                 </Box>
 
-                {/* 워크스페이스 추가 버튼 */}
                 <IconButton
                     onClick={handleCreateWorkspace}
                     sx={{ border: '1px solid #e0e0e0' }}
@@ -80,11 +106,11 @@ const WorkspaceSelection = () => {
                     <AddIcon />
                 </IconButton>
 
-                {/* 최종 선택 버튼 */}
                 <CommonButton
                     fullWidth
                     onClick={handleConfirmSelection}
                     sx={{ mt: 2 }}
+                    disabled={!selectedWorkspace}
                 >
                     선택
                 </CommonButton>

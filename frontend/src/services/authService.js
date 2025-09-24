@@ -1,23 +1,17 @@
 import api from './api';
 
-// 로그인 성공 후 토큰을 저장하고 API 헤더를 설정하는 함수
+// 로그인 성공 후 토큰을 저장하는 함수
 const handleLoginSuccess = (accessToken, refreshToken) => {
     // 토큰을 localStorage에 저장
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', refreshToken);
-
-    // 모든 API 요청 헤더에 Access Token을 기본으로 포함시킴
-    api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
 };
 
-// 로그아웃 시 토큰을 삭제하고 API 헤더를 초기화하는 함수
+// 로그아웃 시 토큰을 삭제하는 함수
 const handleLogout = () => {
     // localStorage에서 토큰 삭제
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
-
-    // API 헤더에서 Authorization 정보 삭제
-    delete api.defaults.headers.common['Authorization'];
 };
 
 /**
