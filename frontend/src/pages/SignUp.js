@@ -1,25 +1,29 @@
 import React, { useState } from "react";
-import { Link as RouterLink} from "react-router-dom";
-import {Link, Grid, FormGroup, Box} from "@mui/material";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
+import {Link, Grid, Box} from "@mui/material";
 import FormLayout from "../components/layout/FormLayout";
 import CommonTextField from "../components/form/CommonTextField";
 import CommonButton from "../components/button/CommonButton";
+import authService from "../services/authService";
 
+// 회원가입 페이지
 const SignUp = () => {
+    const navigate = useNavigate();
     const [formValues, setFormValues] = useState({
         email: '',
         password: '',
         confirmPassword: '',
         name: '',
         phone: '',
+        verificationCode: '',
     });
 
     const [errors, setErrors] = useState({});
+    const [isVerificationCodeSent, setIsVerificationCodeSent] = useState(false);
 
-    const validateForm = () => {
+    const validateForm = (isSubmitting = false) => {
         let tempErrors = {};
         const emailRegex = /^[\w-.]+@[\w-]+\.[\w-]{2,4}$/;
-        // Password must be at least 8 characters long, contain at least one letter, one number, and one special character
         const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
         const phoneRegex = /^010-\d{4}-\d{4}$/;
 
@@ -29,26 +33,32 @@ const SignUp = () => {
             tempErrors.email = '유효한 이메일 주소를 입력해주세요.';
         }
 
-        if (!formValues.password) {
-            tempErrors.password = '비밀번호는 필수 항목입니다.';
-        } else if (!passwordRegex.test(formValues.password)) {
-            tempErrors.password = '비밀번호는 최소 8자 이상이며, 문자, 숫자, 특수문자를 포함해야 합니다.';
-        }
+        if (isSubmitting) {
+            if (!formValues.password) {
+                tempErrors.password = '비밀번호는 필수 항목입니다.';
+            } else if (!passwordRegex.test(formValues.password)) {
+                tempErrors.password = '비밀번호는 최소 8자 이상이며, 문자, 숫자, 특수문자를 포함해야 합니다.';
+            }
 
-        if (!formValues.confirmPassword) {
-            tempErrors.confirmPassword = '비밀번호 확인은 필수 항목입니다.';
-        } else if (formValues.password !== formValues.confirmPassword) {
-            tempErrors.confirmPassword = '비밀번호가 일치하지 않습니다.';
-        }
+            if (!formValues.confirmPassword) {
+                tempErrors.confirmPassword = '비밀번호 확인은 필수 항목입니다.';
+            } else if (formValues.password !== formValues.confirmPassword) {
+                tempErrors.confirmPassword = '비밀번호가 일치하지 않습니다.';
+            }
 
-        if (!formValues.name) {
-            tempErrors.name = '이름은 필수 항목입니다.';
-        }
+            if (!formValues.name) {
+                tempErrors.name = '이름은 필수 항목입니다.';
+            }
 
-        if (!formValues.phone) {
-            tempErrors.phone = '휴대폰 번호는 필수 항목입니다.';
-        } else if (!phoneRegex.test(formValues.phone)) {
-            tempErrors.phone = '유효한 휴대폰 번호 (예: 010-1234-5678)를 입력해주세요.';
+            if (!formValues.phone) {
+                tempErrors.phone = '휴대폰 번호는 필수 항목입니다.';
+            } else if (!phoneRegex.test(formValues.phone)) {
+                tempErrors.phone = '유효한 휴대폰 번호 (예: 010-1234-5678)를 입력해주세요.';
+            }
+
+            if (!formValues.verificationCode) {
+                tempErrors.verificationCode = '인증 코드는 필수 항목입니다.';
+            }
         }
 
         setErrors(tempErrors);
@@ -61,7 +71,6 @@ const SignUp = () => {
             ...prev,
             [name]: value,
         }));
-        // Clear error for the field being changed
         if (errors[name]) {
             setErrors((prev) => ({
                 ...prev,
@@ -70,23 +79,52 @@ const SignUp = () => {
         }
     };
 
-    const handleSignUp = (e) => {
-        e.preventDefault();
-
+    const handleSendVerificationCode = async () => {
         if (validateForm()) {
-            // 여기에 백엔드로 데이터를 전송하는 회원가입 로직을 구현합니다.
-            alert('회원가입 성공! (실제 백엔드 연동 필요)');
-            console.log('Form Values:', formValues);
-        } else {
-            console.log('Validation Errors:', errors);
+            try {
+                await authService.sendVerificationCode(formValues.email);
+                alert('인증 코드가 이메일로 발송되었습니다.');
+                setIsVerificationCodeSent(true);
+            } catch (error) {
+                if (error.response && error.response.data && error.response.data.message) {
+                    alert(error.response.data.message);
+                } else {
+                    alert('인증 코드 발송 중 오류가 발생했습니다.');
+                }
+            }
         }
     };
 
+    const handleSignUp = async (e) => {
+        e.preventDefault();
+
+        if (validateForm(true)) {
+            const requestData = {
+                userName: formValues.name,
+                email: formValues.email,
+                userNumber: formValues.phone,
+                password: formValues.password,
+                verificationCode: formValues.verificationCode,
+            };
+            try {
+                await authService.signup(requestData);
+                alert('회원가입 성공! 로그인 페이지로 이동합니다.');
+                navigate('/login');
+            } catch (error) {
+                if (error.response && error.response.data && error.response.data.message) {
+                    alert(error.response.data.message);
+                } else {
+                    alert('회원가입 중 오류가 발생했습니다.');
+                }
+            }
+        } else {
+            alert('입력 항목을 다시 확인해주세요.');
+        }
+    };
 
     return (
-        <FormLayout title="회원가입">
-            <FormGroup
-                onSubmit={handleSignUp}
+        <FormLayout title="회원가입" onSubmit={handleSignUp}>
+            <Box
                 autoComplete="off"
                 noValidate
                 sx={{
@@ -116,10 +154,13 @@ const SignUp = () => {
                         autoComplete="email"
                         error={!!errors.email}
                         helperText={errors.email}
+                        disabled={isVerificationCodeSent}
                     />
                     <CommonButton
                         type="button"
                         variant="contained"
+                        onClick={handleSendVerificationCode}
+                        disabled={isVerificationCodeSent}
                         sx={{
                             height: '58px',
                         }}
@@ -127,6 +168,17 @@ const SignUp = () => {
                         인증
                     </CommonButton>
                 </Box>
+                {isVerificationCodeSent && (
+                    <CommonTextField
+                        required
+                        name="verificationCode"
+                        label="인증 코드"
+                        value={formValues.verificationCode}
+                        onChange={handleChange}
+                        error={!!errors.verificationCode}
+                        helperText={errors.verificationCode}
+                    />
+                )}
                 <CommonTextField
                     required
                     name="password"
@@ -172,14 +224,13 @@ const SignUp = () => {
                     type="submit"
                     fullWidth
                     variant="contained"
-                    onClick={handleSignUp}
                     sx={{mt: 3, mb: 2}}
                 >
                     가입하기
                 </CommonButton>
-            </FormGroup>
+            </Box>
             <Grid container justifyContent="flex-end">
-                <Grid item>
+                <Grid>
                     <Link component={RouterLink} to="/login" variant="body2">
                         이미 계정이 있으신가요? 로그인
                     </Link>
