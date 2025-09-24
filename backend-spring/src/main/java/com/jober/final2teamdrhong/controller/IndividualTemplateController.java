@@ -112,7 +112,7 @@ public class IndividualTemplateController {
         individualTemplateService.validateWorkspaceOwnership(workspaceId,userId);
 
         IndividualTemplateResponse response =
-                individualTemplateService.createIndividualTemplateFromPublic(publicTemplateId, workspaceId);
+                individualTemplateService.createIndividualTemplateFromPublic(publicTemplateId, workspaceId, userId);
 
         return ResponseEntity.ok(response);
     }
@@ -144,12 +144,16 @@ public class IndividualTemplateController {
 
         // 비동기 호출 후 join()으로 결과 가져오기 → 403 방지
         IndividualTemplateResponse response =
-                individualTemplateService.createIndividualTemplateFromPublicAsync(publicTemplateId, workspaceId).join();
+                individualTemplateService.createIndividualTemplateFromPublicAsync(publicTemplateId, workspaceId, userId).join();
         return ResponseEntity.status(200).body(response);
     }
 
     // 전체 조회 (동기)
-    @Operation(summary = "워크스페이스 별 개인 템플릿 목록 전체 조회", description = "페이지네이션 및 정렬 조건 지원")
+    @Operation(
+            summary = "워크스페이스 별 개인 템플릿 목록 전체 조회",
+            description = "페이지네이션 및 정렬 조건 지원",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
     @ApiResponses({ @ApiResponse(responseCode = "200", description = "개별 템플릿 조회 성공") })
     @GetMapping("/{workspaceId}/templates")
     public ResponseEntity<Page<IndividualTemplateResponse>> getAllTemplates(
@@ -167,7 +171,10 @@ public class IndividualTemplateController {
     }
 
     // 전체 조회 (비동기)
-    @Operation(summary = "워크스페이스 별 템플릿 목록 전체 조회 (비동기 @Async)")
+    @Operation(
+            summary = "워크스페이스 별 템플릿 목록 전체 조회 (비동기 @Async)",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
     @GetMapping("/{workspaceId}/templates/async")
     public ResponseEntity<Page<IndividualTemplateResponse>> getAllTemplatesAsync(
             @Parameter(description = "워크스페이스 ID", example = "1")
@@ -185,7 +192,11 @@ public class IndividualTemplateController {
     }
 
     // 단일 조회 (동기)
-    @Operation(summary = "템플릿 단일 조회", description = "워크스페이스 별 개인 템플릿을 단일 조회")
+    @Operation(
+            summary = "템플릿 단일 조회",
+            description = "워크스페이스 별 개인 템플릿을 단일 조회",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "404", description = "템플릿 없음")
@@ -204,7 +215,10 @@ public class IndividualTemplateController {
     }
 
     // 단일 조회 (비동기)
-    @Operation(summary = "템플릿 단일 조회 (비동기 @Async)")
+    @Operation(
+            summary = "템플릿 단일 조회 (비동기 @Async)",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
     @GetMapping("/{workspaceId}/templates/{individualTemplateId}/async")
     public ResponseEntity<IndividualTemplateResponse> getTemplateAsync(
             @Parameter(description = "워크스페이스 ID", example = "1")
@@ -225,7 +239,8 @@ public class IndividualTemplateController {
 
     // 템플릿 삭제 (Soft Delete)
     @Operation(
-            summary = "개인 템플릿 삭제"
+            summary = "개인 템플릿 삭제",
+            security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "템플릿 삭제 성공"),
