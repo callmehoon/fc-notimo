@@ -264,7 +264,7 @@ class GroupMappingRepositoryTest {
     void findByPhoneBookOrderByRecipient_CreatedAtDescRecipient_RecipientIdDesc_SortByRecipientCreatedAt_Test() {
         // given
         // 1. Detached 상태인 testPhoneBook을 DB에서 다시 조회하여 Managed 상태로 만듭니다.
-        PhoneBook managedTestPhoneBook = entityManager.find(PhoneBook.class, testPhoneBook.getPhoneBookId());
+        PhoneBook managedTestPhoneBook = testEntityManager.find(PhoneBook.class, testPhoneBook.getPhoneBookId());
         // 2. recipient3을 Managed 상태의 주소록에 추가합니다.
         testEntityManager.persist(GroupMapping.builder().phoneBook(managedTestPhoneBook).recipient(recipient3).build());
         testEntityManager.flush();
