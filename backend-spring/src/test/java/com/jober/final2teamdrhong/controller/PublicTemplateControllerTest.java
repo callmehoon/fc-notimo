@@ -25,6 +25,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplateResponse;
 import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplateCreateRequest;
 import com.jober.final2teamdrhong.service.PublicTemplateService;
+import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplatePageableRequest;
 import org.mockito.ArgumentCaptor;
 import com.jober.final2teamdrhong.filter.JwtAuthenticationFilter;
 
@@ -54,7 +55,7 @@ class PublicTemplateControllerTest {
         );
         Page<PublicTemplateResponse> mockPage = new PageImpl<>(mockContent, PageRequest.of(0, 10), 2);
         
-        when(publicTemplateService.getTemplates(any(Pageable.class))).thenReturn(mockPage);
+        when(publicTemplateService.getTemplates(any(PublicTemplatePageableRequest.class))).thenReturn(mockPage);
 
         // when & then
         mockMvc.perform(get("/public-templates")
@@ -66,9 +67,10 @@ class PublicTemplateControllerTest {
                 .andExpect(jsonPath("$.totalElements").value(2))
                 .andExpect(jsonPath("$.totalPages").value(1));
 
-        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
-        verify(publicTemplateService, times(1)).getTemplates(pageableCaptor.capture());
-        Pageable pageable = pageableCaptor.getValue();
+        ArgumentCaptor<PublicTemplatePageableRequest> requestCaptor = ArgumentCaptor.forClass(PublicTemplatePageableRequest.class);
+        verify(publicTemplateService, times(1)).getTemplates(requestCaptor.capture());
+        PublicTemplatePageableRequest captured = requestCaptor.getValue();
+        Pageable pageable = captured.toPageable();
         Assertions.assertEquals(0, pageable.getPageNumber());
         Assertions.assertEquals(10, pageable.getPageSize());
         Assertions.assertNotNull(pageable.getSort().getOrderFor("createdAt"));
@@ -85,7 +87,7 @@ class PublicTemplateControllerTest {
         );
         Page<PublicTemplateResponse> mockPage = new PageImpl<>(mockContent, PageRequest.of(0, 10), 2);
         
-        when(publicTemplateService.getTemplates(any(Pageable.class))).thenReturn(mockPage);
+        when(publicTemplateService.getTemplates(any(PublicTemplatePageableRequest.class))).thenReturn(mockPage);
 
         // when & then
         mockMvc.perform(get("/public-templates")
@@ -97,9 +99,10 @@ class PublicTemplateControllerTest {
                 .andExpect(jsonPath("$.content[0].publicTemplateTitle").value("높은공유템플릿"))
                 .andExpect(jsonPath("$.content[1].publicTemplateTitle").value("낮은공유템플릿"));
 
-        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
-        verify(publicTemplateService, times(1)).getTemplates(pageableCaptor.capture());
-        Pageable pageable = pageableCaptor.getValue();
+        ArgumentCaptor<PublicTemplatePageableRequest> requestCaptor = ArgumentCaptor.forClass(PublicTemplatePageableRequest.class);
+        verify(publicTemplateService, times(1)).getTemplates(requestCaptor.capture());
+        PublicTemplatePageableRequest captured = requestCaptor.getValue();
+        Pageable pageable = captured.toPageable();
         Assertions.assertEquals(0, pageable.getPageNumber());
         Assertions.assertEquals(10, pageable.getPageSize());
         Assertions.assertNotNull(pageable.getSort().getOrderFor("shareCount"));
@@ -116,7 +119,7 @@ class PublicTemplateControllerTest {
         );
         Page<PublicTemplateResponse> mockPage = new PageImpl<>(mockContent, PageRequest.of(0, 10), 2);
         
-        when(publicTemplateService.getTemplates(any(Pageable.class))).thenReturn(mockPage);
+        when(publicTemplateService.getTemplates(any(PublicTemplatePageableRequest.class))).thenReturn(mockPage);
 
         // when & then
         mockMvc.perform(get("/public-templates")
@@ -128,9 +131,10 @@ class PublicTemplateControllerTest {
                 .andExpect(jsonPath("$.content[0].publicTemplateTitle").value("높은조회템플릿"))
                 .andExpect(jsonPath("$.content[1].publicTemplateTitle").value("낮은조회템플릿"));
 
-        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
-        verify(publicTemplateService, times(1)).getTemplates(pageableCaptor.capture());
-        Pageable pageable = pageableCaptor.getValue();
+        ArgumentCaptor<PublicTemplatePageableRequest> requestCaptor = ArgumentCaptor.forClass(PublicTemplatePageableRequest.class);
+        verify(publicTemplateService, times(1)).getTemplates(requestCaptor.capture());
+        PublicTemplatePageableRequest captured = requestCaptor.getValue();
+        Pageable pageable = captured.toPageable();
         Assertions.assertEquals(0, pageable.getPageNumber());
         Assertions.assertEquals(10, pageable.getPageSize());
         Assertions.assertNotNull(pageable.getSort().getOrderFor("viewCount"));
@@ -147,7 +151,7 @@ class PublicTemplateControllerTest {
         );
         Page<PublicTemplateResponse> mockPage = new PageImpl<>(mockContent, PageRequest.of(0, 10), 2);
         
-        when(publicTemplateService.getTemplates(any(Pageable.class))).thenReturn(mockPage);
+        when(publicTemplateService.getTemplates(any(PublicTemplatePageableRequest.class))).thenReturn(mockPage);
 
         // when & then
         mockMvc.perform(get("/public-templates")
@@ -159,9 +163,10 @@ class PublicTemplateControllerTest {
                 .andExpect(jsonPath("$.content[0].publicTemplateTitle").value("가나다"))
                 .andExpect(jsonPath("$.content[1].publicTemplateTitle").value("나다라"));
 
-        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
-        verify(publicTemplateService, times(1)).getTemplates(pageableCaptor.capture());
-        Pageable pageable = pageableCaptor.getValue();
+        ArgumentCaptor<PublicTemplatePageableRequest> requestCaptor = ArgumentCaptor.forClass(PublicTemplatePageableRequest.class);
+        verify(publicTemplateService, times(1)).getTemplates(requestCaptor.capture());
+        PublicTemplatePageableRequest captured = requestCaptor.getValue();
+        Pageable pageable = captured.toPageable();
         Assertions.assertEquals(0, pageable.getPageNumber());
         Assertions.assertEquals(10, pageable.getPageSize());
         Assertions.assertNotNull(pageable.getSort().getOrderFor("publicTemplateTitle"));
@@ -177,7 +182,7 @@ class PublicTemplateControllerTest {
         );
         Page<PublicTemplateResponse> mockPage = new PageImpl<>(mockContent, PageRequest.of(1, 2), 5);
         
-        when(publicTemplateService.getTemplates(any(Pageable.class))).thenReturn(mockPage);
+        when(publicTemplateService.getTemplates(any(PublicTemplatePageableRequest.class))).thenReturn(mockPage);
 
         // when & then
         mockMvc.perform(get("/public-templates")
@@ -191,9 +196,10 @@ class PublicTemplateControllerTest {
                 .andExpect(jsonPath("$.number").value(1))
                 .andExpect(jsonPath("$.size").value(2));
 
-        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
-        verify(publicTemplateService, times(1)).getTemplates(pageableCaptor.capture());
-        Pageable pageable = pageableCaptor.getValue();
+        ArgumentCaptor<PublicTemplatePageableRequest> requestCaptor = ArgumentCaptor.forClass(PublicTemplatePageableRequest.class);
+        verify(publicTemplateService, times(1)).getTemplates(requestCaptor.capture());
+        PublicTemplatePageableRequest captured = requestCaptor.getValue();
+        Pageable pageable = captured.toPageable();
         Assertions.assertEquals(1, pageable.getPageNumber());
         Assertions.assertEquals(2, pageable.getPageSize());
         Assertions.assertNotNull(pageable.getSort().getOrderFor("createdAt"));
@@ -210,7 +216,7 @@ class PublicTemplateControllerTest {
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
 
-        verify(publicTemplateService, never()).getTemplates(any(Pageable.class));
+        verify(publicTemplateService, never()).getTemplates(any(PublicTemplatePageableRequest.class));
     }
 
     @Test
@@ -223,7 +229,7 @@ class PublicTemplateControllerTest {
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
 
-        verify(publicTemplateService, never()).getTemplates(any(Pageable.class));
+        verify(publicTemplateService, never()).getTemplates(any(PublicTemplatePageableRequest.class));
     }
 
     @Test
@@ -235,7 +241,7 @@ class PublicTemplateControllerTest {
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
 
-        verify(publicTemplateService, never()).getTemplates(any(Pageable.class));
+        verify(publicTemplateService, never()).getTemplates(any(PublicTemplatePageableRequest.class));
     }
 
     @Test
@@ -247,7 +253,7 @@ class PublicTemplateControllerTest {
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
 
-        verify(publicTemplateService, never()).getTemplates(any(Pageable.class));
+        verify(publicTemplateService, never()).getTemplates(any(PublicTemplatePageableRequest.class));
     }
 
     @Test
@@ -256,7 +262,7 @@ class PublicTemplateControllerTest {
         // given
         Page<PublicTemplateResponse> mockPage = new PageImpl<>(List.of(), PageRequest.of(0, 10), 0);
         
-        when(publicTemplateService.getTemplates(any(Pageable.class))).thenReturn(mockPage);
+        when(publicTemplateService.getTemplates(any(PublicTemplatePageableRequest.class))).thenReturn(mockPage);
 
         // when & then
         mockMvc.perform(get("/public-templates")
@@ -266,9 +272,10 @@ class PublicTemplateControllerTest {
                 .andExpect(jsonPath("$.totalElements").value(0))
                 .andExpect(jsonPath("$.totalPages").value(0));
 
-        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
-        verify(publicTemplateService, times(1)).getTemplates(pageableCaptor.capture());
-        Pageable pageable = pageableCaptor.getValue();
+        ArgumentCaptor<PublicTemplatePageableRequest> requestCaptor = ArgumentCaptor.forClass(PublicTemplatePageableRequest.class);
+        verify(publicTemplateService, times(1)).getTemplates(requestCaptor.capture());
+        PublicTemplatePageableRequest captured = requestCaptor.getValue();
+        Pageable pageable = captured.toPageable();
         Assertions.assertEquals(0, pageable.getPageNumber());
         Assertions.assertEquals(10, pageable.getPageSize());
         Assertions.assertNotNull(pageable.getSort().getOrderFor("createdAt"));
