@@ -53,9 +53,8 @@ public class IndividualTemplateController {
             @AuthenticationPrincipal JwtClaims claims
     ) {
         Integer userId = claims.getUserId();
-        workspaceValidator.validateAndGetWorkspace(workspaceId,userId);
 
-        IndividualTemplateResponse response = individualTemplateService.createTemplate(workspaceId);
+        IndividualTemplateResponse response = individualTemplateService.createTemplate(workspaceId, userId);
         return ResponseEntity.ok(response);
     }
 
@@ -83,7 +82,7 @@ public class IndividualTemplateController {
 
         // 비동기 호출 (여기서는 join()으로 결과를 가져옴 → 403 안나옴)
         IndividualTemplateResponse response =
-                individualTemplateService.createTemplateAsync(workspaceId).join();
+                individualTemplateService.createTemplateAsync(workspaceId, userId).join();
 
         return ResponseEntity.status(200).body(response);
     }
@@ -111,7 +110,6 @@ public class IndividualTemplateController {
             @AuthenticationPrincipal JwtClaims claims
     ) {
         Integer userId = claims.getUserId();
-        workspaceValidator.validateAndGetWorkspace(workspaceId,userId);
 
         IndividualTemplateResponse response =
                 individualTemplateService.createIndividualTemplateFromPublic(publicTemplateId, workspaceId, userId);
@@ -142,7 +140,6 @@ public class IndividualTemplateController {
             @AuthenticationPrincipal JwtClaims claims
     ) {
         Integer userId = claims.getUserId();
-        workspaceValidator.validateAndGetWorkspace(workspaceId,userId);
 
         // 비동기 호출 후 join()으로 결과 가져오기 → 403 방지
         IndividualTemplateResponse response =
@@ -168,6 +165,7 @@ public class IndividualTemplateController {
 
         Page<IndividualTemplateResponse> page = individualTemplateService.getAllTemplates(
                 workspaceId,
+                userId,
                 individualTemplatePageableRequest);
         return ResponseEntity.ok(page);
     }
@@ -184,10 +182,10 @@ public class IndividualTemplateController {
             @Valid @ParameterObject IndividualTemplatePageableRequest individualTemplatePageableRequest,
             @AuthenticationPrincipal JwtClaims claims) {
         Integer userId = claims.getUserId();
-        workspaceValidator.validateAndGetWorkspace(workspaceId,userId);
 
         Page<IndividualTemplateResponse> page = individualTemplateService.getAllTemplatesAsync(
                 workspaceId,
+                userId,
                 individualTemplatePageableRequest
         ).join();
         return ResponseEntity.status(200).body(page);
@@ -211,9 +209,8 @@ public class IndividualTemplateController {
             @PathVariable Integer individualTemplateId,
             @AuthenticationPrincipal JwtClaims claims) {
         Integer userId = claims.getUserId();
-        workspaceValidator.validateAndGetWorkspace(workspaceId,userId);
 
-        return ResponseEntity.ok(individualTemplateService.getIndividualTemplate(workspaceId, individualTemplateId));
+        return ResponseEntity.ok(individualTemplateService.getIndividualTemplate(workspaceId, userId, individualTemplateId));
     }
 
     // 단일 조회 (비동기)
@@ -229,11 +226,10 @@ public class IndividualTemplateController {
             @PathVariable Integer individualTemplateId,
             @AuthenticationPrincipal JwtClaims claims) {
         Integer userId = claims.getUserId();
-        workspaceValidator.validateAndGetWorkspace(workspaceId,userId);
 
         // 비동기 실행 후 join()으로 결과 획득
         IndividualTemplateResponse response = individualTemplateService
-                .getIndividualTemplateAsync(workspaceId, individualTemplateId)
+                .getIndividualTemplateAsync(workspaceId, userId, individualTemplateId)
                 .join();
 
         return ResponseEntity.status(200).body(response);
@@ -257,9 +253,8 @@ public class IndividualTemplateController {
             @AuthenticationPrincipal JwtClaims claims
     ) {
         Integer userId = claims.getUserId();
-        workspaceValidator.validateAndGetWorkspace(workspaceId,userId);
 
-        individualTemplateService.deleteTemplate(individualTemplateId, workspaceId);
+        individualTemplateService.deleteTemplate(individualTemplateId, workspaceId, userId);
         return ResponseEntity.noContent().build();
     }
 }
