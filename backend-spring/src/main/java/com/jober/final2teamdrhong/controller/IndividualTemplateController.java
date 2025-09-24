@@ -53,7 +53,7 @@ public class IndividualTemplateController {
             @AuthenticationPrincipal JwtClaims claims
     ) {
         Integer userId = claims.getUserId();
-        individualTemplateService.validateWorkspaceOwnership(workspaceId, userId);
+        workspaceValidator.validateAndGetWorkspace(workspaceId,userId);
 
         IndividualTemplateResponse response = individualTemplateService.createTemplate(workspaceId);
         return ResponseEntity.ok(response);
@@ -79,7 +79,7 @@ public class IndividualTemplateController {
             @AuthenticationPrincipal JwtClaims claims) {
 
         Integer userId = claims.getUserId();
-        individualTemplateService.validateWorkspaceOwnership(workspaceId, userId);
+        workspaceValidator.validateAndGetWorkspace(workspaceId,userId);
 
         // 비동기 호출 (여기서는 join()으로 결과를 가져옴 → 403 안나옴)
         IndividualTemplateResponse response =
@@ -142,7 +142,7 @@ public class IndividualTemplateController {
             @AuthenticationPrincipal JwtClaims claims
     ) {
         Integer userId = claims.getUserId();
-        individualTemplateService.validateWorkspaceOwnership(workspaceId, userId);
+        workspaceValidator.validateAndGetWorkspace(workspaceId,userId);
 
         // 비동기 호출 후 join()으로 결과 가져오기 → 403 방지
         IndividualTemplateResponse response =
@@ -164,7 +164,7 @@ public class IndividualTemplateController {
             @Valid @ParameterObject IndividualTemplatePageableRequest individualTemplatePageableRequest,
             @AuthenticationPrincipal JwtClaims claims) {
         Integer userId = claims.getUserId();
-        individualTemplateService.validateWorkspaceOwnership(workspaceId, userId);
+        workspaceValidator.validateAndGetWorkspace(workspaceId,userId);
 
         Page<IndividualTemplateResponse> page = individualTemplateService.getAllTemplates(
                 workspaceId,
@@ -184,7 +184,7 @@ public class IndividualTemplateController {
             @Valid @ParameterObject IndividualTemplatePageableRequest individualTemplatePageableRequest,
             @AuthenticationPrincipal JwtClaims claims) {
         Integer userId = claims.getUserId();
-        individualTemplateService.validateWorkspaceOwnership(workspaceId, userId);
+        workspaceValidator.validateAndGetWorkspace(workspaceId,userId);
 
         Page<IndividualTemplateResponse> page = individualTemplateService.getAllTemplatesAsync(
                 workspaceId,
@@ -211,7 +211,7 @@ public class IndividualTemplateController {
             @PathVariable Integer individualTemplateId,
             @AuthenticationPrincipal JwtClaims claims) {
         Integer userId = claims.getUserId();
-        individualTemplateService.validateWorkspaceOwnership(workspaceId, userId);
+        workspaceValidator.validateAndGetWorkspace(workspaceId,userId);
 
         return ResponseEntity.ok(individualTemplateService.getIndividualTemplate(workspaceId, individualTemplateId));
     }
@@ -229,7 +229,7 @@ public class IndividualTemplateController {
             @PathVariable Integer individualTemplateId,
             @AuthenticationPrincipal JwtClaims claims) {
         Integer userId = claims.getUserId();
-        individualTemplateService.validateWorkspaceOwnership(workspaceId, userId);
+        workspaceValidator.validateAndGetWorkspace(workspaceId,userId);
 
         // 비동기 실행 후 join()으로 결과 획득
         IndividualTemplateResponse response = individualTemplateService
@@ -257,7 +257,7 @@ public class IndividualTemplateController {
             @AuthenticationPrincipal JwtClaims claims
     ) {
         Integer userId = claims.getUserId();
-        individualTemplateService.validateWorkspaceOwnership(workspaceId, userId);
+        workspaceValidator.validateAndGetWorkspace(workspaceId,userId);
 
         individualTemplateService.deleteTemplate(individualTemplateId, workspaceId);
         return ResponseEntity.noContent().build();
