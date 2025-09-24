@@ -12,7 +12,7 @@ import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.FavoriteRepository;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
-import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
+import com.jober.final2teamdrhong.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -27,7 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class FavoriteService {
 
     private final FavoriteRepository favoriteRepository;
-    private final WorkspaceValidator workspaceValidator;
+    private final WorkspaceRepository workspaceRepository;
     private final IndividualTemplateRepository individualTemplateRepository;
     private final PublicTemplateRepository publicTemplateRepository;
 
@@ -38,7 +38,7 @@ public class FavoriteService {
      */
     @Transactional
     public FavoriteResponse createIndividualTemplateFavorite(IndividualTemplateFavoriteRequest request, Integer userId) {
-        Workspace workspace = workspaceValidator.validateAndGetWorkspace(request.getWorkspaceId(), userId);
+        Workspace workspace = workspaceRepository.findByIdOrThrow(request.getWorkspaceId(), userId);
         IndividualTemplate individualTemplate = individualTemplateRepository.findByIdOrThrow(request.getIndividualTemplateId());
 
         favoriteRepository.validateIndividualTemplateNotExists(workspace, individualTemplate);
@@ -59,7 +59,7 @@ public class FavoriteService {
      */
     @Transactional
     public FavoriteResponse createPublicTemplateFavorite(PublicTemplateFavoriteRequest request, Integer userId) {
-        Workspace workspace = workspaceValidator.validateAndGetWorkspace(request.getWorkspaceId(), userId);
+        Workspace workspace = workspaceRepository.findByIdOrThrow(request.getWorkspaceId(), userId);
 
         PublicTemplate publicTemplate = publicTemplateRepository.findByIdOrThrow(request.getPublicTemplateId());
 
@@ -87,7 +87,7 @@ public class FavoriteService {
      * @throws IllegalArgumentException 워크스페이스가 존재하지 않거나 사용자에게 권한이 없을 경우 발생
      */
     public Page<FavoriteResponse> getFavoritesByWorkspace(Integer workspaceId, TemplateType templateType, FavoritePageRequest favoritePageRequest, Integer userId) {
-        Workspace workspace = workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
+        Workspace workspace = workspaceRepository.findByIdOrThrow(workspaceId, userId);
         Pageable pageable = PageRequest.of(favoritePageRequest.getPage(), favoritePageRequest.getSize(), Sort.by(Sort.Direction.DESC, "favoriteId"));
 
         Page<Favorite> favorites = favoriteRepository.findFavorites(workspace, templateType, pageable);
@@ -108,5 +108,4 @@ public class FavoriteService {
 
         favoriteRepository.delete(favorite);
     }
-
 }
