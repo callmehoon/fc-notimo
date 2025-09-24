@@ -79,13 +79,14 @@ public class IndividualTemplateService {
     @Transactional
     public IndividualTemplateResponse createIndividualTemplateFromPublic(
             Integer publicTemplateId,
-            Integer workspaceId
+            Integer workspaceId,
+            Integer userId
     ) {
         // 공용 템플릿 조회
         PublicTemplate publicTemplate = publicTemplateRepository.findByIdOrThrow(publicTemplateId);
 
         // 워크스페이스 조회
-        Workspace workspace = workspaceRepository.findByIdOrThrow(workspaceId);
+        Workspace workspace = workspaceRepository.findByIdOrThrow(workspaceId, userId);
 
         // 복사 후 개인 템플릿 생성
         IndividualTemplate newIndividualTemplate = IndividualTemplate.builder()
@@ -104,13 +105,14 @@ public class IndividualTemplateService {
     @Transactional
     public CompletableFuture<IndividualTemplateResponse> createIndividualTemplateFromPublicAsync(
             Integer publicTemplateId,
-            Integer workspaceId
+            Integer workspaceId,
+            Integer userId
     ) {
         boolean isVirtual = Thread.currentThread().isVirtual();
         log.info("[@Async] thread={}, isVirtual={}", Thread.currentThread().getName(), isVirtual);
 
         IndividualTemplateResponse individualTemplateResponse = createIndividualTemplateFromPublic(
-                publicTemplateId, workspaceId);
+                publicTemplateId, workspaceId, userId);
         return CompletableFuture.completedFuture(individualTemplateResponse);
     }
 

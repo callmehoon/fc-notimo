@@ -98,7 +98,7 @@ class IndividualTemplateControllerTest {
         ReflectionTestUtils.setField(expectedResponse, "individualTemplateId", 3);
         ReflectionTestUtils.setField(expectedResponse, "workspaceId", 55);
 
-        given(individualTemplateService.createIndividualTemplateFromPublic(10, 55))
+        given(individualTemplateService.createIndividualTemplateFromPublic(10, 55, 3))
                 .willReturn(expectedResponse);
 
         // when
@@ -112,7 +112,7 @@ class IndividualTemplateControllerTest {
         assertThat(result.getBody().getWorkspaceId()).isEqualTo(55);
 
         verify(individualTemplateService).validateWorkspaceOwnership(55, 3);
-        verify(individualTemplateService).createIndividualTemplateFromPublic(10, 55);
+        verify(individualTemplateService).createIndividualTemplateFromPublic(10, 55, 3);
     }
 
     @Test
@@ -124,7 +124,7 @@ class IndividualTemplateControllerTest {
         ReflectionTestUtils.setField(expectedResponse, "individualTemplateId", 4);
         ReflectionTestUtils.setField(expectedResponse, "workspaceId", 44);
 
-        given(individualTemplateService.createIndividualTemplateFromPublicAsync(20, 44))
+        given(individualTemplateService.createIndividualTemplateFromPublicAsync(20, 44, 4))
                 .willReturn(CompletableFuture.completedFuture(expectedResponse));
 
         // when
@@ -138,7 +138,7 @@ class IndividualTemplateControllerTest {
         assertThat(result.getBody().getWorkspaceId()).isEqualTo(44);
 
         verify(individualTemplateService).validateWorkspaceOwnership(44, 4);
-        verify(individualTemplateService).createIndividualTemplateFromPublicAsync(20, 44);
+        verify(individualTemplateService).createIndividualTemplateFromPublicAsync(20, 44, 4);
     }
 
     private JwtClaims createMockJwtClaims(Integer userId, String email) {
