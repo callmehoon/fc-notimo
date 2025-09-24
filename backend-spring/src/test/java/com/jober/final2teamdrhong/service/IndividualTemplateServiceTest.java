@@ -207,7 +207,7 @@ class IndividualTemplateServiceTest {
         void createFromPublic_success() {
             // given
             when(workspaceMock.getWorkspaceId()).thenReturn(10);
-            when(workspaceRepo.findByIdOrThrow(10)).thenReturn(workspaceMock);
+            when(workspaceRepo.findByIdOrThrow(10, 7)).thenReturn(workspaceMock);
 
             PublicTemplate publicMock = mock(PublicTemplate.class);
             when(publicMock.getPublicTemplateTitle()).thenReturn("제목");
@@ -228,7 +228,7 @@ class IndividualTemplateServiceTest {
             when(individualTemplateRepo.save(any(IndividualTemplate.class))).thenReturn(savedMock);
 
             // when
-            IndividualTemplateResponse res = service.createIndividualTemplateFromPublic(99, 10);
+            IndividualTemplateResponse res = service.createIndividualTemplateFromPublic(99, 10, 7);
 
             // then
             assertThat(res.getIndividualTemplateId()).isEqualTo(1000);
@@ -238,7 +238,7 @@ class IndividualTemplateServiceTest {
             assertThat(res.getButtonTitle()).isEqualTo("버튼");
 
             verify(publicTemplateRepo).findByIdOrThrow(99);
-            verify(workspaceRepo).findByIdOrThrow(10);
+            verify(workspaceRepo).findByIdOrThrow(10, 7);
             verify(individualTemplateRepo).save(any(IndividualTemplate.class));
         }
     }
@@ -252,7 +252,7 @@ class IndividualTemplateServiceTest {
         void createFromPublicAsync_success() throws Exception {
             // given
             when(workspaceMock.getWorkspaceId()).thenReturn(20);
-            when(workspaceRepo.findByIdOrThrow(20)).thenReturn(workspaceMock);
+            when(workspaceRepo.findByIdOrThrow(20, 8)).thenReturn(workspaceMock);
 
             PublicTemplate publicMock = mock(PublicTemplate.class);
             when(publicMock.getPublicTemplateTitle()).thenReturn("Async제목");
@@ -274,7 +274,7 @@ class IndividualTemplateServiceTest {
 
             // when
             CompletableFuture<IndividualTemplateResponse> future =
-                    service.createIndividualTemplateFromPublicAsync(200, 20);
+                    service.createIndividualTemplateFromPublicAsync(200, 20, 8);
             IndividualTemplateResponse res = future.get(2, TimeUnit.SECONDS);
 
             // then
@@ -283,7 +283,7 @@ class IndividualTemplateServiceTest {
             assertThat(res.getIndividualTemplateTitle()).isEqualTo("Async제목");
 
             verify(publicTemplateRepo).findByIdOrThrow(200);
-            verify(workspaceRepo).findByIdOrThrow(20);
+            verify(workspaceRepo).findByIdOrThrow(20, 8);
             verify(individualTemplateRepo).save(any(IndividualTemplate.class));
         }
     }
