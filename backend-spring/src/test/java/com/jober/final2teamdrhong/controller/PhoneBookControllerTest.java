@@ -23,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -58,7 +58,9 @@ class PhoneBookControllerTest {
 
     private User testUser;
     private Workspace testWorkspace;
-    private Recipient recipient1, recipient2, recipient3;
+    private Recipient recipient1;
+    private Recipient recipient2;
+    private Recipient recipient3;
 
     @BeforeEach
     void setUp() {
@@ -282,5 +284,171 @@ class PhoneBookControllerTest {
         // 1. RecipientValidator에서 예외가 발생하고, GlobalExceptionHandler에 의해
         //    HTTP 상태 코드 400 Bad Request가 반환되는지 확인합니다.
         resultActions.andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("워크스페이스별 주소록 목록 조회 성공 테스트")
+    @WithMockJwtClaims(userId = 1)
+    void readPhoneBooks_Success_Test() throws Exception {
+        // given
+        // 1. 테스트용 주소록들을 생성하고 저장합니다.
+        PhoneBook phoneBook1 = PhoneBook.builder()
+                .phoneBookName("영업팀 주소록")
+                .phoneBookMemo("영업팀 전체 연락처입니다.")
+                .workspace(testWorkspace)
+                .build();
+        phoneBookRepository.save(phoneBook1);
+
+        PhoneBook phoneBook2 = PhoneBook.builder()
+                .phoneBookName("개발팀 주소록")
+                .phoneBookMemo("개발팀 전체 연락처입니다.")
+                .workspace(testWorkspace)
+                .build();
+        phoneBookRepository.save(phoneBook2);
+
+        // when
+        // 1. MockMvc를 사용하여 GET /workspaces/{workspaceId}/phonebooks 엔드포인트로 API 요청을 보냅니다.
+        ResultActions resultActions = mockMvc.perform(
+                get("/workspaces/" + testWorkspace.getWorkspaceId() + "/phonebooks")
+        );
+
+        // then
+        // 1. API 호출 결과를 검증합니다.
+        resultActions
+                // 1-1. HTTP 상태 코드가 200 OK인지 확인합니다.
+                .andExpect(status().isOk())
+                // 1-2. 응답 JSON 본문이 배열 형태인지 확인합니다.
+                .andExpect(jsonPath("$").isArray())
+                // 1-3. 배열의 크기가 2개인지 확인합니다.
+                .andExpect(jsonPath("$.length()").value(2))
+                // 1-4. 첫 번째 주소록의 이름이 예상과 일치하는지 확인합니다.
+                .andExpect(jsonPath("$[0].phoneBookName").value("영업팀 주소록"))
+                // 1-5. 두 번째 주소록의 이름이 예상과 일치하는지 확인합니다.
+                .andExpect(jsonPath("$[1].phoneBookName").value("개발팀 주소록"));
+    }
+
+    @Test
+    @DisplayName("워크스페이스별 주소록 목록 조회 실패 테스트 - 권한 없음")
+    @WithMockJwtClaims(userId = 1)
+    void readPhoneBooks_Fail_UnauthorizedWorkspace_Test() throws Exception {
+        // given
+        // 1. 존재하지 않거나 내 소유가 아닌 워크스페이스 ID를 임의로 준비합니다.
+        Integer unauthorizedWorkspaceId = 999;
+
+        // when
+        // 1. 다른 사람의 워크스페이스 주소록 목록 조회를 시도하는 API를 호출합니다.
+        ResultActions resultActions = mockMvc.perform(
+                get("/workspaces/" + unauthorizedWorkspaceId + "/phonebooks")
+        );
+
+        // then
+        // 1. 서비스 계층의 인가 로직에서 예외를 던지고, GlobalExceptionHandler에 의해
+        //    최종적으로 HTTP 상태 코드 400 Bad Request가 반환되는지 확인합니다.
+        resultActions.andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("주소록별 수신자 목록 페이징 조회 성공 테스트")
+    @WithMockJwtClaims(userId = 1)
+    void readRecipientsInPhoneBook_Success_Test() throws Exception {
+        // given
+        // 1. 테스트용 주소록을 생성하고 저장합니다.
+        PhoneBook phoneBook = PhoneBook.builder()
+                .phoneBookName("테스트 주소록")
+                .workspace(testWorkspace)
+                .build();
+        phoneBookRepository.save(phoneBook);
+
+        // 2. 이 주소록에 수신자들을 추가합니다.
+        entityManager.persist(GroupMapping.builder()
+                .phoneBook(phoneBook)
+                .recipient(recipient1)
+                .build());
+        entityManager.persist(GroupMapping.builder()
+                .phoneBook(phoneBook)
+                .recipient(recipient2)
+                .build());
+        entityManager.flush();
+        entityManager.clear();
+
+        // when
+        // 1. MockMvc를 사용하여 수신자 목록 페이징 조회 API를 호출합니다.
+        ResultActions resultActions = mockMvc.perform(
+                get("/workspaces/{workspaceId}/phonebooks/{phoneBookId}/recipients",
+                        testWorkspace.getWorkspaceId(), phoneBook.getPhoneBookId())
+                        .param("page", "0")
+                        .param("size", "10")
+        );
+
+        // then
+        // 1. API 호출 결과를 검증합니다.
+        resultActions
+                // 1-1. HTTP 상태 코드가 200 OK인지 확인합니다.
+                .andExpect(status().isOk())
+                // 1-2. 응답이 페이징 구조를 가지는지 확인합니다.
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.size").value(10))
+                .andExpect(jsonPath("$.number").value(0))
+                // 1-3. content 배열에 수신자 정보가 올바르게 포함되어 있는지 확인합니다.
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].recipientName").exists())
+                .andExpect(jsonPath("$.content[0].recipientPhoneNumber").exists());
+    }
+
+    @Test
+    @DisplayName("주소록별 수신자 목록 페이징 조회 실패 테스트 - 존재하지 않는 주소록")
+    @WithMockJwtClaims(userId = 1)
+    void readRecipientsInPhoneBook_Fail_PhoneBookNotFound_Test() throws Exception {
+        // given
+        // 1. 존재하지 않는 주소록 ID를 준비합니다.
+        Integer nonExistentPhoneBookId = -1;
+
+        // when
+        // 1. 존재하지 않는 주소록으로 API를 호출합니다.
+        ResultActions resultActions = mockMvc.perform(
+                get("/workspaces/{workspaceId}/phonebooks/{phoneBookId}/recipients",
+                        testWorkspace.getWorkspaceId(), nonExistentPhoneBookId)
+                        .param("page", "0")
+                        .param("size", "10")
+        );
+
+        // then
+        // 1. PhoneBookValidator에서 예외가 발생하고, GlobalExceptionHandler에 의해
+        //    HTTP 상태 코드 400 Bad Request가 반환되는지 확인합니다.
+        resultActions.andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("주소록별 수신자 목록 페이징 조회 테스트 - 빈 주소록")
+    @WithMockJwtClaims(userId = 1)
+    void readRecipientsInPhoneBook_EmptyPhoneBook_Test() throws Exception {
+        // given
+        // 1. 수신자가 없는 테스트용 주소록을 생성하고 저장합니다.
+        PhoneBook emptyPhoneBook = PhoneBook.builder()
+                .phoneBookName("빈 주소록")
+                .workspace(testWorkspace)
+                .build();
+        phoneBookRepository.save(emptyPhoneBook);
+
+        // when
+        // 1. 빈 주소록으로 API를 호출합니다.
+        ResultActions resultActions = mockMvc.perform(
+                get("/workspaces/{workspaceId}/phonebooks/{phoneBookId}/recipients",
+                        testWorkspace.getWorkspaceId(), emptyPhoneBook.getPhoneBookId())
+                        .param("page", "0")
+                        .param("size", "10")
+        );
+
+        // then
+        // 1. API 호출 결과를 검증합니다.
+        resultActions
+                // 1-1. HTTP 상태 코드가 200 OK인지 확인합니다.
+                .andExpect(status().isOk())
+                // 1-2. 빈 페이지가 올바르게 반환되는지 확인합니다.
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(0))
+                .andExpect(jsonPath("$.totalElements").value(0))
+                .andExpect(jsonPath("$.empty").value(true));
     }
 }
