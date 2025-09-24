@@ -8,6 +8,7 @@ import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
 import com.jober.final2teamdrhong.repository.WorkspaceRepository;
+import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -45,6 +46,9 @@ class IndividualTemplateServiceTest {
 
     @Mock
     private WorkspaceRepository workspaceRepo;
+
+    @Mock
+    private WorkspaceValidator workspaceValidator;
 
     @Mock
     private PublicTemplateRepository publicTemplateRepo;
@@ -204,7 +208,7 @@ class IndividualTemplateServiceTest {
         void createFromPublic_success() {
             // given
             when(workspaceMock.getWorkspaceId()).thenReturn(10);
-            when(workspaceRepo.findByIdOrThrow(10, 7)).thenReturn(workspaceMock);
+            when(workspaceValidator.validateAndGetWorkspace(10, 7)).thenReturn(workspaceMock);
 
             PublicTemplate publicMock = mock(PublicTemplate.class);
             when(publicMock.getPublicTemplateTitle()).thenReturn("제목");
@@ -235,7 +239,7 @@ class IndividualTemplateServiceTest {
             assertThat(res.getButtonTitle()).isEqualTo("버튼");
 
             verify(publicTemplateRepo).findByIdOrThrow(99);
-            verify(workspaceRepo).findByIdOrThrow(10, 7);
+            verify(workspaceValidator).validateAndGetWorkspace(10, 7);
             verify(individualTemplateRepo).save(any(IndividualTemplate.class));
         }
     }
@@ -249,7 +253,7 @@ class IndividualTemplateServiceTest {
         void createFromPublicAsync_success() throws Exception {
             // given
             when(workspaceMock.getWorkspaceId()).thenReturn(20);
-            when(workspaceRepo.findByIdOrThrow(20, 8)).thenReturn(workspaceMock);
+            when(workspaceValidator.validateAndGetWorkspace(20, 8)).thenReturn(workspaceMock);
 
             PublicTemplate publicMock = mock(PublicTemplate.class);
             when(publicMock.getPublicTemplateTitle()).thenReturn("Async제목");
@@ -280,7 +284,7 @@ class IndividualTemplateServiceTest {
             assertThat(res.getIndividualTemplateTitle()).isEqualTo("Async제목");
 
             verify(publicTemplateRepo).findByIdOrThrow(200);
-            verify(workspaceRepo).findByIdOrThrow(20, 8);
+            verify(workspaceValidator).validateAndGetWorkspace(20, 8);
             verify(individualTemplateRepo).save(any(IndividualTemplate.class));
         }
     }

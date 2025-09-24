@@ -8,6 +8,7 @@ import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
 import com.jober.final2teamdrhong.repository.WorkspaceRepository;
+import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +31,7 @@ public class IndividualTemplateService {
     private final IndividualTemplateRepository individualTemplateRepository;
     private final PublicTemplateRepository publicTemplateRepository;
     private final WorkspaceRepository workspaceRepository;
+    private final WorkspaceValidator workspaceValidator;
 
     /**
      * 비어있는 템플릿 생성 (title/content/button 전부 "")
@@ -86,7 +88,7 @@ public class IndividualTemplateService {
         PublicTemplate publicTemplate = publicTemplateRepository.findByIdOrThrow(publicTemplateId);
 
         // 워크스페이스 조회
-        Workspace workspace = workspaceRepository.findByIdOrThrow(workspaceId, userId);
+        Workspace workspace = workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
 
         // 복사 후 개인 템플릿 생성
         IndividualTemplate newIndividualTemplate = IndividualTemplate.builder()

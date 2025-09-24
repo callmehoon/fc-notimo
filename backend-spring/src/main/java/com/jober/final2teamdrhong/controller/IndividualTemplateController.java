@@ -4,6 +4,7 @@ import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplatePagea
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateResponse;
 import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
 import com.jober.final2teamdrhong.service.IndividualTemplateService;
+import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.*;
 public class IndividualTemplateController {
 
     private final IndividualTemplateService individualTemplateService;
+    private final WorkspaceValidator workspaceValidator;
 
     /**
      * 동기 빈 템플릿 생성 API
@@ -109,10 +111,10 @@ public class IndividualTemplateController {
             @AuthenticationPrincipal JwtClaims claims
     ) {
         Integer userId = claims.getUserId();
-        individualTemplateService.validateWorkspaceOwnership(workspaceId,userId);
+        workspaceValidator.validateAndGetWorkspace(workspaceId,userId);
 
         IndividualTemplateResponse response =
-                individualTemplateService.createIndividualTemplateFromPublic(publicTemplateId, workspaceId);
+                individualTemplateService.createIndividualTemplateFromPublic(publicTemplateId, workspaceId, userId);
 
         return ResponseEntity.ok(response);
     }
@@ -144,7 +146,7 @@ public class IndividualTemplateController {
 
         // 비동기 호출 후 join()으로 결과 가져오기 → 403 방지
         IndividualTemplateResponse response =
-                individualTemplateService.createIndividualTemplateFromPublicAsync(publicTemplateId, workspaceId).join();
+                individualTemplateService.createIndividualTemplateFromPublicAsync(publicTemplateId, workspaceId, userId).join();
         return ResponseEntity.status(200).body(response);
     }
 
