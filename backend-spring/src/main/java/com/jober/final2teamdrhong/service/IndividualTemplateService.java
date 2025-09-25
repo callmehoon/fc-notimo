@@ -9,7 +9,6 @@ import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
 import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -177,9 +176,7 @@ public class IndividualTemplateService {
 
         workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
 
-        IndividualTemplate individualTemplate = individualTemplateRepository
-                .findByIndividualTemplateIdAndWorkspace_WorkspaceId(individualTemplateId, workspaceId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 템플릿이 존재하지 않습니다. id = " + individualTemplateId));
+        IndividualTemplate individualTemplate = workspaceValidator.validateTemplateOwnership(workspaceId, individualTemplateId);
 
         return IndividualTemplateResponse.toResponse(individualTemplate);
     }
@@ -206,9 +203,7 @@ public class IndividualTemplateService {
         // 워크스페이스 검증
         workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
 
-        IndividualTemplate individualTemplate = individualTemplateRepository.findByIndividualTemplateIdAndWorkspace_WorkspaceId(individualTemplateId, workspaceId)
-                .orElseThrow(() -> new EntityNotFoundException("템플릿이 존재하지 않습니다. id = " + individualTemplateId));
-
+        IndividualTemplate individualTemplate = workspaceValidator.validateTemplateOwnership(workspaceId, individualTemplateId);
 
         individualTemplate.softDelete();
         individualTemplateRepository.save(individualTemplate);
@@ -225,8 +220,7 @@ public class IndividualTemplateService {
         // 워크스페이스 검증
         workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
 
-        IndividualTemplate individualTemplate = individualTemplateRepository.findByIndividualTemplateIdAndWorkspace_WorkspaceId(individualTemplateId, workspaceId)
-                .orElseThrow(() -> new EntityNotFoundException("템플릿이 존재하지 않습니다. id = " + individualTemplateId));
+        IndividualTemplate individualTemplate = workspaceValidator.validateTemplateOwnership(workspaceId, individualTemplateId);
 
         individualTemplate.update(
                 request.getIndividualTemplateTitle(),
@@ -247,10 +241,7 @@ public class IndividualTemplateService {
         // 워크스페이스 검증
         workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
 
-        IndividualTemplate individualTemplate = individualTemplateRepository
-                .findByIndividualTemplateIdAndWorkspace_WorkspaceId(individualTemplateId, workspaceId)
-                .orElseThrow(() -> new EntityNotFoundException("템플릿이 존재하지 않습니다. id = " + individualTemplateId));
-
+        IndividualTemplate individualTemplate = workspaceValidator.validateTemplateOwnership(workspaceId, individualTemplateId);
         individualTemplate.updateStatus(status);
 
         return IndividualTemplateResponse.toResponse(individualTemplate);

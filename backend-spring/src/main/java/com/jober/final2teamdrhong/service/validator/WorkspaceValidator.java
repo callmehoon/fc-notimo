@@ -1,5 +1,6 @@
 package com.jober.final2teamdrhong.service.validator;
 
+import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.WorkspaceRepository;
@@ -34,8 +35,8 @@ public class WorkspaceValidator {
      * @param individualTemplateId 검증할 개인 템플릿 ID
      * @throws IllegalArgumentException 템플릿이 워크스페이스에 속해있지 않을 경우
      */
-    public void validateTemplateOwnership(Integer workspaceId, Integer individualTemplateId) {
-        individualTemplateRepository.findByIndividualTemplateIdAndWorkspace_WorkspaceId(individualTemplateId, workspaceId)
+    public IndividualTemplate validateTemplateOwnership(Integer workspaceId, Integer individualTemplateId) {
+        return individualTemplateRepository.findByIndividualTemplateIdAndWorkspace_WorkspaceId(individualTemplateId, workspaceId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 워크스페이스에 존재하지 않는 템플릿입니다."));
     }
 
