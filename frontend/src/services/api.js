@@ -28,4 +28,24 @@ api.interceptors.request.use(
     }
 );
 
+export const getPublicTemplates = (pageable) => {
+    return api.get('/public-templates', { params: pageable });
+};
+
+export const createIndividualTemplateFromPublic = (workspaceId, publicTemplateId) => {
+    return api.post(`/templates/${workspaceId}/from-public/${publicTemplateId}`);
+};
+
+export const getIndividualTemplate = (workspaceId, templateId) => {
+    return api.get(`/${workspaceId}/templates/${templateId}`);
+};
+
+export const deletePublicTemplate = (templateId) => {
+    return api.delete(`/admin/public-templates/${templateId}`);
+};
+
+export const getFavoriteTemplates = (workspaceId, templateType, pageable) => {
+    return api.get(`/workspace/${workspaceId}/favorites`, { params: { ...pageable, templateType } });
+};
+
 export default api;
