@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Box,
     CssBaseline,
@@ -7,66 +8,95 @@ import {
     Select,
     MenuItem
 } from '@mui/material';
-
-// --- 아이콘 및 공용 컴포넌트 임포트 ---
 import Sidebar from '../components/layout/Sidebar';
 import WorkspaceList from '../components/layout/WorkspaceList';
 import SearchInput from '../components/common/SearchInput';
 import Pagination from '../components/common/Pagination';
 import TemplateCard from '../components/template/TemplateCard';
-import CommonButton from '../components/button/CommonButton'; // <-- The missing import
-
-// --- 목업 데이터 ---
-const mockPublicTemplates = Array.from({ length: 45 }, (_, i) => ({
-    id: i + 1,
-    title: `공용 템플릿 ${i + 1}`,
-    content: '템플릿 내용ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',
-    status: ['심사중', '심사완료', '반려', '심사요청'][i % 4],
-}));
+import CommonButton from '../components/button/CommonButton';
+import { getPublicTemplates, createIndividualTemplateFromPublic, deletePublicTemplate } from '../services/api';
 
 const ITEMS_PER_PAGE = 12;
 
-// --- 최종 페이지 조립 ---
 export default function PublicTemplatePage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const [sortOrder, setSortOrder] = useState('최신 순');
+    const [sortOrder, setSortOrder] = useState('createdAt,desc'); // API-compatible sort order
+    const [templates, setTemplates] = useState([]);
+    const [totalPages, setTotalPages] = useState(0);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const fetchTemplates = async () => {
+            try {
+                const [sortField, sortDirection] = sortOrder.split(',');
+                const pageable = {
+                    page: currentPage - 1,
+                    size: ITEMS_PER_PAGE,
+                    sort: sortField,
+                    direction: sortDirection.toUpperCase(),
+                };
+                const response = await getPublicTemplates(pageable);
+                setTemplates(response.data.content);
+                setTotalPages(response.data.totalPages);
+            } catch (error) {
+                console.error("Failed to fetch public templates:", error);
+                // Handle error appropriately
+            }
+        };
+
+        fetchTemplates();
+    }, [currentPage, sortOrder, searchQuery]);
 
     const handleSearch = (query) => { setSearchQuery(query); setCurrentPage(1); };
     const handlePageChange = (event, value) => { setCurrentPage(value); };
     const handleSortChange = (event) => { setSortOrder(event.target.value); };
 
-    const finalFilteredTemplates = useMemo(() => {
-        let templates = mockPublicTemplates;
-        if (searchQuery) {
-            templates = templates.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()));
+    const handleUseTemplate = async (publicTemplateId) => {
+        const workspaceId = localStorage.getItem('selectedWorkspaceId');
+        if (!workspaceId) {
+            alert('Please select a workspace first.');
+            return;
         }
-        return templates;
-    }, [searchQuery]);
 
-    const totalPages = Math.ceil(finalFilteredTemplates.length / ITEMS_PER_PAGE);
-    const paginatedTemplates = finalFilteredTemplates.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE
-    );
+        try {
+            const response = await createIndividualTemplateFromPublic(workspaceId, publicTemplateId);
+            const newTemplateId = response.data.id; // Assuming the response contains the new template with its id
+            navigate(`/workspace/${workspaceId}/templategenerator/${newTemplateId}`);
+        } catch (error) {
+            console.error("Failed to create template from public:", error);
+            alert('Failed to use template.');
+        }
+    };
+
+    const handleDeleteTemplate = async (templateId) => {
+        if (window.confirm('정말로 이 템플릿을 삭제하시겠습니까?')) {
+            try {
+                await deletePublicTemplate(templateId);
+                setTemplates(prevTemplates => prevTemplates.filter(t => t.publicTemplateId !== templateId));
+                alert('템플릿이 삭제되었습니다.');
+            } catch (error) {
+                console.error("Failed to delete template:", error);
+                alert('템플릿 삭제에 실패했습니다.');
+            }
+        }
+    };
 
     return (
         <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
             <CssBaseline />
-
-            <Sidebar>
-                <WorkspaceList />
-            </Sidebar>
+            <Sidebar />
 
             <Box component="main" sx={{ flexGrow: 1, p: 3, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexShrink: 0 }}>
-                    <CommonButton sx={{ bgcolor: '#343a40', color: 'white', boxShadow: 'none', '&:hover': { bgcolor: '#495057' } }}>템플릿 제작</CommonButton>
+                    
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <SearchInput onSearch={handleSearch} />
                         <FormControl size="small" sx={{ minWidth: 120 }}>
                             <Select value={sortOrder} onChange={handleSortChange}>
-                                <MenuItem value={'최신 순'}>최신 순</MenuItem>
-                                <MenuItem value={'인기 순'}>인기 순</MenuItem>
+                                <MenuItem value={'createdAt,desc'}>최신 순</MenuItem>
+                                <MenuItem value={'shareCount,desc'}>공유 순</MenuItem>
+                                <MenuItem value={'publicTemplateTitle,asc'}>가나다 순</MenuItem>
                             </Select>
                         </FormControl>
                     </Box>
@@ -79,21 +109,28 @@ export default function PublicTemplatePage() {
                             flexWrap: 'wrap',
                         }}
                     >
-                        {paginatedTemplates.map(template => (
-                            <Box
-                                key={template.id}
-                                sx={{
-                                    flex: '0 0 25%',    // 한 줄에 4개
-                                    boxSizing: 'border-box',
-                                    p: 1,               // 카드 사이 여백
-                                }}
-                            >
-                                <TemplateCard template={template} />
-                            </Box>
-                        ))}
+                        {templates.map(template => {
+                            const cardData = {
+                                id: template.publicTemplateId,
+                                title: template.publicTemplateTitle,
+                                content: template.publicTemplateContent,
+                                buttonTitle: template.buttonTitle, // Pass buttonTitle
+                            };
+                            return (
+                                <Box
+                                    key={cardData.id}
+                                    sx={{
+                                        flex: '0 0 25%',
+                                        boxSizing: 'border-box',
+                                        p: 1,
+                                    }}
+                                >
+                                    <TemplateCard template={cardData} onUse={() => handleUseTemplate(cardData.id)} onDelete={handleDeleteTemplate} />
+                                </Box>
+                            );
+                        })}
                     </Box>
                 </Box>
-
 
                 <Pagination
                     count={totalPages}

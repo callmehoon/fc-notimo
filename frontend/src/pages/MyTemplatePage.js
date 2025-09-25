@@ -99,6 +99,7 @@ export default function TemplatePage() {
                         <FormControl size="small">
                             <Select value={sortOrder} onChange={handleSortChange}>
                                 <MenuItem value={'최신 순'}>최신 순</MenuItem>
+                                <MenuItem value={'공유 순'}>공유 순</MenuItem>
                                 <MenuItem value={'가나다 순'}>가나다 순</MenuItem>
                             </Select>
                         </FormControl>

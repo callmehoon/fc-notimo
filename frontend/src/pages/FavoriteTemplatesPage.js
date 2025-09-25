@@ -1,54 +1,68 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import {
     Box,
     CssBaseline,
     Grid,
-    Typography, // Added for title
-    FormControl, // Added for sort dropdown structure
-    Select, // Added for sort dropdown structure
-    MenuItem // Added for sort dropdown structure
+    FormControl,
+    Select,
+    MenuItem
 } from '@mui/material';
 
-// --- 아이콘 및 공용 컴포넌트 임포트 ---
 import Sidebar from '../components/layout/Sidebar';
 import WorkspaceList from '../components/layout/WorkspaceList';
 import SearchInput from '../components/common/SearchInput';
 import Pagination from '../components/common/Pagination';
 import TemplateCard from '../components/template/TemplateCard';
-// CommonButton은 이 페이지에서 직접 사용하지 않을 수 있으나, PublicTemplatePage와 유사하게 구성
+import { getFavoriteTemplates } from '../services/api';
 
-// --- 목업 데이터 (즐겨찾기 템플릿) ---
-const mockFavoriteTemplates = Array.from({ length: 10 }, (_, i) => ({
-    id: `fav-${i + 1}`,
-    title: `즐겨찾기 템플릿 ${i + 1}`,
-    content: '이것은 즐겨찾기된 템플릿 내용입니다.',
-    status: ['활성', '비활성'][i % 2], // 예시 상태
-}));
-
-const ITEMS_PER_PAGE = 12; // PublicTemplatePage와 동일하게 설정
+const ITEMS_PER_PAGE = 12;
 
 export default function FavoriteTemplatesPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [sortOrder, setSortOrder] = useState('최신 순');
+    const [templates, setTemplates] = useState([]);
+    const [totalPages, setTotalPages] = useState(0);
+    const { workspaceId } = useParams();
 
-    // PublicTemplatePage와 유사한 핸들러 (기능은 목업)
-    const handleSearch = (query) => { setSearchQuery(query); setCurrentPage(1); };
-    const handlePageChange = (event, value) => { setCurrentPage(value); };
-    const handleSortChange = (event) => { setSortOrder(event.target.value); };
+    useEffect(() => {
+        const fetchFavorites = async () => {
+            if (!workspaceId) return;
 
-    const finalFilteredTemplates = useMemo(() => {
-        let templates = mockFavoriteTemplates;
-        if (searchQuery) {
-            templates = templates.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()));
-        }
-        return templates;
-    }, [searchQuery]);
+            try {
+                const pageable = {
+                    page: currentPage - 1,
+                    size: ITEMS_PER_PAGE,
+                    // sort: sortOrder === '최신 순' ? 'createdAt,desc' : 'popularity,desc' // 백엔드 정렬 파라미터 확인 필요
+                };
+                const response = await getFavoriteTemplates(workspaceId, null, pageable);
+                setTemplates(response.data.content);
+                setTotalPages(response.data.totalPages);
+            } catch (error) {
+                console.error('Error fetching favorite templates:', error);
+            }
+        };
 
-    const totalPages = Math.ceil(finalFilteredTemplates.length / ITEMS_PER_PAGE);
-    const paginatedTemplates = finalFilteredTemplates.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE
+        fetchFavorites();
+    }, [workspaceId, currentPage, sortOrder]);
+
+    const handleSearch = (query) => {
+        setSearchQuery(query);
+        setCurrentPage(1);
+    };
+
+    const handlePageChange = (event, value) => {
+        setCurrentPage(value);
+    };
+
+    const handleSortChange = (event) => {
+        setSortOrder(event.target.value);
+    };
+    
+    // 검색어에 따라 템플릿 필터링 (클라이언트 측)
+    const filteredTemplates = templates.filter(t => 
+        t.templateTitle.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return (
@@ -61,7 +75,6 @@ export default function FavoriteTemplatesPage() {
 
             <Box component="main" sx={{ flexGrow: 1, p: 3, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexShrink: 0 }}>
-                    {/* 페이지 제목 제거됨 */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <SearchInput onSearch={handleSearch} />
                         <FormControl size="small" sx={{ minWidth: 120 }}>
@@ -80,21 +93,24 @@ export default function FavoriteTemplatesPage() {
                             flexWrap: 'wrap',
                         }}
                     >
-                        {paginatedTemplates.map(template => (
+                        {filteredTemplates.map(template => (
                             <Box
-                                key={template.id}
+                                key={template.favoriteId}
                                 sx={{
-                                    flex: '0 0 25%',    // 한 줄에 4개
+                                    flex: '0 0 25%',
                                     boxSizing: 'border-box',
-                                    p: 1,               // 카드 사이 여백
+                                    p: 1,
                                 }}
                             >
-                                <TemplateCard template={template} />
+                                <TemplateCard template={{
+                                    id: template.templateId,
+                                    title: template.templateTitle,
+                                    content: template.templateContent,
+                                }} />
                             </Box>
                         ))}
                     </Box>
                 </Box>
-
 
                 <Pagination
                     count={totalPages}
