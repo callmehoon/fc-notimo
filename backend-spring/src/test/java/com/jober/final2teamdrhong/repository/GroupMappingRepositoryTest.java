@@ -7,23 +7,29 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import jakarta.persistence.EntityManager;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 @DataJpaTest
 class GroupMappingRepositoryTest {
 
     @Autowired
-    private TestEntityManager entityManager;
+    private TestEntityManager testEntityManager;
+
+    @Autowired
+    private EntityManager entityManager;
 
     @Autowired
     private GroupMappingRepository groupMappingRepository;
@@ -40,7 +46,7 @@ class GroupMappingRepositoryTest {
                 .userName("user")
                 .userEmail("user@test.com")
                 .build();
-        entityManager.persist(user);
+        testEntityManager.persist(user);
 
         Workspace workspace = Workspace.builder()
                 .workspaceName("테스트 워크스페이스")
@@ -50,50 +56,50 @@ class GroupMappingRepositoryTest {
                 .companyName("테스트회사")
                 .user(user)
                 .build();
-        entityManager.persist(workspace);
+        testEntityManager.persist(workspace);
 
         testPhoneBook = PhoneBook.builder()
                 .phoneBookName("test-phonebook")
                 .workspace(workspace)
                 .build();
-        entityManager.persist(testPhoneBook);
+        testEntityManager.persist(testPhoneBook);
 
         anotherPhoneBook = PhoneBook.builder()
                 .phoneBookName("another-phonebook")
                 .workspace(workspace)
                 .build();
-        entityManager.persist(anotherPhoneBook);
+        testEntityManager.persist(anotherPhoneBook);
 
         recipient1 = Recipient.builder()
                 .recipientName("recipient1")
                 .recipientPhoneNumber("010-1111-1111")
                 .workspace(workspace)
                 .build();
-        entityManager.persist(recipient1);
+        testEntityManager.persist(recipient1);
 
         recipient2 = Recipient.builder()
                 .recipientName("recipient2")
                 .recipientPhoneNumber("010-1111-1111")
                 .workspace(workspace)
                 .build();
-        entityManager.persist(recipient2);
+        testEntityManager.persist(recipient2);
 
         recipient3 = Recipient.builder()
                 .recipientName("recipient3")
                 .recipientPhoneNumber("010-1111-1111")
                 .workspace(workspace)
                 .build();
-        entityManager.persist(recipient3);
+        testEntityManager.persist(recipient3);
 
         // testPhoneBook에는 recipient1, recipient2를 매핑
-        entityManager.persist(GroupMapping.builder().phoneBook(testPhoneBook).recipient(recipient1).build());
-        entityManager.persist(GroupMapping.builder().phoneBook(testPhoneBook).recipient(recipient2).build());
+        testEntityManager.persist(GroupMapping.builder().phoneBook(testPhoneBook).recipient(recipient1).build());
+        testEntityManager.persist(GroupMapping.builder().phoneBook(testPhoneBook).recipient(recipient2).build());
 
         // anotherPhoneBook에는 recipient3를 매핑
-        entityManager.persist(GroupMapping.builder().phoneBook(anotherPhoneBook).recipient(recipient3).build());
+        testEntityManager.persist(GroupMapping.builder().phoneBook(anotherPhoneBook).recipient(recipient3).build());
 
-        entityManager.flush();
-        entityManager.clear();
+        testEntityManager.flush();
+        testEntityManager.clear();
     }
 
     @Test
@@ -120,10 +126,10 @@ class GroupMappingRepositoryTest {
     void findRecipientIdsByPhoneBook_Empty_Test() {
         // given
         // 1. 테스트용 워크스페이스를 조회합니다.
-        Workspace workspace = entityManager.find(Workspace.class, testPhoneBook.getWorkspace().getWorkspaceId());
+        Workspace workspace = testEntityManager.find(Workspace.class, testPhoneBook.getWorkspace().getWorkspaceId());
         // 2. 수신자가 매핑되지 않은 새로운 주소록을 생성하고 저장합니다.
         PhoneBook emptyPhoneBook = PhoneBook.builder().workspace(workspace).phoneBookName("empty-phonebook").build();
-        entityManager.persistAndFlush(emptyPhoneBook);
+        testEntityManager.persistAndFlush(emptyPhoneBook);
 
         // when
         // 1. 비어있는 주소록을 대상으로 메서드를 호출합니다.
@@ -141,23 +147,23 @@ class GroupMappingRepositoryTest {
     void bulkInsertMappings_Test() {
         // given
         // 1. 새로운 수신자들을 생성합니다.
-        Workspace workspace = entityManager.find(Workspace.class, testPhoneBook.getWorkspace().getWorkspaceId());
+        Workspace workspace = testEntityManager.find(Workspace.class, testPhoneBook.getWorkspace().getWorkspaceId());
 
         Recipient newRecipient1 = Recipient.builder()
                 .recipientName("신규수신자1")
                 .recipientPhoneNumber("010-2222-2222")
                 .workspace(workspace)
                 .build();
-        entityManager.persist(newRecipient1);
+        testEntityManager.persist(newRecipient1);
 
         Recipient newRecipient2 = Recipient.builder()
                 .recipientName("신규수신자2")
                 .recipientPhoneNumber("010-3333-3333")
                 .workspace(workspace)
                 .build();
-        entityManager.persist(newRecipient2);
+        testEntityManager.persist(newRecipient2);
 
-        entityManager.flush();
+        testEntityManager.flush();
 
         // 2. 벌크 INSERT에 사용할 수신자 ID 목록과 타임스탬프를 준비합니다.
         List<Integer> recipientIds = List.of(newRecipient1.getRecipientId(), newRecipient2.getRecipientId());
@@ -166,8 +172,8 @@ class GroupMappingRepositoryTest {
         // when
         // 1. 벌크 INSERT를 실행합니다.
         groupMappingRepository.bulkInsertMappings(testPhoneBook.getPhoneBookId(), recipientIds, timestamp);
-        entityManager.flush();
-        entityManager.clear();
+        testEntityManager.flush();
+        testEntityManager.clear();
 
         // then
         // 1. 주소록에 새로운 수신자들이 추가되었는지 확인합니다.
@@ -181,30 +187,30 @@ class GroupMappingRepositoryTest {
     void findAllByPhoneBook_PhoneBookIdAndRecipient_RecipientIdIn_Test() {
         // given
         // 1. 새로운 수신자들을 생성합니다.
-        Workspace workspace = entityManager.find(Workspace.class, testPhoneBook.getWorkspace().getWorkspaceId());
+        Workspace workspace = testEntityManager.find(Workspace.class, testPhoneBook.getWorkspace().getWorkspaceId());
 
         Recipient newRecipient1 = Recipient.builder()
                 .recipientName("신규수신자1")
                 .recipientPhoneNumber("010-2222-2222")
                 .workspace(workspace)
                 .build();
-        entityManager.persist(newRecipient1);
+        testEntityManager.persist(newRecipient1);
 
         Recipient newRecipient2 = Recipient.builder()
                 .recipientName("신규수신자2")
                 .recipientPhoneNumber("010-3333-3333")
                 .workspace(workspace)
                 .build();
-        entityManager.persist(newRecipient2);
+        testEntityManager.persist(newRecipient2);
 
-        entityManager.flush();
+        testEntityManager.flush();
 
         // 2. 벌크 INSERT로 매핑을 생성합니다.
         List<Integer> recipientIds = List.of(newRecipient1.getRecipientId(), newRecipient2.getRecipientId());
         LocalDateTime timestamp = ZonedDateTime.now(ZoneId.of("Asia/Seoul")).toLocalDateTime();
         groupMappingRepository.bulkInsertMappings(testPhoneBook.getPhoneBookId(), recipientIds, timestamp);
-        entityManager.flush();
-        entityManager.clear();
+        testEntityManager.flush();
+        testEntityManager.clear();
 
         // when
         // 1. JPA 쿼리 메서드로 생성된 매핑들을 조회합니다.
@@ -258,10 +264,10 @@ class GroupMappingRepositoryTest {
     void findByPhoneBookOrderByRecipient_CreatedAtDescRecipient_RecipientIdDesc_SortByRecipientCreatedAt_Test() {
         // given
         // 1. Detached 상태인 testPhoneBook을 DB에서 다시 조회하여 Managed 상태로 만듭니다.
-        PhoneBook managedTestPhoneBook = entityManager.find(PhoneBook.class, testPhoneBook.getPhoneBookId());
+        PhoneBook managedTestPhoneBook = testEntityManager.find(PhoneBook.class, testPhoneBook.getPhoneBookId());
         // 2. recipient3을 Managed 상태의 주소록에 추가합니다.
-        entityManager.persist(GroupMapping.builder().phoneBook(managedTestPhoneBook).recipient(recipient3).build());
-        entityManager.flush();
+        testEntityManager.persist(GroupMapping.builder().phoneBook(managedTestPhoneBook).recipient(recipient3).build());
+        testEntityManager.flush();
 
         // 3. 페이징 정보를 설정합니다.
         Pageable pageable = PageRequest.of(0, 10);
@@ -283,10 +289,10 @@ class GroupMappingRepositoryTest {
     void findByPhoneBookOrderByRecipient_CreatedAtDescRecipient_RecipientIdDesc_EmptyPage_Test() {
         // given
         // 1. 테스트용 워크스페이스를 조회합니다.
-        Workspace workspace = entityManager.find(Workspace.class, testPhoneBook.getWorkspace().getWorkspaceId());
+        Workspace workspace = testEntityManager.find(Workspace.class, testPhoneBook.getWorkspace().getWorkspaceId());
         // 2. GroupMapping이 없는 새로운 주소록을 생성하고 저장합니다.
         PhoneBook emptyPhoneBook = PhoneBook.builder().workspace(workspace).phoneBookName("empty-phonebook").build();
-        entityManager.persistAndFlush(emptyPhoneBook);
+        testEntityManager.persistAndFlush(emptyPhoneBook);
         // 3. 페이징 정보를 설정합니다.
         Pageable pageable = PageRequest.of(0, 10);
 
@@ -303,5 +309,139 @@ class GroupMappingRepositoryTest {
         assertThat(groupMappingPage.getNumberOfElements()).isEqualTo(0);
         // 4. 콘텐츠가 비어있는지 확인합니다.
         assertThat(groupMappingPage.getContent()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("GroupMapping 일괄 소프트 딜리트 성공 테스트")
+    void softDeleteAllInBatch_Success_Test() {
+        // given
+        // 1. 테스트용 GroupMapping들을 생성하고 저장합니다.
+        GroupMapping mapping1 = testEntityManager.persistAndFlush(GroupMapping.builder()
+                .phoneBook(testPhoneBook)
+                .recipient(recipient1)
+                .build());
+        GroupMapping mapping2 = testEntityManager.persistAndFlush(GroupMapping.builder()
+                .phoneBook(testPhoneBook)
+                .recipient(recipient2)
+                .build());
+
+        List<GroupMapping> mappingsToDelete = List.of(mapping1, mapping2);
+        LocalDateTime deletionTime = LocalDateTime.of(2025, 9, 22, 15, 30, 0);
+
+        // when
+        // 1. 일괄 소프트 딜리트를 실행합니다.
+        groupMappingRepository.softDeleteAllInBatch(mappingsToDelete, deletionTime);
+
+        // then
+        // 1. 네이티브 쿼리를 사용하여 소프트 딜리트 상태를 확인합니다.
+        List<Object[]> results = entityManager.createNativeQuery(
+                "SELECT group_mapping_id, is_deleted, deleted_at FROM group_mapping WHERE group_mapping_id IN (?1, ?2)"
+        ).setParameter(1, mapping1.getGroupMappingId())
+         .setParameter(2, mapping2.getGroupMappingId())
+         .getResultList();
+
+        // 2. 두 매핑 모두 조회되는지 확인합니다.
+        assertThat(results).hasSize(2);
+
+        // 3. 각 매핑이 소프트 딜리트 상태인지 확인합니다.
+        for (Object[] result : results) {
+            Integer groupMappingId = (Integer) result[0];
+            Boolean isDeleted = (Boolean) result[1];
+            Object deletedAtObj = result[2];
+
+            assertThat(isDeleted).isTrue();
+            assertThat(deletedAtObj).isNotNull();
+
+            // deletedAt 시간이 설정한 시간과 일치하는지 확인 (초 단위까지)
+            if (deletedAtObj instanceof java.sql.Timestamp) {
+                LocalDateTime deletedAt = ((java.sql.Timestamp) deletedAtObj).toLocalDateTime();
+                assertThat(deletedAt).isEqualToIgnoringNanos(deletionTime);
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("GroupMapping 일괄 소프트 딜리트 테스트 - 빈 리스트")
+    void softDeleteAllInBatch_EmptyList_Test() {
+        // given
+        // 1. 빈 매핑 리스트와 삭제 시간을 준비합니다.
+        List<GroupMapping> emptyMappings = List.of();
+        LocalDateTime deletionTime = LocalDateTime.now();
+
+        // when & then
+        // 1. 빈 리스트로 메서드를 호출해도 예외가 발생하지 않는지 확인합니다.
+        assertDoesNotThrow(() -> {
+            groupMappingRepository.softDeleteAllInBatch(emptyMappings, deletionTime);
+        });
+    }
+
+    @Test
+    @DisplayName("소프트 딜리트된 매핑 포함 조회 성공 테스트")
+    void findAllByIdIncludingDeleted_Success_Test() {
+        // given
+        // 1. 테스트용 GroupMapping을 생성하고 저장합니다.
+        GroupMapping mapping1 = testEntityManager.persistAndFlush(GroupMapping.builder()
+                .phoneBook(testPhoneBook)
+                .recipient(recipient1)
+                .build());
+        GroupMapping mapping2 = testEntityManager.persistAndFlush(GroupMapping.builder()
+                .phoneBook(testPhoneBook)
+                .recipient(recipient2)
+                .build());
+
+        // 2. 첫 번째 매핑을 소프트 딜리트합니다.
+        LocalDateTime deletionTime = LocalDateTime.now();
+        groupMappingRepository.softDeleteAllInBatch(List.of(mapping1), deletionTime);
+
+        List<Integer> mappingIds = List.of(mapping1.getGroupMappingId(), mapping2.getGroupMappingId());
+
+        // when
+        // 1. 소프트 딜리트된 매핑도 포함하여 조회합니다.
+        List<GroupMapping> foundMappings = groupMappingRepository.findAllByIdIncludingDeleted(mappingIds);
+
+        // then
+        // 1. 두 매핑 모두 조회되는지 확인합니다.
+        assertThat(foundMappings).hasSize(2);
+
+        // 2. 매핑 ID들이 올바르게 조회되었는지 확인합니다.
+        List<Integer> foundIds = foundMappings.stream()
+                .map(GroupMapping::getGroupMappingId)
+                .toList();
+        assertThat(foundIds).containsExactlyInAnyOrder(
+                mapping1.getGroupMappingId(),
+                mapping2.getGroupMappingId()
+        );
+
+        // 3. 소프트 딜리트된 매핑과 일반 매핑을 구분할 수 있는지 확인합니다.
+        Optional<GroupMapping> deletedMapping = foundMappings.stream()
+                .filter(m -> m.getGroupMappingId().equals(mapping1.getGroupMappingId()))
+                .findFirst();
+        Optional<GroupMapping> normalMapping = foundMappings.stream()
+                .filter(m -> m.getGroupMappingId().equals(mapping2.getGroupMappingId()))
+                .findFirst();
+
+        assertThat(deletedMapping).isPresent();
+        assertThat(deletedMapping.get().getIsDeleted()).isTrue();
+        assertThat(deletedMapping.get().getDeletedAt()).isNotNull();
+
+        assertThat(normalMapping).isPresent();
+        assertThat(normalMapping.get().getIsDeleted()).isFalse();
+        assertThat(normalMapping.get().getDeletedAt()).isNull();
+    }
+
+    @Test
+    @DisplayName("소프트 딜리트된 매핑 포함 조회 테스트 - 존재하지 않는 ID")
+    void findAllByIdIncludingDeleted_NonExistentIds_Test() {
+        // given
+        // 1. 존재하지 않는 매핑 ID들을 준비합니다.
+        List<Integer> nonExistentIds = List.of(-1, -2);
+
+        // when
+        // 1. 존재하지 않는 ID로 조회합니다.
+        List<GroupMapping> foundMappings = groupMappingRepository.findAllByIdIncludingDeleted(nonExistentIds);
+
+        // then
+        // 1. 빈 리스트가 반환되는지 확인합니다.
+        assertThat(foundMappings).isEmpty();
     }
 }

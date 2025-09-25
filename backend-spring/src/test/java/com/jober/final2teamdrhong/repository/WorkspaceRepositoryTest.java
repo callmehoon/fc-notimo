@@ -44,8 +44,8 @@ class WorkspaceRepositoryTest {
     }
 
     @Test
-    @DisplayName("URL 존재 여부 확인 테스트")
-    void existsByWorkspaceUrl_Test() {
+    @DisplayName("URL 존재 여부 확인 테스트 - 기본 기능")
+    void existsByWorkspaceUrlAndIsDeletedFalse_Test() {
         // given
         // 1. 빌더로 Workspace 객체를 생성합니다.
         //    (빌더에 포함된 @NonNull 필드는 필수로 넣어주어야 합니다.)
@@ -64,9 +64,9 @@ class WorkspaceRepositoryTest {
         // when
         // 1. 테스트할 메소드를 호출합니다.
         //    - DB에 방금 저장한 URL로 호출해봅니다.
-        boolean shouldBeTrue = workspaceRepository.existsByWorkspaceUrl("test-url");
+        boolean shouldBeTrue = workspaceRepository.existsByWorkspaceUrlAndIsDeletedFalse("test-url");
         //    - DB에 절대 없을 법한 임의의 URL로 호출해봅니다.
-        boolean shouldBeFalse = workspaceRepository.existsByWorkspaceUrl("non-existing-url");
+        boolean shouldBeFalse = workspaceRepository.existsByWorkspaceUrlAndIsDeletedFalse("non-existing-url");
 
         // then
         // 1. 결과를 검증합니다.
@@ -74,6 +74,122 @@ class WorkspaceRepositoryTest {
         assertThat(shouldBeTrue).isTrue();
         //    - non-existing-url로 조회한 결과는 반드시 false여야 합니다.
         assertThat(shouldBeFalse).isFalse();
+    }
+
+    @Test
+    @DisplayName("URL 존재 여부 확인 테스트 - 삭제된 워크스페이스 제외")
+    void existsByWorkspaceUrlAndIsDeletedFalse_ExcludeDeleted_Test() {
+        // given
+        // 1. 활성 워크스페이스 생성
+        Workspace activeWorkspace = Workspace.builder()
+                .workspaceName("활성 워크스페이스")
+                .workspaceUrl("active-url")
+                .representerName("테스트대표")
+                .representerPhoneNumber("010-0000-0000")
+                .companyName("테스트회사")
+                .user(testUser)
+                .build();
+        entityManager.persist(activeWorkspace);
+
+        // 2. 삭제된 워크스페이스 생성
+        Workspace deletedWorkspace = Workspace.builder()
+                .workspaceName("삭제된 워크스페이스")
+                .workspaceUrl("deleted-url")
+                .representerName("테스트대표")
+                .representerPhoneNumber("010-0000-0000")
+                .companyName("테스트회사")
+                .user(testUser)
+                .build();
+        deletedWorkspace.softDelete(); // 삭제 처리
+        entityManager.persist(deletedWorkspace);
+        entityManager.flush();
+
+        // when
+        boolean activeExists = workspaceRepository.existsByWorkspaceUrlAndIsDeletedFalse("active-url");
+        boolean deletedExists = workspaceRepository.existsByWorkspaceUrlAndIsDeletedFalse("deleted-url");
+
+        // then
+        assertThat(activeExists).isTrue();   // 활성 워크스페이스는 검색됨
+        assertThat(deletedExists).isFalse(); // 삭제된 워크스페이스는 검색 안됨
+    }
+
+    @Test
+    @DisplayName("특정 워크스페이스 제외 URL 중복 검사 테스트 - 기본 기능")
+    void existsByWorkspaceUrlAndIsDeletedFalseAndWorkspaceIdNot_Test() {
+        // given
+        // 1. 첫 번째 워크스페이스 생성
+        Workspace workspace1 = Workspace.builder()
+                .workspaceName("워크스페이스1")
+                .workspaceUrl("unique-url")
+                .representerName("테스트대표")
+                .representerPhoneNumber("010-0000-0000")
+                .companyName("테스트회사")
+                .user(testUser)
+                .build();
+        entityManager.persist(workspace1);
+
+        // 2. 두 번째 워크스페이스 생성 (다른 URL)
+        Workspace workspace2 = Workspace.builder()
+                .workspaceName("워크스페이스2")
+                .workspaceUrl("another-url")
+                .representerName("테스트대표")
+                .representerPhoneNumber("010-0000-0000")
+                .companyName("테스트회사")
+                .user(testUser)
+                .build();
+        entityManager.persist(workspace2);
+        entityManager.flush();
+
+        // when
+        // 1. workspace1을 제외하고 "unique-url"이 존재하는지 확인 (false 기대)
+        boolean excludingSelf = workspaceRepository.existsByWorkspaceUrlAndIsDeletedFalseAndWorkspaceIdNot(
+                "unique-url", workspace1.getWorkspaceId());
+
+        // 2. workspace1을 제외하고 "another-url"이 존재하는지 확인 (true 기대)
+        boolean excludingOther = workspaceRepository.existsByWorkspaceUrlAndIsDeletedFalseAndWorkspaceIdNot(
+                "another-url", workspace1.getWorkspaceId());
+
+        // then
+        assertThat(excludingSelf).isFalse();  // 자기 자신은 제외되므로 false
+        assertThat(excludingOther).isTrue();  // 다른 워크스페이스의 URL은 검색됨
+    }
+
+    @Test
+    @DisplayName("특정 워크스페이스 제외 URL 중복 검사 테스트 - 삭제된 워크스페이스 제외")
+    void existsByWorkspaceUrlAndIsDeletedFalseAndWorkspaceIdNot_ExcludeDeleted_Test() {
+        // given
+        // 1. 활성 워크스페이스 생성
+        Workspace activeWorkspace = Workspace.builder()
+                .workspaceName("활성 워크스페이스")
+                .workspaceUrl("shared-url")
+                .representerName("테스트대표")
+                .representerPhoneNumber("010-0000-0000")
+                .companyName("테스트회사")
+                .user(testUser)
+                .build();
+        entityManager.persist(activeWorkspace);
+
+        // 2. 삭제된 워크스페이스 생성 (같은 URL)
+        Workspace deletedWorkspace = Workspace.builder()
+                .workspaceName("삭제된 워크스페이스")
+                .workspaceUrl("shared-url")
+                .representerName("테스트대표")
+                .representerPhoneNumber("010-0000-0000")
+                .companyName("테스트회사")
+                .user(testUser)
+                .build();
+        deletedWorkspace.softDelete(); // 삭제 처리
+        entityManager.persist(deletedWorkspace);
+        entityManager.flush();
+
+        // when
+        // 활성 워크스페이스를 제외하고 "shared-url"이 존재하는지 확인
+        // 삭제된 워크스페이스는 검사 대상에서 제외되어야 함
+        boolean result = workspaceRepository.existsByWorkspaceUrlAndIsDeletedFalseAndWorkspaceIdNot(
+                "shared-url", activeWorkspace.getWorkspaceId());
+
+        // then
+        assertThat(result).isFalse(); // 삭제된 워크스페이스는 제외되므로 false
     }
 
     @Test

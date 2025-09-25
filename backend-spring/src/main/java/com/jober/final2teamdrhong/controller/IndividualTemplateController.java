@@ -2,6 +2,8 @@ package com.jober.final2teamdrhong.controller;
 
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplatePageableRequest;
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateResponse;
+import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateStatusUpdateRequest;
+import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateUpdateRequest;
 import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
 import com.jober.final2teamdrhong.service.IndividualTemplateService;
 import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
@@ -257,4 +259,58 @@ public class IndividualTemplateController {
         individualTemplateService.deleteTemplate(individualTemplateId, workspaceId, userId);
         return ResponseEntity.noContent().build();
     }
+
+    @PutMapping("/{workspaceId}/templates/{individualTemplateId}")
+    @Operation(
+            summary = "개인 템플릿 수정",
+            description = "개인 템플릿의 제목, 내용, 버튼 제목을 수정합니다." +
+            "수정 시 상태는 항상 DRAFT로 설정"
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "템플릿 수정 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+            @ApiResponse(responseCode = "401", description = "인증 실패"),
+            @ApiResponse(responseCode = "403", description = "워크스페이스 접근 권한 없음"),
+            @ApiResponse(responseCode = "404", description = "템플릿 또는 워크스페이스 없음")
+    })
+    public ResponseEntity<IndividualTemplateResponse> updateTemplate(
+            @Parameter(description = "워크스페이스 ID", example = "10")
+            @PathVariable Integer workspaceId,
+            @Parameter(description = "수정할 개인 템플릿 ID", example = "1")
+            @PathVariable Integer individualTemplateId,
+            @RequestBody IndividualTemplateUpdateRequest request,
+            @AuthenticationPrincipal JwtClaims claims) {
+        Integer userId = claims.getUserId();
+
+        IndividualTemplateResponse response = individualTemplateService.updateTemplate(workspaceId,
+                individualTemplateId, request, userId);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{workspaceId}/templates/{individualTemplateId}/status")
+    @Operation(
+            summary = "개인 템플릿 상태 수정",
+            description = "템플릿의 상태(Status)를 변경합니다."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "상태 변경 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+            @ApiResponse(responseCode = "401", description = "인증 실패"),
+            @ApiResponse(responseCode = "403", description = "워크스페이스 접근 권한 없음"),
+            @ApiResponse(responseCode = "404", description = "템플릿 또는 워크스페이스 없음")
+    })
+    public ResponseEntity<IndividualTemplateResponse> updateTemplateStatus(
+            @PathVariable Integer workspaceId,
+            @PathVariable Integer individualTemplateId,
+            @ParameterObject IndividualTemplateStatusUpdateRequest request,
+            @AuthenticationPrincipal JwtClaims claims
+    ) {
+        Integer userId = claims.getUserId();
+        IndividualTemplateResponse response = individualTemplateService.updateTemplateStatus(
+                workspaceId, individualTemplateId, userId, request.getStatus()
+        );
+        return ResponseEntity.ok(response);
+    }
+
 }

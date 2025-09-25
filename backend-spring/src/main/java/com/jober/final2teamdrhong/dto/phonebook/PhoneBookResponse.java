@@ -110,5 +110,24 @@ public class PhoneBookResponse {
 
             return new ModifiedRecipientsDTO(phoneBook, timestamp, timestamp, null, addedRecipients);
         }
+
+        /**
+         * '수신자 삭제' 이벤트에 대한 DTO를 생성합니다.
+         * updatedAt과 deletedAt은 서비스 계층에서 재조회한, DB에 실제로 기록된 GroupMapping의 삭제 시간을 사용합니다.
+         *
+         * @param phoneBook       작업 대상 주소록 엔티티
+         * @param deletedMappings DB에서 재조회한, 소프트 딜리트 처리된 GroupMapping 엔티티 리스트
+         * @return '삭제' 이벤트의 정보가 채워진 ModifiedRecipientsDTO 객체
+         */
+        public static ModifiedRecipientsDTO ofDeletion(PhoneBook phoneBook, List<GroupMapping> deletedMappings) {
+            LocalDateTime timestamp =
+                    deletedMappings.isEmpty() ? ZonedDateTime.now(ZoneId.of("Asia/Seoul")).toLocalDateTime() : deletedMappings.getFirst().getDeletedAt();
+
+            List<Recipient> removedRecipients = deletedMappings.stream()
+                    .map(GroupMapping::getRecipient)
+                    .toList();
+
+            return new ModifiedRecipientsDTO(phoneBook, null, timestamp, timestamp, removedRecipients);
+        }
     }
 }

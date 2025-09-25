@@ -30,10 +30,13 @@ class WorkspaceServiceTest {
     // 이 객체들은 실제 로직을 수행하지 않으며, 오직 정의된 행동(stub)만 수행합니다.
     @Mock
     private WorkspaceRepository workspaceRepository;
+
     @Mock
     private UserValidator userValidator;
+
     @Mock
     private WorkspaceValidator workspaceValidator;
+
     @Mock
     private EntityManager entityManager;
 
@@ -47,13 +50,18 @@ class WorkspaceServiceTest {
         // given
         // 1. 테스트에 필요한 변수와 DTO를 정의합니다. (@NonNull 필드 포함)
         Integer userId = 1;
-        WorkspaceRequest.CreateDTO createDTO = WorkspaceRequest.CreateDTO.builder()
-                .workspaceName("Test Workspace")
-                .workspaceUrl("test-url")
-                .representerName("Test Rep")
-                .representerPhoneNumber("010-1234-5678")
-                .companyName("Test Co")
-                .build();
+        WorkspaceRequest.CreateDTO createDTO = new WorkspaceRequest.CreateDTO(
+                "Test Workspace",
+                null,
+                null,
+                null,
+                "test-url",
+                "Test Rep",
+                "010-1234-5678",
+                null,
+                "Test Co",
+                null
+        );
 
         // 2. Validator와 Repository가 반환할 가짜(Mock) 엔티티 객체를 준비합니다.
         User mockUser = mock(User.class);
@@ -68,7 +76,7 @@ class WorkspaceServiceTest {
 
         // then
         verify(userValidator, times(1)).validateAndGetUser(userId);
-        verify(workspaceValidator, times(1)).validateUrlOnCreate(createDTO.getWorkspaceUrl());
+        verify(workspaceValidator, times(1)).validateUrlOnCreate(createDTO.workspaceUrl());
         verify(workspaceRepository, times(1)).save(any(Workspace.class));
     }
 
@@ -77,7 +85,18 @@ class WorkspaceServiceTest {
     void createWorkspace_Fail_UserNotFound_Test() {
         // given
         Integer userId = 999;
-        WorkspaceRequest.CreateDTO createDTO = new WorkspaceRequest.CreateDTO();
+        WorkspaceRequest.CreateDTO createDTO = new WorkspaceRequest.CreateDTO(
+                "Test Workspace",
+                null,
+                null,
+                null,
+                "test-url",
+                "Test Rep",
+                "010-1234-5678",
+                null,
+                "Test Co",
+                null
+        );
         when(userValidator.validateAndGetUser(userId)).thenThrow(new IllegalArgumentException());
 
         // when
@@ -93,11 +112,22 @@ class WorkspaceServiceTest {
     void createWorkspace_Fail_DuplicateUrl_Test() {
         // given
         Integer userId = 1;
-        WorkspaceRequest.CreateDTO createDTO = WorkspaceRequest.CreateDTO.builder().workspaceUrl("duplicate-url").build();
+        WorkspaceRequest.CreateDTO createDTO = new WorkspaceRequest.CreateDTO(
+                "Test Workspace",
+                null,
+                null,
+                null,
+                "duplicate-url",
+                "Test Rep",
+                "010-1234-5678",
+                null,
+                "Test Co",
+                null
+        );
         User mockUser = mock(User.class);
 
         when(userValidator.validateAndGetUser(userId)).thenReturn(mockUser);
-        doThrow(new IllegalArgumentException()).when(workspaceValidator).validateUrlOnCreate(createDTO.getWorkspaceUrl());
+        doThrow(new IllegalArgumentException()).when(workspaceValidator).validateUrlOnCreate(createDTO.workspaceUrl());
 
         // when
         assertThrows(IllegalArgumentException.class, () -> workspaceService.createWorkspace(createDTO, userId));
@@ -176,13 +206,18 @@ class WorkspaceServiceTest {
         Integer userId = 1;
         Integer workspaceId = 1;
         // UpdateDTO 생성 시, NonNull 필드에 해당하는 값을 모두 설정
-        WorkspaceRequest.UpdateDTO updateDTO = WorkspaceRequest.UpdateDTO.builder()
-                .newWorkspaceName("Updated Workspace")
-                .newWorkspaceUrl("updated-url")
-                .newRepresenterName("Updated Rep")
-                .newRepresenterPhoneNumber("010-8765-4321")
-                .newCompanyName("Updated Co")
-                .build();
+        WorkspaceRequest.UpdateDTO updateDTO = new WorkspaceRequest.UpdateDTO(
+                "Updated Workspace",
+                null,
+                null,
+                null,
+                "updated-url",
+                "Updated Rep",
+                "010-8765-4321",
+                null,
+                "Updated Co",
+                null
+        );
         User mockUser = mock(User.class);
 
         // Spy 객체 생성 시 @NonNull 필드를 모두 포함하여 NullPointerException 방지
@@ -202,7 +237,7 @@ class WorkspaceServiceTest {
 
         // then
         verify(workspaceValidator, times(1)).validateAndGetWorkspace(workspaceId, userId);
-        verify(workspaceValidator, times(1)).validateUrlOnUpdate(existingWorkspace, updateDTO.getNewWorkspaceUrl());
+        verify(workspaceValidator, times(1)).validateUrlOnUpdate(existingWorkspace, updateDTO.newWorkspaceUrl());
         verify(existingWorkspace, times(1)).update();
     }
 
@@ -212,7 +247,18 @@ class WorkspaceServiceTest {
         // given
         Integer userId = 1;
         Integer nonExistingWorkspaceId = 999;
-        WorkspaceRequest.UpdateDTO updateDTO = new WorkspaceRequest.UpdateDTO();
+        WorkspaceRequest.UpdateDTO updateDTO = new WorkspaceRequest.UpdateDTO(
+                "Updated Workspace",
+                null,
+                null,
+                null,
+                "updated-url",
+                "Updated Rep",
+                "010-8765-4321",
+                null,
+                "Updated Co",
+                null
+        );
         when(workspaceValidator.validateAndGetWorkspace(nonExistingWorkspaceId, userId)).thenThrow(new IllegalArgumentException());
 
         // when
@@ -228,11 +274,22 @@ class WorkspaceServiceTest {
         // given
         Integer userId = 1;
         Integer workspaceId = 1;
-        WorkspaceRequest.UpdateDTO updateDTO = WorkspaceRequest.UpdateDTO.builder().newWorkspaceUrl("duplicate-url").build();
+        WorkspaceRequest.UpdateDTO updateDTO = new WorkspaceRequest.UpdateDTO(
+                "Updated Workspace",
+                null,
+                null,
+                null,
+                "duplicate-url",
+                "Updated Rep",
+                "010-8765-4321",
+                null,
+                "Updated Co",
+                null
+        );
         Workspace existingWorkspace = mock(Workspace.class);
 
         when(workspaceValidator.validateAndGetWorkspace(workspaceId, userId)).thenReturn(existingWorkspace);
-        doThrow(new IllegalArgumentException()).when(workspaceValidator).validateUrlOnUpdate(existingWorkspace, updateDTO.getNewWorkspaceUrl());
+        doThrow(new IllegalArgumentException()).when(workspaceValidator).validateUrlOnUpdate(existingWorkspace, updateDTO.newWorkspaceUrl());
 
         // when
         assertThrows(IllegalArgumentException.class, () -> workspaceService.updateWorkspace(updateDTO, workspaceId, userId));

@@ -72,4 +72,11 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Integer>, Jp
         String fieldName = (templateType == TemplateType.PUBLIC) ? "publicTemplate" : "individualTemplate";
         return (root, query, cb) -> cb.isNotNull(root.get(fieldName));
     }
+
+    Optional<Favorite> findByFavoriteIdAndWorkspace_User_UserId(Integer favoriteId, Integer userId);
+
+    default Favorite findByIdOrThrow(Integer favoriteId, Integer userId) {
+        return findByFavoriteIdAndWorkspace_User_UserId(favoriteId, userId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 즐겨찾기를 찾을 수 없거나, 권한이 없습니다."));
+    }
 }

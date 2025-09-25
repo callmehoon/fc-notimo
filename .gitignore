@@ -80,3 +80,6 @@ frontend/yarn-error.log*
 
 # 루트 빌드
 /build
+
+# vector db 임베딩 결과물
+/backend-ai/app/template_guide_db/
