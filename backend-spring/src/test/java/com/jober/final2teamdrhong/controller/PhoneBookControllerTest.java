@@ -128,10 +128,10 @@ class PhoneBookControllerTest {
     void createPhoneBook_Success_Test() throws Exception {
         // given
         // 1. API 요청 본문에 담아 보낼 DTO 객체를 생성합니다.
-        PhoneBookRequest.CreateDTO createDTO = PhoneBookRequest.CreateDTO.builder()
-                .phoneBookName("영업팀 주소록")
-                .phoneBookMemo("영업팀 전체 연락처입니다.")
-                .build();
+        PhoneBookRequest.CreateDTO createDTO = new PhoneBookRequest.CreateDTO(
+                "영업팀 주소록",
+                "영업팀 전체 연락처입니다."
+        );
 
         // 2. DTO 객체를 JSON 문자열로 변환합니다.
         String requestBody = objectMapper.writeValueAsString(createDTO);
@@ -165,9 +165,10 @@ class PhoneBookControllerTest {
     void createPhoneBook_Fail_Validation_Test() throws Exception {
         // given
         // 1. DTO의 @NotBlank 제약조건을 위반하는, 비어있는 phoneBookName을 가진 DTO를 준비합니다.
-        PhoneBookRequest.CreateDTO createDTO = PhoneBookRequest.CreateDTO.builder()
-                .phoneBookName("") // @NotBlank 위반
-                .build();
+        PhoneBookRequest.CreateDTO createDTO = new PhoneBookRequest.CreateDTO(
+                "",
+                null
+        );
 
         String requestBody = objectMapper.writeValueAsString(createDTO);
 
@@ -194,9 +195,10 @@ class PhoneBookControllerTest {
         Integer unauthorizedWorkspaceId = 999;
 
         // 2. 요청 본문에 담길 DTO를 준비합니다.
-        PhoneBookRequest.CreateDTO createDTO = PhoneBookRequest.CreateDTO.builder()
-                .phoneBookName("해킹 시도 주소록")
-                .build();
+        PhoneBookRequest.CreateDTO createDTO = new PhoneBookRequest.CreateDTO(
+                "해킹 시도 주소록",
+                null
+        );
 
         String requestBody = objectMapper.writeValueAsString(createDTO);
 
@@ -479,10 +481,10 @@ class PhoneBookControllerTest {
         LocalDateTime originalUpdatedAt = existingPhoneBook.getUpdatedAt();
 
         // 2. API 요청 본문에 담아 보낼 수정 DTO 객체를 생성합니다.
-        PhoneBookRequest.UpdateDTO updateDTO = PhoneBookRequest.UpdateDTO.builder()
-                .newPhoneBookName("수정된 주소록명")
-                .newPhoneBookMemo("수정된 메모입니다.")
-                .build();
+        PhoneBookRequest.UpdateDTO updateDTO = new PhoneBookRequest.UpdateDTO(
+                "수정된 주소록명",
+                "수정된 메모입니다."
+        );
 
         // 3. DTO 객체를 JSON 문자열로 변환합니다.
         String requestBody = objectMapper.writeValueAsString(updateDTO);
@@ -524,10 +526,10 @@ class PhoneBookControllerTest {
         Integer phoneBookId = 1;
 
         // 2. API 요청 본문에 담아 보낼 수정 DTO 객체를 생성합니다.
-        PhoneBookRequest.UpdateDTO updateDTO = PhoneBookRequest.UpdateDTO.builder()
-                .newPhoneBookName("수정된 주소록명")
-                .newPhoneBookMemo("수정된 메모입니다.")
-                .build();
+        PhoneBookRequest.UpdateDTO updateDTO = new PhoneBookRequest.UpdateDTO(
+                "수정된 주소록명",
+                "수정된 메모입니다."
+        );
 
         // 3. DTO 객체를 JSON 문자열로 변환합니다.
         String requestBody = objectMapper.writeValueAsString(updateDTO);
@@ -558,10 +560,10 @@ class PhoneBookControllerTest {
         Integer nonExistentPhoneBookId = 999;
 
         // 2. API 요청 본문에 담아 보낼 수정 DTO 객체를 생성합니다.
-        PhoneBookRequest.UpdateDTO updateDTO = PhoneBookRequest.UpdateDTO.builder()
-                .newPhoneBookName("수정된 주소록명")
-                .newPhoneBookMemo("수정된 메모입니다.")
-                .build();
+        PhoneBookRequest.UpdateDTO updateDTO = new PhoneBookRequest.UpdateDTO(
+                "수정된 주소록명",
+                "수정된 메모입니다."
+        );
 
         // 3. DTO 객체를 JSON 문자열로 변환합니다.
         String requestBody = objectMapper.writeValueAsString(updateDTO);
@@ -597,10 +599,10 @@ class PhoneBookControllerTest {
         phoneBookRepository.save(existingPhoneBook);
 
         // 2. 유효성 검사에 실패할 수 있는 잘못된 DTO 객체를 생성합니다. (예: 빈 문자열)
-        PhoneBookRequest.UpdateDTO invalidUpdateDTO = PhoneBookRequest.UpdateDTO.builder()
-                .newPhoneBookName("") // 빈 문자열로 유효성 검사 실패 유도
-                .newPhoneBookMemo("수정된 메모입니다.")
-                .build();
+        PhoneBookRequest.UpdateDTO invalidUpdateDTO = new PhoneBookRequest.UpdateDTO(
+                "",
+                "수정된 메모입니다."
+        );
 
         // 3. DTO 객체를 JSON 문자열로 변환합니다.
         String requestBody = objectMapper.writeValueAsString(invalidUpdateDTO);
