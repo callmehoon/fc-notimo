@@ -1,32 +1,73 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, TextField, Button, Table, TableBody, TableCell, TableHead, TableRow, IconButton, Typography } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import PhoneBookModal from './PhoneBookModal';
+import recipientService from '../../services/recipientService';
 
-export default function ContactListManager() {
-  const [contacts, setContacts] = useState([
-    { id: 1, name: '수신인1', phone: '010-1111-1111', memo: '팀장님' },
-    { id: 2, name: '수신인2', phone: '010-2222-2222', memo: '' },
-  ]);
+export default function ContactListManager({ selectedGroup }) {
+  const [contacts, setContacts] = useState([]);
   const [newContactName, setNewContactName] = useState('');
   const [newContactPhone, setNewContactPhone] = useState('');
   const [newContactMemo, setNewContactMemo] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingContactId, setEditingContactId] = useState(null);
 
-  const handleAddContact = () => {
-    if (newContactName.trim() && newContactPhone.trim()) {
-      setContacts([...contacts, {
-        id: contacts.length + 1,
-        name: newContactName,
-        phone: newContactPhone,
-        memo: newContactMemo,
-      }]);
-      setNewContactName('');
-      setNewContactPhone('');
-      setNewContactMemo('');
+  const fetchRecipients = async () => {
+    const workspaceId = localStorage.getItem('selectedWorkspaceId');
+    if (workspaceId) {
+      try {
+        const data = await recipientService.getRecipients(workspaceId);
+        setContacts(data.content);
+      } catch (error) {
+        console.error("Failed to fetch recipients", error);
+      }
+    }
+  };
+
+  useEffect(() => {
+    fetchRecipients();
+  }, []);
+
+  const handleAddContact = async () => {
+    const workspaceId = localStorage.getItem('selectedWorkspaceId');
+    if (newContactName.trim() && newContactPhone.trim() && workspaceId) {
+      const recipientData = {
+        recipientName: newContactName,
+        recipientPhoneNumber: newContactPhone,
+        recipientMemo: newContactMemo,
+      };
+      try {
+        await recipientService.createRecipient(workspaceId, recipientData);
+        setNewContactName('');
+        setNewContactPhone('');
+        setNewContactMemo('');
+        fetchRecipients(); // Refetch the list
+      } catch (error) {
+        console.error("Failed to create recipient", error);
+        alert('수신자 추가에 실패했습니다.');
+      }
     }
   };
 
   const handleDeleteContact = (id) => {
     setContacts(contacts.filter(c => c.id !== id));
+  };
+
+  const handleOpenModal = (contactId) => {
+    setEditingContactId(contactId);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingContactId(null);
+  };
+
+  const handleSelectGroup = (group) => {
+    setContacts(contacts.map(c => 
+      c.id === editingContactId ? { ...c, group: group.name } : c
+    ));
+    handleCloseModal();
   };
 
   return (
@@ -60,12 +101,16 @@ export default function ContactListManager() {
         추가
       </Button>
 
-      <Typography variant="h6" sx={{ mb: 2 }}>연락처 리스트</Typography>
+      <Typography variant="h6" sx={{ mb: 2 }}>
+        {selectedGroup ? `연락처 리스트 - ${selectedGroup.name}` : '연락처 리스트 - 전체'}
+      </Typography>
+
       <Table sx={{ flexGrow: 1, overflowY: 'auto', border: '1px solid #eee', borderRadius: '4px' }}>
         <TableHead>
           <TableRow>
             <TableCell>수신인 이름</TableCell>
             <TableCell>수신인 전화번호</TableCell>
+            <TableCell>그룹</TableCell>
             <TableCell align="right">관리</TableCell>
           </TableRow>
         </TableHead>
@@ -74,7 +119,9 @@ export default function ContactListManager() {
             <TableRow key={contact.id}>
               <TableCell>{contact.name}</TableCell>
               <TableCell>{contact.phone}</TableCell>
+              <TableCell>{contact.group || '-'}</TableCell>
               <TableCell align="right">
+                <Button size="small" onClick={() => handleOpenModal(contact.id)}>그룹 연결</Button>
                 <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteContact(contact.id)}>
                   <DeleteIcon />
                 </IconButton>
@@ -83,6 +130,12 @@ export default function ContactListManager() {
           ))}
         </TableBody>
       </Table>
+
+      <PhoneBookModal
+        open={isModalOpen}
+        onClose={handleCloseModal}
+        onSelect={handleSelectGroup}
+      />
     </Box>
   );
 }

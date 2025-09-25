@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Box, TextField, Button, List, ListItem, ListItemText, IconButton, Typography } from '@mui/material';
+import { Box, TextField, Button, List, ListItem, ListItemButton, ListItemText, IconButton, Typography } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 
-export default function AddressBookManager() {
+export default function AddressBookManager({ onGroupSelect }) {
   const [addressBooks, setAddressBooks] = useState([
     { id: 1, name: '주소록1', memo: '회사 주소록' },
     { id: 2, name: '주소록2', memo: '' },
@@ -51,6 +51,11 @@ export default function AddressBookManager() {
 
       <Typography variant="h6" sx={{ mb: 2 }}>주소록 리스트</Typography>
       <List sx={{ flexGrow: 1, overflowY: 'auto', border: '1px solid #eee', borderRadius: '4px' }}>
+        <ListItem disablePadding>
+          <ListItemButton onClick={() => onGroupSelect(null)}>
+            <ListItemText primary="전체" />
+          </ListItemButton>
+        </ListItem>
         {addressBooks.map((ab) => (
           <ListItem
             key={ab.id}
@@ -59,8 +64,11 @@ export default function AddressBookManager() {
                 <DeleteIcon />
               </IconButton>
             }
+            disablePadding
           >
-            <ListItemText primary={ab.name} secondary={ab.memo} />
+            <ListItemButton onClick={() => onGroupSelect(ab)}>
+              <ListItemText primary={ab.name} secondary={ab.memo} />
+            </ListItemButton>
           </ListItem>
         ))}
       </List>
