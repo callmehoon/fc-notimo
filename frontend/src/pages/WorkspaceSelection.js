@@ -20,10 +20,9 @@ const WorkspaceSelection = () => {
             try {
                 setLoading(true);
                 const data = await workspaceService.getWorkspaces();
-                const mappedData = data.map(w => ({ id: w.workspaceId, name: w.workspaceName, subname: w.workspaceSubname }));
-                setWorkspaces(mappedData);
-                if (mappedData.length > 0) {
-                    setSelectedWorkspace(mappedData[0]);
+                setWorkspaces(data);
+                if (data.length > 0) {
+                    setSelectedWorkspace(data[0]);
                 }
                 setError(null);
             } catch (err) {
@@ -43,7 +42,7 @@ const WorkspaceSelection = () => {
 
     const handleConfirmSelection = () => {
         if (selectedWorkspace) {
-            // alert(`${selectedWorkspace.name}가 선택되었습니다.`);
+            localStorage.setItem('selectedWorkspaceId', selectedWorkspace.workspaceId.toString());
             navigate('/publicTemplate');
         } else {
             alert('워크스페이스를 선택해주세요.');
