@@ -138,35 +138,6 @@ public class IndividualTemplateService {
     }
 
     /**
-     * 개인 템플릿 상태별 조회
-     */
-    @Transactional(readOnly = true)
-    public Page<IndividualTemplateResponse> getIndividualTemplateByStatus(
-            Integer workspaceId,
-            Integer userId,
-            IndividualTemplate.Status status,
-            Pageable pageable) {
-
-        workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
-
-        return individualTemplateRepository
-                .findByWorkspace_WorkspaceIdAndStatus(workspaceId, status, pageable)
-                .map(IndividualTemplateResponse::toResponse);
-    }
-
-    @Async
-    @Transactional(readOnly = true)
-    public CompletableFuture<Page<IndividualTemplateResponse>> getIndividualTemplateByStatusAsync(
-            Integer workspaceId,
-            Integer userId,
-            IndividualTemplate.Status status,
-            Pageable pageable) {
-
-        log.info("[@Async] thread={}, isVirtual={}", Thread.currentThread().getName(), Thread.currentThread().isVirtual());
-        return CompletableFuture.completedFuture(getIndividualTemplateByStatus(workspaceId, userId, status, pageable));
-    }
-
-    /**
      * 개인 템플릿 단일 조회
      */
     @Transactional(readOnly = true)
