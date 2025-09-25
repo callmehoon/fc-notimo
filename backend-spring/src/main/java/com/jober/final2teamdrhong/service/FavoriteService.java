@@ -39,6 +39,8 @@ public class FavoriteService {
     @Transactional
     public FavoriteResponse createIndividualTemplateFavorite(IndividualTemplateFavoriteRequest request, Integer userId) {
         Workspace workspace = workspaceValidator.validateAndGetWorkspace(request.getWorkspaceId(), userId);
+        workspaceValidator.validateTemplateOwnership(request.getWorkspaceId(), request.getIndividualTemplateId());
+
         IndividualTemplate individualTemplate = individualTemplateRepository.findByIdOrThrow(request.getIndividualTemplateId());
 
         favoriteRepository.validateIndividualTemplateNotExists(workspace, individualTemplate);
