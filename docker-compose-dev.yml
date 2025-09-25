@@ -28,7 +28,7 @@ services:
       dockerfile: backend-ai/Dockerfile
     container_name: python-ai-dev
     ports:
-      - "8002:8001"
+      - "8001:8000"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN}

@@ -52,6 +52,8 @@ public class FavoriteController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+
+
     @Operation(summary = "공용 템플릿 즐겨찾기 추가", description = "사용자가 공용 템플릿을 즐겨찾기에 추가합니다.",
             security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
@@ -75,6 +77,7 @@ public class FavoriteController {
     }
 
 
+
     @Operation(summary = "워크스페이스별 즐겨찾기 목록 조회", description = "특정 워크스페이스에 속한 즐겨찾기 목록을 조건에 따라 페이징하여 조회합니다.",
             security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
@@ -86,16 +89,18 @@ public class FavoriteController {
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class)))
     })
-    @GetMapping("/favorites")
+    @GetMapping("/workspace/{workspaceId}/favorites")
     public ResponseEntity<Page<FavoriteResponse>> getFavoritesByWorkspace(
             @AuthenticationPrincipal JwtClaims jwtClaims,
-            @RequestParam("workspaceId") Integer workspaceId,
+            @PathVariable("workspaceId") Integer workspaceId,
             @RequestParam(value = "templateType", required = false) TemplateType templateType,
-            @ModelAttribute FavoritePageRequest favoritePageRequest) {
+            @Valid @ModelAttribute FavoritePageRequest favoritePageRequest) {
         Integer userId = jwtClaims.getUserId();
         Page<FavoriteResponse> favorites = favoriteService.getFavoritesByWorkspace(workspaceId, templateType, favoritePageRequest, userId);
         return ResponseEntity.ok(favorites);
     }
+
+
 
     @Operation(summary = "즐겨찾기 삭제", description = "사용자가 자신의 즐겨찾기를 삭제합니다.",
             security = @SecurityRequirement(name = "bearerAuth"))
@@ -116,4 +121,5 @@ public class FavoriteController {
         favoriteService.deleteFavorite(favoriteId, userId);
         return ResponseEntity.noContent().build();
     }
+
 }

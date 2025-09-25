@@ -125,7 +125,7 @@ jobs:
 
             # 배포 결과 확인
             echo "✅ 개발 환경 배포 완료!"
-            echo "🌐 접속 URL: https://dev.notimo.kro.kr"
+            echo "🌐 접속 URL: http://dev.notimo.kro.kr"
             echo "📊 컨테이너 상태:"
             docker compose -f docker-compose-dev.yml ps
 
@@ -177,16 +177,16 @@ jobs:
               fi
             fi
 
-            # 기존 운영 환경 컨테이너 정리 (포트 3000)
+            # 기존 운영 환경 컨테이너 정리 (포트 3002)
             echo "🧹 기존 운영 환경 컨테이너 정리 중..."
             docker compose -f docker-compose-prod.yml down --remove-orphans || true
 
-            # 운영 환경 배포 (MySQL RDS, 포트 3000)
+            # 운영 환경 배포 (MySQL RDS, 포트 3002)
             echo "🔨 운영 환경 빌드 및 배포 중... (MySQL RDS, notimo.kro.kr)"
             docker compose -f docker-compose-prod.yml up --build -d
 
             # 배포 결과 확인
             echo "✅ 운영 환경 배포 완료!"
-            echo "🌐 접속 URL: https://notimo.kro.kr"
+            echo "🌐 접속 URL: http://notimo.kro.kr"
             echo "📊 컨테이너 상태:"
             docker compose -f docker-compose-prod.yml ps
