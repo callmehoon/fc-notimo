@@ -43,19 +43,19 @@ public class WorkspaceService {
         User user = userValidator.validateAndGetUser(userId);
 
         // workspaceUrl unique 조건 확인 로직
-        workspaceValidator.validateUrlOnCreate(createDTO.getWorkspaceUrl());
+        workspaceValidator.validateUrlOnCreate(createDTO.workspaceUrl());
 
         Workspace workspace = Workspace.builder()
-                .workspaceName(createDTO.getWorkspaceName())
-                .workspaceSubname(createDTO.getWorkspaceSubname())
-                .workspaceAddress(createDTO.getWorkspaceAddress())
-                .workspaceDetailAddress(createDTO.getWorkspaceDetailAddress())
-                .workspaceUrl(createDTO.getWorkspaceUrl())
-                .representerName(createDTO.getRepresenterName())
-                .representerPhoneNumber(createDTO.getRepresenterPhoneNumber())
-                .representerEmail(createDTO.getRepresenterEmail())
-                .companyName(createDTO.getCompanyName())
-                .companyRegisterNumber(createDTO.getCompanyRegisterNumber())
+                .workspaceName(createDTO.workspaceName())
+                .workspaceSubname(createDTO.workspaceSubname())
+                .workspaceAddress(createDTO.workspaceAddress())
+                .workspaceDetailAddress(createDTO.workspaceDetailAddress())
+                .workspaceUrl(createDTO.workspaceUrl())
+                .representerName(createDTO.representerName())
+                .representerPhoneNumber(createDTO.representerPhoneNumber())
+                .representerEmail(createDTO.representerEmail())
+                .companyName(createDTO.companyName())
+                .companyRegisterNumber(createDTO.companyRegisterNumber())
                 .user(user)
                 .build();
 
@@ -124,19 +124,19 @@ public class WorkspaceService {
         Workspace existingWorkspace = workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
 
         // 2. URL 중복 체크 (현재 워크스페이스 제외)
-        workspaceValidator.validateUrlOnUpdate(existingWorkspace, updateDTO.getNewWorkspaceUrl());
+        workspaceValidator.validateUrlOnUpdate(existingWorkspace, updateDTO.newWorkspaceUrl());
 
         // 3. 기존 객체 필드 수정 (Dirty Checking으로 자동 UPDATE)
-        existingWorkspace.setWorkspaceName(updateDTO.getNewWorkspaceName());
-        existingWorkspace.setWorkspaceSubname(updateDTO.getNewWorkspaceSubname());
-        existingWorkspace.setWorkspaceAddress(updateDTO.getNewWorkspaceAddress());
-        existingWorkspace.setWorkspaceDetailAddress(updateDTO.getNewWorkspaceDetailAddress());
-        existingWorkspace.setWorkspaceUrl(updateDTO.getNewWorkspaceUrl());
-        existingWorkspace.setRepresenterName(updateDTO.getNewRepresenterName());
-        existingWorkspace.setRepresenterPhoneNumber(updateDTO.getNewRepresenterPhoneNumber());
-        existingWorkspace.setRepresenterEmail(updateDTO.getNewRepresenterEmail());
-        existingWorkspace.setCompanyName(updateDTO.getNewCompanyName());
-        existingWorkspace.setCompanyRegisterNumber(updateDTO.getNewCompanyRegisterNumber());
+        existingWorkspace.setWorkspaceName(updateDTO.newWorkspaceName());
+        existingWorkspace.setWorkspaceSubname(updateDTO.newWorkspaceSubname());
+        existingWorkspace.setWorkspaceAddress(updateDTO.newWorkspaceAddress());
+        existingWorkspace.setWorkspaceDetailAddress(updateDTO.newWorkspaceDetailAddress());
+        existingWorkspace.setWorkspaceUrl(updateDTO.newWorkspaceUrl());
+        existingWorkspace.setRepresenterName(updateDTO.newRepresenterName());
+        existingWorkspace.setRepresenterPhoneNumber(updateDTO.newRepresenterPhoneNumber());
+        existingWorkspace.setRepresenterEmail(updateDTO.newRepresenterEmail());
+        existingWorkspace.setCompanyName(updateDTO.newCompanyName());
+        existingWorkspace.setCompanyRegisterNumber(updateDTO.newCompanyRegisterNumber());
         existingWorkspace.update();
 
         return new WorkspaceResponse.DetailDTO(existingWorkspace);

@@ -80,18 +80,18 @@ class WorkspaceControllerTest {
     @WithMockJwtClaims(userId = 1)
     void createWorkspace_Success_Test() throws Exception {
         // given
-        WorkspaceRequest.CreateDTO createDTO = WorkspaceRequest.CreateDTO.builder()
-                .workspaceName("성공 테스트 워크스페이스")
-                .workspaceSubname("부이름")
-                .workspaceAddress("주소")
-                .workspaceDetailAddress("상세주소")
-                .workspaceUrl("unique-url-success")
-                .representerName("홍길동")
-                .representerPhoneNumber("010-1111-2222")
-                .representerEmail("gildong@example.com")
-                .companyName("성공 주식회사")
-                .companyRegisterNumber("111-22-33333")
-                .build();
+        WorkspaceRequest.CreateDTO createDTO = new WorkspaceRequest.CreateDTO(
+                "성공 테스트 워크스페이스",
+                "부이름",
+                "주소",
+                "상세주소",
+                "unique-url-success",
+                "홍길동",
+                "010-1111-2222",
+                "gildong@example.com",
+                "성공 주식회사",
+                "111-22-33333"
+        );
 
         String requestBody = objectMapper.writeValueAsString(createDTO);
 
@@ -118,18 +118,18 @@ class WorkspaceControllerTest {
     @WithMockJwtClaims(userId = 1)
     void createWorkspace_Fail_Validation_Test() throws Exception {
         // given
-        WorkspaceRequest.CreateDTO createDTO = WorkspaceRequest.CreateDTO.builder()
-                .workspaceName("") // workspaceName을 @NotBlank 위반으로 빈 값으로 설정
-                .workspaceSubname("부이름")
-                .workspaceAddress("주소")
-                .workspaceDetailAddress("상세주소")
-                .workspaceUrl("unique-url-fail")
-                .representerName("김철수")
-                .representerPhoneNumber("010-3333-4444")
-                .representerEmail("cheolsoo@example.com")
-                .companyName("실패 주식회사")
-                .companyRegisterNumber("444-55-66666")
-                .build();
+        WorkspaceRequest.CreateDTO createDTO = new WorkspaceRequest.CreateDTO(
+                "",
+                "부이름",
+                "주소",
+                "상세주소",
+                "unique-url-fail",
+                "김철수",
+                "010-3333-4444",
+                "cheolsoo@example.com",
+                "실패 주식회사",
+                "444-55-66666"
+        );
 
         String requestBody = objectMapper.writeValueAsString(createDTO);
 
@@ -283,18 +283,18 @@ class WorkspaceControllerTest {
         String originalUpdatedAt = originalWorkspace.getUpdatedAt().toString();
 
         // 2. API 요청 본문(Body)에 담아 보낼 수정 데이터를 DTO 객체로 준비합니다.
-        WorkspaceRequest.UpdateDTO updateDTO = WorkspaceRequest.UpdateDTO.builder()
-                .newWorkspaceName("수정된 워크스페이스")
-                .newWorkspaceSubname("수정된 부이름")
-                .newWorkspaceAddress("수정된 주소")
-                .newWorkspaceDetailAddress("수정된 상세주소")
-                .newWorkspaceUrl("updated-unique-url")
-                .newRepresenterName("수정된 대표")
-                .newRepresenterPhoneNumber("010-9999-8888")
-                .newRepresenterEmail("updated@example.com")
-                .newCompanyName("수정된 회사")
-                .newCompanyRegisterNumber("999-88-77777")
-                .build();
+        WorkspaceRequest.UpdateDTO updateDTO = new WorkspaceRequest.UpdateDTO(
+                "수정된 워크스페이스",
+                "수정된 부이름",
+                "수정된 주소",
+                "수정된 상세주소",
+                "updated-unique-url",
+                "수정된 대표",
+                "010-9999-8888",
+                "updated@example.com",
+                "수정된 회사",
+                "999-88-77777"
+        );
 
         // 3. DTO 객체를 JSON 문자열로 변환합니다.
         String requestBody = objectMapper.writeValueAsString(updateDTO);
@@ -343,13 +343,18 @@ class WorkspaceControllerTest {
         workspaceRepository.save(othersWorkspace);
 
         // 2. 요청 본문에 담길 DTO를 준비합니다. 유효성 검사를 통과할 최소한의 데이터만 넣습니다.
-        WorkspaceRequest.UpdateDTO updateDTO = WorkspaceRequest.UpdateDTO.builder()
-                .newWorkspaceName("수정 시도")
-                .newWorkspaceUrl("attempt-update-url")
-                .newRepresenterName("대표")
-                .newRepresenterPhoneNumber("010-1234-5678")
-                .newCompanyName("회사")
-                .build();
+        WorkspaceRequest.UpdateDTO updateDTO = new WorkspaceRequest.UpdateDTO(
+                "수정 시도",
+                null,
+                null,
+                null,
+                "attempt-update-url",
+                "대표",
+                "010-1234-5678",
+                null,
+                "회사",
+                null
+        );
         String requestBody = objectMapper.writeValueAsString(updateDTO);
 
         // when
@@ -383,13 +388,18 @@ class WorkspaceControllerTest {
         workspaceRepository.save(targetWorkspace);
 
         // 2. @NotBlank 제약조건을 위반하는, 비어있는 workspaceName을 가진 DTO를 준비합니다.
-        WorkspaceRequest.UpdateDTO invalidUpdateDTO = WorkspaceRequest.UpdateDTO.builder()
-                .newWorkspaceName("") // @NotBlank 위반
-                .newWorkspaceUrl("valid-url")
-                .newRepresenterName("대표")
-                .newRepresenterPhoneNumber("010-1234-5678")
-                .newCompanyName("회사")
-                .build();
+        WorkspaceRequest.UpdateDTO invalidUpdateDTO = new WorkspaceRequest.UpdateDTO(
+                "",
+                null,
+                null,
+                null,
+                "valid-url",
+                "대표",
+                "010-1234-5678",
+                null,
+                "회사",
+                null
+        );
         String requestBody = objectMapper.writeValueAsString(invalidUpdateDTO);
 
         // when

@@ -4,7 +4,7 @@ import re
 from langchain.chat_models import init_chat_model
 from langchain_core.documents import Document
 
-from app.config.config import COLLECTION_NAME, s3_text, vector_store
+from ..config.config import COLLECTION_NAME, s3_text, vector_store
 
 # --- LLM/Vector 설정 (필요시 LLM은 사용 안 함) ---
 _llm = init_chat_model("gpt-4o-mini", model_provider="openai")
@@ -63,12 +63,12 @@ async def retrieve(state: dict) -> dict:
     await _ensure_index()
 
     k = state.get("k", 10)
-    keyword = state.get("keyword")
+    # keyword = state.get("keyword")
 
     results = await vector_store.asimilarity_search_with_score(state["question"], k=k)
-    if keyword:
-        # results = [d for d in results if keyword in d.page_content]
-        results = [(doc, score) for (doc, score) in results if keyword in doc.page_content]
+    # if keyword:
+    #     # results = [d for d in results if keyword in d.page_content]
+    #     results = [(doc, score) for (doc, score) in results if keyword in doc.page_content]
     return {"context": results}
 
 async def generate(state: dict, max_chars: int = 1000) -> dict:
