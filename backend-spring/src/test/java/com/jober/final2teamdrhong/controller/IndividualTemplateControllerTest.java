@@ -291,4 +291,40 @@ class IndividualTemplateControllerTest {
         verify(individualTemplateService).updateTemplate(
                 eq(workspaceId), eq(templateId), any(IndividualTemplateUpdateRequest.class), eq(1));
     }
+
+    @Test
+    @WithMockJwtClaims   // 기본 userId=1
+    @DisplayName("템플릿 상태 변경 성공")
+    void updateTemplateStatus_success() throws Exception {
+        // given
+        Integer workspaceId = 10;
+        Integer templateId = 5;
+
+        IndividualTemplateResponse expected = makeResponse(
+                templateId,
+                "제목",
+                "내용",
+                "버튼",
+                workspaceId,
+                false,
+                IndividualTemplate.Status.APPROVED // 변경된 상태
+        );
+
+        // service mock
+        given(individualTemplateService.updateTemplateStatus(
+                eq(workspaceId), eq(templateId), eq(1), eq(IndividualTemplate.Status.APPROVED))
+        ).willReturn(expected);
+
+        // when & then
+        mockMvc.perform(put("/{workspaceId}/templates/{id}/status", workspaceId, templateId)
+                        .param("status", "APPROVED") // ✅ @ParameterObject → 쿼리 파라미터 전달
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.individualTemplateId").value(templateId))
+                .andExpect(jsonPath("$.workspaceId").value(workspaceId))
+                .andExpect(jsonPath("$.status").value("APPROVED"));
+
+        verify(individualTemplateService).updateTemplateStatus(workspaceId, templateId, 1, IndividualTemplate.Status.APPROVED);
+    }
+
 }
