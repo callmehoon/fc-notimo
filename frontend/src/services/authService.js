@@ -1,10 +1,11 @@
 import api from './api';
 
 // 로그인 성공 후 토큰을 저장하는 함수
-const handleLoginSuccess = (accessToken, refreshToken) => {
+const handleLoginSuccess = (accessToken, refreshToken, userRole) => {
     // 토큰을 localStorage에 저장
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', refreshToken);
+    localStorage.setItem('userRole', userRole);
 };
 
 // 로그아웃 시 토큰을 삭제하는 함수
@@ -12,6 +13,7 @@ const handleLogout = () => {
     // localStorage에서 토큰 삭제
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('userRole');
 };
 
 /**
@@ -23,10 +25,10 @@ const handleLogout = () => {
 const login = async (email, password) => {
     try {
         const response = await api.post('/auth/login', { email, password });
-        const { token: accessToken, refreshToken } = response.data;
+        const { token: accessToken, refreshToken, userRole } = response.data;
 
         if (accessToken && refreshToken) {
-            handleLoginSuccess(accessToken, refreshToken);
+            handleLoginSuccess(accessToken, refreshToken, userRole);
         }
 
         return response.data;
@@ -63,11 +65,29 @@ const sendVerificationCode = async (email) => {
     }
 };
 
+const refreshToken = async () => {
+    try {
+        const refreshToken = localStorage.getItem('refreshToken');
+        const response = await api.post('/auth/refresh', {}, {
+            headers: { 'Authorization': `Bearer ${refreshToken}` }
+        });
+        const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data;
+        if (newAccessToken && newRefreshToken) {
+            localStorage.setItem('accessToken', newAccessToken);
+            localStorage.setItem('refreshToken', newRefreshToken);
+        }
+        return newAccessToken;
+    } catch (error) {
+        throw error;
+    }
+};
+
 const authService = {
     login,
     signup,
     sendVerificationCode,
     logout: handleLogout,
+    refreshToken,
 };
 
 export default authService;
