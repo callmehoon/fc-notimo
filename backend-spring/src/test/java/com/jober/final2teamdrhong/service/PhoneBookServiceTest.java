@@ -269,7 +269,7 @@ class PhoneBookServiceTest {
         // 2. 실제로 추가된 수신자는 1명(2번)이어야 합니다.
         assertThat(result.getRecipientList().size()).isEqualTo(1);
         // 3. 추가된 수신자의 ID가 2번인지 확인합니다.
-        assertThat(result.getRecipientList().getFirst().getRecipientId()).isEqualTo(2);
+        assertThat(result.getRecipientList().getFirst().recipientId()).isEqualTo(2);
         // 4. bulkInsertMappings와 findAllByPhoneBook_PhoneBookIdAndRecipient_RecipientIdIn가 정확히 1번씩 호출되었는지 검증합니다.
         verify(groupMappingRepository, times(1)).bulkInsertMappings(eq(phoneBookId), eq(List.of(2)), any(LocalDateTime.class));
         verify(groupMappingRepository, times(1)).findAllByPhoneBook_PhoneBookIdAndRecipient_RecipientIdIn(eq(phoneBookId), eq(List.of(2)));
@@ -460,11 +460,11 @@ class PhoneBookServiceTest {
         assertThat(result.getNumberOfElements()).isEqualTo(2);
         // 4. 반환된 수신자들의 ID가 예상과 일치하는지 확인합니다.
         assertThat(result.getContent())
-                .extracting(RecipientResponse.SimpleDTO::getRecipientId)
+                .extracting(RecipientResponse.SimpleDTO::recipientId)
                 .containsExactly(1, 2);
         // 5. 반환된 수신자들의 이름이 예상과 일치하는지 확인합니다.
         assertThat(result.getContent())
-                .extracting(RecipientResponse.SimpleDTO::getRecipientName)
+                .extracting(RecipientResponse.SimpleDTO::recipientName)
                 .containsExactly("수신자1", "수신자2");
 
         // 6. Validator와 Repository의 메소드가 각각 정확히 1번씩 호출되었는지 검증합니다.
