@@ -1,10 +1,8 @@
 package com.jober.final2teamdrhong.service.validator;
 
-import com.jober.final2teamdrhong.entity.ChatSession;
 import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.WorkspaceRepository;
-import com.jober.final2teamdrhong.repository.ChatSessionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -14,7 +12,6 @@ public class WorkspaceValidator {
 
     private final WorkspaceRepository workspaceRepository;
     private final IndividualTemplateRepository individualTemplateRepository;
-    private final ChatSessionRepository chatSessionRepository;
 
     /**
      * 워크스페이스의 존재 여부와 사용자의 접근 권한을 검증합니다.
@@ -40,21 +37,6 @@ public class WorkspaceValidator {
     public void validateTemplateOwnership(Integer workspaceId, Integer individualTemplateId) {
         individualTemplateRepository.findByIndividualTemplateIdAndWorkspace_WorkspaceId(individualTemplateId, workspaceId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 워크스페이스에 존재하지 않는 템플릿입니다."));
-    }
-
-    /**
-     * 특정 채팅방의 존재 여부와 사용자의 접근 권한을 검증합니다.
-     * 검증에 성공하면 ChatSession 엔티티를 반환하고, 실패하면 예외를 발생시킵니다.
-     *
-     * @param sessionId 검증할 채팅방의 ID
-     * @param workspaceId 검증할 워크스페이스의 ID
-     * @param userId      접근을 시도하는 사용자의 ID
-     * @return 검증에 성공한 ChatSession 엔티티
-     * @throws IllegalArgumentException 채팅방이 존재하지 않거나 사용자에게 접근 권한이 없을 경우
-     */
-    public ChatSession validateAndGetChatSession(Integer sessionId, Integer workspaceId, Integer userId) {
-        return chatSessionRepository.findBySessionIdAndWorkspace_WorkspaceIdAndWorkspace_User_UserId(sessionId, workspaceId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("채팅방을 찾을 수 없거나 접근권한이 없습니다. Session ID: " + sessionId + ", Workspace ID: " + workspaceId));
     }
 
     /**
