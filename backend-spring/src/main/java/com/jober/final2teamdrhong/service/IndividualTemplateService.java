@@ -237,4 +237,24 @@ public class IndividualTemplateService {
         );
         return IndividualTemplateResponse.toResponse(individualTemplate);
     }
+
+    @Transactional
+    public IndividualTemplateResponse updateTemplateStatus(
+            Integer workspaceId,
+            Integer individualTemplateId,
+            Integer userId,
+            IndividualTemplate.Status status
+    ) {
+        // 워크스페이스 검증
+        workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
+
+        IndividualTemplate individualTemplate = individualTemplateRepository
+                .findByIndividualTemplateIdAndWorkspace_WorkspaceId(individualTemplateId, workspaceId)
+                .orElseThrow(() -> new EntityNotFoundException("템플릿이 존재하지 않습니다. id = " + individualTemplateId));
+
+        individualTemplate.updateStatus(status);
+
+        return IndividualTemplateResponse.toResponse(individualTemplate);
+    }
+
 }
