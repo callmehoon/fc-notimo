@@ -48,8 +48,7 @@ public class FavoriteController {
     public ResponseEntity<FavoriteResponse> createIndividualTemplateFavorite(
             @AuthenticationPrincipal JwtClaims jwtClaims,
             @Valid @RequestBody IndividualTemplateFavoriteRequest request) {
-        Integer userId = jwtClaims.getUserId();
-        FavoriteResponse response = favoriteService.createIndividualTemplateFavorite(request, userId);
+        FavoriteResponse response = favoriteService.createIndividualTemplateFavorite(jwtClaims, request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
@@ -72,8 +71,7 @@ public class FavoriteController {
     public ResponseEntity<FavoriteResponse> createPublicTemplateFavorite(
             @AuthenticationPrincipal JwtClaims jwtClaims,
             @Valid @RequestBody PublicTemplateFavoriteRequest request) {
-        Integer userId = jwtClaims.getUserId();
-        FavoriteResponse response = favoriteService.createPublicTemplateFavorite(request, userId);
+        FavoriteResponse response = favoriteService.createPublicTemplateFavorite(jwtClaims, request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
@@ -95,40 +93,9 @@ public class FavoriteController {
             @AuthenticationPrincipal JwtClaims jwtClaims,
             @PathVariable("workspaceId") Integer workspaceId,
             @RequestParam(value = "templateType", required = false) TemplateType templateType,
-            @ModelAttribute FavoritePageRequest favoritePageRequest) {
-        Integer userId = jwtClaims.getUserId();
-        Page<FavoriteResponse> favorites = favoriteService.getFavoritesByWorkspace(workspaceId, templateType, favoritePageRequest, userId);
+            @Valid @ParameterObject FavoritePageRequest favoritePageRequest) {
+
+        Page<FavoriteResponse> favorites = favoriteService.getFavoritesByWorkspace(jwtClaims, workspaceId, templateType, favoritePageRequest);
         return ResponseEntity.ok(favorites);
-    }
-
-    @Operation(summary = "즐겨찾기 삭제", description = "사용자가 자신의 즐겨찾기를 삭제합니다.",
-            security = @SecurityRequirement(name = "bearerAuth"))
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "즐겨찾기 삭제 성공"),
-            @ApiResponse(responseCode = "401", description = "인증 실패 (로그인 필요)",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponse.class))),
-            @ApiResponse(responseCode = "404", description = "리소스를 찾을 수 없음 (즐겨찾기가 존재하지 않거나, 사용자에게 권한이 없음)",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponse.class)))
-    })
-    @DeleteMapping("/favorites/{favoriteId}")
-    public ResponseEntity<?> deleteFavorite(
-            @AuthenticationPrincipal JwtClaims jwtClaims,
-            @PathVariable Integer favoriteId) {
-        Integer userId = jwtClaims.getUserId();
-        favoriteService.deleteFavorite(favoriteId, userId);
-        return ResponseEntity.noContent().build();
-    }
-
-    /**
-     * 즐겨찾기를 삭제(delete)
-     * @param favoriteId 삭제할 즐겨찾기 ID
-     * @return 성공 시 HTTP 204 No Content
-     */
-    @DeleteMapping("/favorites/{favoriteId}")
-    public ResponseEntity<?> deleteFavorite(@PathVariable Integer favoriteId) {
-        favoriteService.deleteFavorite(favoriteId);
-        return ResponseEntity.noContent().build();
     }
 }

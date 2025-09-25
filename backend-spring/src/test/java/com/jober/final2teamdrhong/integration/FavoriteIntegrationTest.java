@@ -5,6 +5,7 @@ import com.jober.final2teamdrhong.dto.favorite.IndividualTemplateFavoriteRequest
 import com.jober.final2teamdrhong.dto.favorite.PublicTemplateFavoriteRequest;
 import com.jober.final2teamdrhong.entity.*;
 import com.jober.final2teamdrhong.repository.*;
+import com.jober.final2teamdrhong.util.test.WithMockJwtClaims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -12,22 +13,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
 @Transactional
-class FavoriteCreationIntegrationTest {
+class FavoriteIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -49,6 +49,7 @@ class FavoriteCreationIntegrationTest {
     private Workspace savedWorkspace;
     private IndividualTemplate savedIndividualTemplate;
     private PublicTemplate savedPublicTemplate;
+    private User testUser;
 
     @BeforeEach
     void setUp() {
@@ -83,8 +84,6 @@ class FavoriteCreationIntegrationTest {
                 .representerPhoneNumber("010-0000-0000")
                 .companyName("테스트 회사")
                 .build();
-
-        workspace.setUser(savedUser);
 
         savedWorkspace = workspaceRepository.save(workspace);
 
@@ -206,8 +205,7 @@ class FavoriteCreationIntegrationTest {
         favoriteRepository.save(Favorite.builder().workspace(savedWorkspace).individualTemplate(savedIndividualTemplate).build());
 
         // when & then
-        mockMvc.perform(get("/favorites")
-                        .param("workspaceId", savedWorkspace.getWorkspaceId().toString())
+        mockMvc.perform(get("/workspace/{workspaceId}/favorites", savedWorkspace.getWorkspaceId())                        .param("workspaceId", savedWorkspace.getWorkspaceId().toString())
                         .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
@@ -224,8 +222,7 @@ class FavoriteCreationIntegrationTest {
         favoriteRepository.save(Favorite.builder().workspace(savedWorkspace).individualTemplate(savedIndividualTemplate).build());
 
         // when & then
-        mockMvc.perform(get("/favorites")
-                        .param("workspaceId", savedWorkspace.getWorkspaceId().toString())
+        mockMvc.perform(get("/workspace/{workspaceId}/favorites", savedWorkspace.getWorkspaceId())                        .param("workspaceId", savedWorkspace.getWorkspaceId().toString())
                         .param("templateType", "PUBLIC")
                         .param("size", "1")
                         .with(csrf()))
@@ -245,58 +242,8 @@ class FavoriteCreationIntegrationTest {
         favoriteRepository.save(Favorite.builder().workspace(savedWorkspace).publicTemplate(savedPublicTemplate).build());
 
         // when & then
-        mockMvc.perform(get("/favorites")
-                        .param("workspaceId", savedWorkspace.getWorkspaceId().toString())
+        mockMvc.perform(get("/workspace/{workspaceId}/favorites", savedWorkspace.getWorkspaceId())                        .param("workspaceId", savedWorkspace.getWorkspaceId().toString())
                         .with(csrf()))
                 .andExpect(status().isBadRequest());
-    }
-
-
-
-
-    // ====================== Delete ======================
-    @Test
-    @DisplayName("성공(통합): 즐겨찾기 삭제")
-    @WithMockJwtClaims // userId = 1
-    void deleteFavorite_Success() throws Exception {
-        // given: 삭제할 즐겨찾기 데이터를 미리 생성
-        Favorite favoriteToDelete = favoriteRepository.save(Favorite.builder()
-                .workspace(savedWorkspace)
-                .publicTemplate(savedPublicTemplate)
-                .build());
-        Integer favoriteId = favoriteToDelete.getFavoriteId();
-        long initialCount = favoriteRepository.count();
-
-        // when: 삭제 API 호출
-        mockMvc.perform(delete("/favorites/{favoriteId}", favoriteId))
-                .andExpect(status().isNoContent());
-
-        // then: DB에서 데이터가 삭제되었는지 확인
-        assertThat(favoriteRepository.findById(favoriteId)).isEmpty();
-        assertThat(favoriteRepository.count()).isEqualTo(initialCount - 1);
-    }
-
-    @Test
-    @DisplayName("실패(통합): 다른 사용자의 즐겨찾기 삭제 시 400 에러 응답")
-    @WithMockJwtClaims(userId = 2) // 다른 사용자(ID=2)로 시도
-    void deleteFavorite_Fail_Unauthorized() throws Exception {
-        // given
-        // 즐겨찾기는 user 1이 소유
-        Favorite favoriteToDelete = favoriteRepository.save(Favorite.builder()
-                .workspace(savedWorkspace) // workspace는 user 1의 소유
-                .publicTemplate(savedPublicTemplate)
-                .build());
-        Integer favoriteId = favoriteToDelete.getFavoriteId();
-        long initialCount = favoriteRepository.count();
-
-        // when
-        mockMvc.perform(delete("/favorites/{favoriteId}", favoriteId))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("해당 즐겨찾기를 찾을 수 없거나, 권한이 없습니다."));
-
-        // then
-        // 데이터가 삭제되지 않았는지 확인
-        assertThat(favoriteRepository.findById(favoriteId)).isNotEmpty();
-        assertThat(favoriteRepository.count()).isEqualTo(initialCount);
     }
 }
