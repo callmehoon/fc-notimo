@@ -2,10 +2,16 @@
 import { Card, CardContent, CardActions, IconButton, Typography, Tooltip, Button, Box, Chip } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import ShareIcon from '@mui/icons-material/Share';
+import EditIcon from '@mui/icons-material/Edit';
 
-export default function TemplateCard({ template, onDelete, onShare, onUse, showActions, isPublicTemplate }) {
-    const title = template.individualTemplateTitle || template.publicTemplateTitle || template.title || '제목 없음';
-    const content = template.individualTemplateContent || template.publicTemplateContent || template.content || '내용 없음';
+export default function TemplateCard({ template, onDelete, onShare, onEdit, onUse, showActions, isPublicTemplate }) {
+    
+    const title = (template.individualTemplateTitle?.trim() || 
+                  template.publicTemplateTitle?.trim() || 
+                  template.title?.trim()) || '제목 없음';
+    const content = (template.individualTemplateContent?.trim() || 
+                    template.publicTemplateContent?.trim() || 
+                    template.content?.trim()) || '내용 없음';
     const buttonTitle = template.buttonTitle;
     const userRole = localStorage.getItem('userRole');
     
@@ -109,6 +115,18 @@ export default function TemplateCard({ template, onDelete, onShare, onUse, showA
                             }}
                         >
                             <ShareIcon fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title="수정하기">
+                        <IconButton
+                            onClick={onEdit}
+                            sx={{
+                                bgcolor: '#f5f5f5',
+                                '&:hover': { bgcolor: '#e0e0e0' },
+                                mr: 1
+                            }}
+                        >
+                            <EditIcon fontSize="small" />
                         </IconButton>
                     </Tooltip>
                     <Tooltip title="삭제하기">
