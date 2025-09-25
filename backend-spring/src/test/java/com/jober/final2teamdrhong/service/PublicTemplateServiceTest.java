@@ -9,6 +9,7 @@ import static org.mockito.Mockito.never;
 
 import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplateCreateRequest;
 import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplateResponse;
+import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplatePageableRequest;
 import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import com.jober.final2teamdrhong.entity.PublicTemplate;
 import com.jober.final2teamdrhong.entity.User;
@@ -28,6 +29,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.util.List;
 
@@ -62,17 +64,17 @@ class PublicTemplateServiceTest {
                 .build();
 
         Page<PublicTemplate> page = new PageImpl<>(List.of(e1, e2), PageRequest.of(0, 10, Sort.by("createdAt").descending()), 2);
-        when(publicTemplateRepository.findAll(any(Pageable.class))).thenReturn(page);
+        when(publicTemplateRepository.findAll(org.mockito.ArgumentMatchers.<Specification<PublicTemplate>>any(), any(Pageable.class))).thenReturn(page);
 
         // when
-        Pageable pageable = PageRequest.of(0, 10, Sort.by("createdAt").descending());
-        Page<PublicTemplateResponse> result = publicTemplateService.getTemplates(pageable);
+        PublicTemplatePageableRequest request = new PublicTemplatePageableRequest();
+        Page<PublicTemplateResponse> result = publicTemplateService.getTemplates(request);
 
         // then
         assertThat(result.getTotalElements()).isEqualTo(2);
         assertThat(result.getContent()).extracting(PublicTemplateResponse::publicTemplateTitle)
                 .containsExactly("가나다", "나다라");
-        verify(publicTemplateRepository).findAll(any(Pageable.class));
+        verify(publicTemplateRepository).findAll(org.mockito.ArgumentMatchers.<Specification<PublicTemplate>>any(), any(Pageable.class));
     }
 
     @Test
