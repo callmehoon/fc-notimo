@@ -191,4 +191,69 @@ class PhoneBookRepositoryTest {
         // 1. 조회된 주소록 목록이 비어있는지 확인합니다.
         assertThat(phoneBookList).isEmpty();
     }
+
+    @Test
+    @DisplayName("소프트 딜리트된 주소록 포함 조회 성공 테스트 - 정상 상태 주소록")
+    void findByIdIncludingDeleted_Success_NormalPhoneBook_Test() {
+        // given
+        // 1. @BeforeEach에서 생성된 일반적인 상태의 testPhoneBook을 사용합니다.
+
+        // when
+        // 1. findByIdIncludingDeleted 메서드로 정상 상태의 주소록을 조회합니다.
+        Optional<PhoneBook> foundPhoneBookOpt = phoneBookRepository.findByIdIncludingDeleted(testPhoneBook.getPhoneBookId());
+
+        // then
+        // 1. Optional 객체가 비어있지 않은지(조회 성공) 확인합니다.
+        assertThat(foundPhoneBookOpt).isPresent();
+        // 2. 조회된 주소록의 ID가 예상과 일치하는지 확인합니다.
+        assertThat(foundPhoneBookOpt.get().getPhoneBookId()).isEqualTo(testPhoneBook.getPhoneBookId());
+        // 3. 조회된 주소록이 소프트 딜리트되지 않았는지 확인합니다.
+        assertThat(foundPhoneBookOpt.get().getDeletedAt()).isNull();
+    }
+
+    @Test
+    @DisplayName("소프트 딜리트된 주소록 포함 조회 성공 테스트 - 소프트 딜리트된 주소록")
+    void findByIdIncludingDeleted_Success_SoftDeletedPhoneBook_Test() {
+        // given
+        // 1. setUp에 있는 testPhoneBook을 소프트 딜리트 처리합니다.
+        PhoneBook phoneBookToDelete = entityManager.find(PhoneBook.class, testPhoneBook.getPhoneBookId());
+        phoneBookToDelete.softDelete();
+        entityManager.persist(phoneBookToDelete);
+        entityManager.flush();
+        entityManager.clear();
+
+        // 2. 일반적인 findById로는 조회되지 않는지 확인합니다.
+        Optional<PhoneBook> normalFindResult = phoneBookRepository.findById(testPhoneBook.getPhoneBookId());
+        assertThat(normalFindResult).isNotPresent(); // @SQLRestriction으로 인해 조회되지 않음
+
+        // when
+        // 1. findByIdIncludingDeleted 메서드로 소프트 딜리트된 주소록을 조회합니다.
+        Optional<PhoneBook> foundPhoneBookOpt = phoneBookRepository.findByIdIncludingDeleted(testPhoneBook.getPhoneBookId());
+
+        // then
+        // 1. Optional 객체가 비어있지 않은지(조회 성공) 확인합니다.
+        assertThat(foundPhoneBookOpt).isPresent();
+        // 2. 조회된 주소록의 ID가 예상과 일치하는지 확인합니다.
+        assertThat(foundPhoneBookOpt.get().getPhoneBookId()).isEqualTo(testPhoneBook.getPhoneBookId());
+        // 3. 조회된 주소록이 소프트 딜리트 상태인지 확인합니다.
+        assertThat(foundPhoneBookOpt.get().getDeletedAt()).isNotNull();
+        // 4. isDeleted 필드가 true인지 확인합니다.
+        assertThat(foundPhoneBookOpt.get().getIsDeleted()).isTrue();
+    }
+
+    @Test
+    @DisplayName("소프트 딜리트된 주소록 포함 조회 실패 테스트 - 존재하지 않는 주소록 ID")
+    void findByIdIncludingDeleted_Fail_PhoneBookNotFound_Test() {
+        // given
+        // 1. DB에 존재하지 않을 임의의 ID를 설정합니다.
+        Integer nonExistentPhoneBookId = -1;
+
+        // when
+        // 1. 존재하지 않는 주소록 ID로 메서드를 호출합니다.
+        Optional<PhoneBook> foundPhoneBookOpt = phoneBookRepository.findByIdIncludingDeleted(nonExistentPhoneBookId);
+
+        // then
+        // 1. Optional 객체가 비어있는지(조회 실패) 확인합니다.
+        assertThat(foundPhoneBookOpt).isNotPresent();
+    }
 }

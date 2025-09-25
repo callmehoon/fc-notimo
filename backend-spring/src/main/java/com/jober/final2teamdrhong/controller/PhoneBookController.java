@@ -207,4 +207,75 @@ public class PhoneBookController {
 
         return ResponseEntity.status(HttpStatus.OK).body(updatedPhoneBook);
     }
+
+    /**
+     * 특정 워크스페이스에 속한 주소록을 삭제하는 API (소프트 딜리트)
+     * <p>
+     * 요청한 사용자가 해당 워크스페이스에 대한 접근 권한이 있는지 확인 후,
+     * URL 경로의 phoneBookId에 해당하는 주소록의 is_deleted 플래그를 true로 변경합니다.
+     *
+     * @param workspaceId 주소록이 속한 워크스페이스의 ID
+     * @param phoneBookId 소프트 딜리트할 주소록의 ID
+     * @param jwtClaims {@link AuthenticationPrincipal}을 통해 SecurityContext에서 직접 주입받는 현재 로그인된 사용자의 JWT 정보 객체
+     * @return 상태 코드 200 (OK)와 함께 소프트 딜리트 처리된 주소록의 정보를 담은 ResponseEntity
+     */
+    @Operation(summary = "주소록 삭제", description = "특정 워크스페이스에 속한 주소록을 삭제합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "주소록 삭제 성공",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = PhoneBookResponse.SimpleDTO.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청: 존재하지 않는 ID(워크스페이스, 주소록) 또는 접근 권한 없음",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "인증 실패 (로그인 필요)",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @DeleteMapping("/{phoneBookId}")
+    public ResponseEntity<PhoneBookResponse.SimpleDTO> deletePhoneBook(@PathVariable Integer workspaceId,
+                                                                       @PathVariable Integer phoneBookId,
+                                                                       @AuthenticationPrincipal JwtClaims jwtClaims) {
+        Integer currentUserId = jwtClaims.getUserId();
+        PhoneBookResponse.SimpleDTO deletedPhoneBook = phoneBookService.deletePhoneBook(workspaceId, phoneBookId, currentUserId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(deletedPhoneBook);
+    }
+
+    /**
+     * 특정 주소록에서 다수의 수신자를 일괄 삭제하는 API
+     * <p>
+     * 요청된 수신자 ID 목록을 받아, 해당 주소록에서 해당 수신자들과의 매핑 관계를 소프트 딜리트 처리합니다.
+     * 실제로는 GroupMapping 엔티티를 소프트 딜리트하며, 수신자 자체는 삭제되지 않고 다른 주소록에서 계속 사용 가능합니다.
+     * 요청된 수신자 중 해당 주소록에 실제로 매핑되지 않은 수신자는 자동으로 제외됩니다.
+     *
+     * @param recipientIdListDTO 클라이언트로부터 받은 삭제할 수신자 ID 목록을 담은 DTO
+     * @param workspaceId      주소록이 속한 워크스페이스의 ID
+     * @param phoneBookId      수신자를 삭제할 주소록의 ID
+     * @param jwtClaims {@link AuthenticationPrincipal}을 통해 SecurityContext에서 직접 주입받는 현재 로그인된 사용자의 JWT 정보 객체
+     * @return 상태 코드 200 (OK)와 함께, 실제로 삭제 처리된 수신자 정보를 담은 ResponseEntity
+     */
+    @Operation(summary = "주소록의 수신자 일괄 삭제", description = "특정 주소록에서 한 명 이상의 수신자를 일괄 삭제합니다. 수신자와 주소록 간의 매핑 관계만 제거되며, 수신자 자체는 삭제되지 않습니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "수신자 삭제 성공",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = PhoneBookResponse.ModifiedRecipientsDTO.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청: 요청 데이터 유효성 검사 실패, 존재하지 않는 ID(워크스페이스, 주소록, 수신자) 포함, 또는 기타 비즈니스 규칙 위배",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "인증 실패 (로그인 필요)",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @DeleteMapping("/{phoneBookId}/recipients")
+    public ResponseEntity<PhoneBookResponse.ModifiedRecipientsDTO> deleteRecipientsFromPhoneBook(@RequestBody PhoneBookRequest.RecipientIdListDTO recipientIdListDTO,
+                                                                                                 @PathVariable Integer workspaceId,
+                                                                                                 @PathVariable Integer phoneBookId,
+                                                                                                 @AuthenticationPrincipal JwtClaims jwtClaims) {
+        Integer currentUserId = jwtClaims.getUserId();
+        PhoneBookResponse.ModifiedRecipientsDTO deletedRecipients = phoneBookService.deleteRecipientsFromPhoneBook(recipientIdListDTO, workspaceId, phoneBookId, currentUserId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(deletedRecipients);
+    }
 }
