@@ -7,15 +7,20 @@ export default function WorkspaceEditPage() {
     const { id } = useParams();
     const navigate = useNavigate();
     const [workspace, setWorkspace] = useState(null);
+    const [allWorkspaces, setAllWorkspaces] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        const fetchWorkspace = async () => {
+        const fetchWorkspaceData = async () => {
             try {
                 setLoading(true);
-                const data = await workspaceService.getWorkspaceById(id);
-                setWorkspace(data);
+                const [workspaceData, allWorkspacesData] = await Promise.all([
+                    workspaceService.getWorkspaceById(id),
+                    workspaceService.getWorkspaces(),
+                ]);
+                setWorkspace(workspaceData);
+                setAllWorkspaces(allWorkspacesData);
                 setError(null);
             } catch (err) {
                 setError('워크스페이스 정보를 불러오는 데 실패했습니다.');
@@ -25,7 +30,7 @@ export default function WorkspaceEditPage() {
             }
         };
 
-        fetchWorkspace();
+        fetchWorkspaceData();
     }, [id]);
 
     const handleChange = (e) => {
@@ -57,7 +62,7 @@ export default function WorkspaceEditPage() {
         try {
             await workspaceService.updateWorkspace(id, updateData);
             alert('워크스페이스 정보가 성공적으로 저장되었습니다.');
-            navigate('/workspace-selection');
+            navigate(-1);
         } catch (err) {
             setError(err.response?.data?.message || '워크스페이스 정보 저장에 실패했습니다.');
             console.error(err);
@@ -67,7 +72,7 @@ export default function WorkspaceEditPage() {
     };
 
     const handleCancel = () => {
-        navigate('/workspace-selection');
+        navigate(-1);
     };
 
     const handleDelete = async () => {
@@ -77,7 +82,11 @@ export default function WorkspaceEditPage() {
             try {
                 await workspaceService.deleteWorkspace(id);
                 alert('워크스페이스가 삭제되었습니다.');
-                navigate('/workspace-selection');
+                if (allWorkspaces.length <= 1) {
+                    navigate('/workspace');
+                } else {
+                    navigate(-1);
+                }
             } catch (err) {
                 setError(err.response?.data?.message || '워크스페이스 삭제에 실패했습니다.');
                 console.error(err);
