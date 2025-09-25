@@ -33,10 +33,10 @@ public class TemplateModifiedHistory extends BaseEntity {
     @Column(name = "button_title", length = 50)
     private String buttonTitle;
 
-    @Column(name = "chat_ai")
+    @Column(name = "chat_ai", columnDefinition = "TEXT")
     private String chatAi;
 
-    @Column(name = "chat_user")
+    @Column(name = "chat_user", columnDefinition = "TEXT")
     private String chatUser;
 
     @Column(name = "status", nullable = false)
