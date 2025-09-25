@@ -12,6 +12,7 @@ import com.jober.final2teamdrhong.repository.PhoneBookRepository;
 import com.jober.final2teamdrhong.service.validator.PhoneBookValidator;
 import com.jober.final2teamdrhong.service.validator.RecipientValidator;
 import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -37,6 +38,7 @@ public class PhoneBookService {
     private final PhoneBookValidator phoneBookValidator;
     private final WorkspaceValidator workspaceValidator;
     private final RecipientValidator recipientValidator;
+    private final EntityManager entityManager;
 
     /**
      * 특정 워크스페이스에 새로운 주소록을 생성합니다.
@@ -174,5 +176,31 @@ public class PhoneBookService {
         // 3. GroupMapping에서 Recipient를 추출하여 RecipientResponse.SimpleDTO로 변환한 후 Page 형태로 반환합니다.
         return recipientsInPhoneBookPage
                 .map(groupMapping -> new RecipientResponse.SimpleDTO(groupMapping.getRecipient()));
+    }
+
+    /**
+     * 특정 주소록의 정보를 수정합니다.
+     *
+     * @param updateDTO   주소록 수정을 위한 요청 데이터
+     * @param workspaceId 주소록이 속한 워크스페이스의 ID
+     * @param phoneBookId 수정할 주소록의 ID
+     * @param userId      요청을 보낸 사용자의 ID (인가에 사용)
+     * @return 수정된 주소록의 정보({@link PhoneBookResponse.SimpleDTO})
+     * @throws IllegalArgumentException 유효하지 않은 ID(워크스페이스, 주소록)로 요청했을 경우 발생
+     */
+    @Transactional
+    public PhoneBookResponse.SimpleDTO updatePhoneBook(PhoneBookRequest.UpdateDTO updateDTO, Integer workspaceId, Integer phoneBookId, Integer userId) {
+        // 1. 인가: 사용자가 워크스페이스와 주소록에 접근 권한이 있는지 검증
+        workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
+
+        // 2. 주소록 조회 (워크스페이스 소속인지 함께 검증)
+        PhoneBook existingPhoneBook = phoneBookValidator.validateAndGetPhoneBook(workspaceId, phoneBookId);
+
+        // 3. 정보 업데이트
+        existingPhoneBook.setPhoneBookName(updateDTO.getNewPhoneBookName());
+        existingPhoneBook.setPhoneBookMemo(updateDTO.getNewPhoneBookMemo());
+        existingPhoneBook.update();
+
+        return new PhoneBookResponse.SimpleDTO(existingPhoneBook);
     }
 }
