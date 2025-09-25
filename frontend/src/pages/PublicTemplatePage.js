@@ -14,7 +14,7 @@ import SearchInput from '../components/common/SearchInput';
 import Pagination from '../components/common/Pagination';
 import TemplateCard from '../components/template/TemplateCard';
 import CommonButton from '../components/button/CommonButton';
-import { getPublicTemplates, createIndividualTemplateFromPublic, deletePublicTemplate } from '../services/api';
+import { getPublicTemplates, createIndividualTemplateFromPublic, deletePublicTemplate } from '../services/publicTemplateService';
 
 const ITEMS_PER_PAGE = 12;
 
@@ -36,6 +36,12 @@ export default function PublicTemplatePage() {
                     sort: sortField,
                     direction: sortDirection.toUpperCase(),
                 };
+                
+                // 검색어가 있으면 추가
+                if (searchQuery.trim()) {
+                    pageable.q = searchQuery.trim();
+                }
+                
                 const response = await getPublicTemplates(pageable);
                 setTemplates(response.data.content);
                 setTotalPages(response.data.totalPages);
@@ -102,33 +108,32 @@ export default function PublicTemplatePage() {
                     </Box>
                 </Box>
 
-                <Box sx={{ width: '100%', flexGrow: 1, overflow: 'auto', p: 0.5 }}>
+                <Box sx={{ width: '100%', flexGrow: 1, overflow: 'auto', p: 1 }}>
                     <Box
                         sx={{
-                            display: 'flex',
-                            flexWrap: 'wrap',
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(4, 1fr)',
+                            gap: 2,
+                            '@media (max-width: 1200px)': {
+                                gridTemplateColumns: 'repeat(3, 1fr)',
+                            },
+                            '@media (max-width: 900px)': {
+                                gridTemplateColumns: 'repeat(2, 1fr)',
+                            },
+                            '@media (max-width: 600px)': {
+                                gridTemplateColumns: '1fr',
+                            },
                         }}
                     >
-                        {templates.map(template => {
-                            const cardData = {
-                                id: template.publicTemplateId,
-                                title: template.publicTemplateTitle,
-                                content: template.publicTemplateContent,
-                                buttonTitle: template.buttonTitle, // Pass buttonTitle
-                            };
-                            return (
-                                <Box
-                                    key={cardData.id}
-                                    sx={{
-                                        flex: '0 0 25%',
-                                        boxSizing: 'border-box',
-                                        p: 1,
-                                    }}
-                                >
-                                    <TemplateCard template={cardData} onUse={() => handleUseTemplate(cardData.id)} onDelete={handleDeleteTemplate} />
-                                </Box>
-                            );
-                        })}
+                        {templates.map(template => (
+                            <TemplateCard 
+                                key={template.publicTemplateId}
+                                template={template} 
+                                onUse={() => handleUseTemplate(template.publicTemplateId)} 
+                                onDelete={() => handleDeleteTemplate(template.publicTemplateId)}
+                                isPublicTemplate={true}
+                            />
+                        ))}
                     </Box>
                 </Box>
 
