@@ -5,8 +5,8 @@ import com.jober.final2teamdrhong.dto.favorite.FavoriteResponse;
 import com.jober.final2teamdrhong.dto.favorite.IndividualTemplateFavoriteRequest;
 import com.jober.final2teamdrhong.dto.favorite.PublicTemplateFavoriteRequest;
 import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
-import com.jober.final2teamdrhong.exception.ErrorResponse;
 import com.jober.final2teamdrhong.entity.Favorite.TemplateType;
+import com.jober.final2teamdrhong.exception.ErrorResponse;
 import com.jober.final2teamdrhong.service.FavoriteService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -17,7 +17,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -121,14 +120,4 @@ public class FavoriteController {
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * 즐겨찾기를 삭제(delete)
-     * @param favoriteId 삭제할 즐겨찾기 ID
-     * @return 성공 시 HTTP 204 No Content
-     */
-    @DeleteMapping("/favorites/{favoriteId}")
-    public ResponseEntity<?> deleteFavorite(@PathVariable Integer favoriteId) {
-        favoriteService.deleteFavorite(favoriteId);
-        return ResponseEntity.noContent().build();
-    }
 }
