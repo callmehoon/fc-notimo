@@ -172,4 +172,39 @@ public class PhoneBookController {
 
         return ResponseEntity.status(HttpStatus.OK).body(recipientsInPhoneBookPage);
     }
+
+    /**
+     * 특정 주소록의 정보를 수정하는 API
+     * <p>
+     * 요청한 사용자가 해당 워크스페이스와 주소록에 대한 접근 권한이 있는지 확인 후, 주소록의 이름과 메모를 수정합니다.
+     *
+     * @param updateDTO   클라이언트로부터 받은 주소록 수정을 위한 데이터 (JSON, @Valid로 검증됨)
+     * @param workspaceId 주소록이 속한 워크스페이스의 ID
+     * @param phoneBookId 수정할 주소록의 ID
+     * @param jwtClaims {@link AuthenticationPrincipal}을 통해 SecurityContext에서 직접 주입받는 현재 로그인된 사용자의 JWT 정보 객체
+     * @return 상태 코드 200 (OK)와 함께 수정된 주소록의 정보를 담은 ResponseEntity
+     */
+    @Operation(summary = "주소록 정보 수정", description = "특정 주소록의 이름과 메모를 수정합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "주소록 수정 성공",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = PhoneBookResponse.SimpleDTO.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청: 요청 데이터 유효성 검사 실패, 존재하지 않는 ID(워크스페이스, 주소록) 또는 접근 권한 없음",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "인증 실패 (로그인 필요)",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @PutMapping("/{phoneBookId}")
+    public ResponseEntity<PhoneBookResponse.SimpleDTO> updatePhoneBook(@Valid @RequestBody PhoneBookRequest.UpdateDTO updateDTO,
+                                                                       @PathVariable Integer workspaceId,
+                                                                       @PathVariable Integer phoneBookId,
+                                                                       @AuthenticationPrincipal JwtClaims jwtClaims) {
+        Integer currentUserId = jwtClaims.getUserId();
+        PhoneBookResponse.SimpleDTO updatedPhoneBook = phoneBookService.updatePhoneBook(updateDTO, workspaceId, phoneBookId, currentUserId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(updatedPhoneBook);
+    }
 }

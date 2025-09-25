@@ -40,4 +40,20 @@ public class PhoneBookRequest {
     public static class RecipientIdListDTO {
         private List<Integer> recipientIds;
     }
+
+    /**
+     * 주소록 정보 수정을 위한 요청 DTO 입니다.
+     */
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    @Schema(name = "PhoneBookUpdateDTO")
+    public static class UpdateDTO {
+        @NotBlank(message = "주소록 이름은 필수 입력 항목입니다.")
+        @Length(min = 2, max = 20, message = "주소록 이름은 2자 이상 20자 이하로 입력해주세요.")
+        private String newPhoneBookName;
+        private String newPhoneBookMemo;
+    }
 }
