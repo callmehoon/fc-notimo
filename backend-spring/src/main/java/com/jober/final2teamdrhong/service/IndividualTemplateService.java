@@ -8,7 +8,6 @@ import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
 import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
-import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.concurrent.CompletableFuture;
 

@@ -78,13 +78,13 @@ class  FavoriteServiceTest {
         when(favoriteRepository.save(any(Favorite.class))).thenReturn(savedFavorite);
 
         // when
-        FavoriteResponse response = favoriteService.createIndividualTemplateFavorite(mockJwtClaims, request);
+        FavoriteResponse response = favoriteService.createIndividualTemplateFavorite(request, mockJwtClaims.getUserId());
 
         // then
         assertThat(response).isNotNull();
         assertThat(response.getFavoriteId()).isEqualTo(99);
         assertThat(response.getTemplateType()).isEqualTo("INDIVIDUAL");
-        verify(workspaceValidator).validateAndGetWorkspace(1, 1);
+        verify(workspaceValidator).validateAndGetWorkspace(request.getWorkspaceId(), mockJwtClaims.getUserId());
         verify(favoriteRepository).save(any(Favorite.class));
     }
 
@@ -99,7 +99,7 @@ class  FavoriteServiceTest {
                 .when(favoriteRepository).validateIndividualTemplateNotExists(mockWorkspace, mockIndividualTemplate);
 
         // when & then
-        assertThrows(IllegalArgumentException.class, () -> favoriteService.createIndividualTemplateFavorite(mockJwtClaims, request));
+        assertThrows(IllegalArgumentException.class, () -> favoriteService.createIndividualTemplateFavorite(request, mockJwtClaims.getUserId()));
         verify(favoriteRepository, never()).save(any(Favorite.class));
     }
 
@@ -116,13 +116,13 @@ class  FavoriteServiceTest {
         when(favoriteRepository.save(any(Favorite.class))).thenReturn(savedFavorite);
 
         // when
-        FavoriteResponse response = favoriteService.createPublicTemplateFavorite(mockJwtClaims, request);
+        FavoriteResponse response = favoriteService.createPublicTemplateFavorite(request, mockJwtClaims.getUserId());
 
         // then
         assertThat(response).isNotNull();
         assertThat(response.getFavoriteId()).isEqualTo(101);
         assertThat(response.getTemplateType()).isEqualTo("PUBLIC");
-        verify(workspaceValidator).validateAndGetWorkspace(1, 1);
+        verify(workspaceValidator).validateAndGetWorkspace(request.getWorkspaceId(), mockJwtClaims.getUserId());
         verify(favoriteRepository).save(any(Favorite.class));
     }
 
@@ -137,7 +137,7 @@ class  FavoriteServiceTest {
                 .when(favoriteRepository).validatePublicTemplateNotExists(mockWorkspace, mockPublicTemplate);
 
         // when & then
-        assertThrows(IllegalArgumentException.class, () -> favoriteService.createPublicTemplateFavorite(mockJwtClaims, request));
+        assertThrows(IllegalArgumentException.class, () -> favoriteService.createPublicTemplateFavorite(request, mockJwtClaims.getUserId()));
         verify(favoriteRepository, never()).save(any(Favorite.class));
     }
 
@@ -160,7 +160,7 @@ class  FavoriteServiceTest {
         when(favoriteRepository.findFavorites(eq(mockWorkspace), any(), any(Pageable.class))).thenReturn(mockPage);
 
         // when
-        Page<FavoriteResponse> result = favoriteService.getFavoritesByWorkspace(mockJwtClaims, workspaceId, Favorite.TemplateType.PUBLIC, pageRequest);
+        Page<FavoriteResponse> result = favoriteService.getFavoritesByWorkspace(workspaceId, Favorite.TemplateType.PUBLIC, pageRequest, mockJwtClaims.getUserId());
 
         // then
         assertThat(result).isNotNull();
@@ -181,9 +181,44 @@ class  FavoriteServiceTest {
                 .thenThrow(new IllegalArgumentException("해당 워크스페이스를 찾을 수 없거나 접근 권한이 없습니다."));
 
         // when & then
-        assertThrows(IllegalArgumentException.class, () -> favoriteService.getFavoritesByWorkspace(mockJwtClaims, workspaceId, null, pageRequest));
+        assertThrows(IllegalArgumentException.class, () -> favoriteService.getFavoritesByWorkspace(workspaceId, null, pageRequest, mockJwtClaims.getUserId()));
 
         verify(workspaceValidator).validateAndGetWorkspace(workspaceId, mockJwtClaims.getUserId());
         verify(favoriteRepository, never()).findFavorites(any(), any(), any());
     }
+
+
+    // ====================== Delete ======================
+    @Test
+    @DisplayName("성공(서비스): 즐겨찾기 삭제")
+    void deleteFavorite_Success() {
+        // given
+        Integer favoriteId = 1;
+        Favorite mockFavorite = mock(Favorite.class);
+
+        when(favoriteRepository.findByIdOrThrow(favoriteId, mockJwtClaims.getUserId())).thenReturn(mockFavorite);
+        doNothing().when(favoriteRepository).delete(mockFavorite);
+
+        // when
+        favoriteService.deleteFavorite(favoriteId, mockJwtClaims.getUserId());
+
+        // then
+        verify(favoriteRepository, times(1)).findByIdOrThrow(favoriteId, mockJwtClaims.getUserId());
+        verify(favoriteRepository, times(1)).delete(mockFavorite);
+    }
+
+    @Test
+    @DisplayName("실패(서비스): 존재하지 않거나 권한 없는 즐겨찾기 삭제 시 예외 발생")
+    void deleteFavorite_Fail_UnauthorizedOrNotFound() {
+        // given
+        Integer favoriteId = 999;
+        when(favoriteRepository.findByIdOrThrow(favoriteId, mockJwtClaims.getUserId()))
+                .thenThrow(new IllegalArgumentException("해당 즐겨찾기를 찾을 수 없거나, 권한이 없습니다."));
+
+        // when & then
+        assertThrows(IllegalArgumentException.class, () -> favoriteService.deleteFavorite(favoriteId, mockJwtClaims.getUserId()));
+        verify(favoriteRepository, times(1)).findByIdOrThrow(favoriteId, mockJwtClaims.getUserId());
+        verify(favoriteRepository, never()).delete(any(Favorite.class));
+    }
+
 }
