@@ -207,29 +207,7 @@ public class IndividualTemplateService {
         // 워크스페이스 검증
         workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
 
-        IndividualTemplate individualTemplate = individualTemplateRepository.findById(individualTemplateId)
-                .orElseThrow(() -> new EntityNotFoundException("템플릿이 존재하지 않습니다. id = " + individualTemplateId));
-
-
-        individualTemplate.softDelete();
-        individualTemplateRepository.save(individualTemplate);
-        log.info("Soft deleted template id = {}", individualTemplateId);
-    }
-
-    /**
-     * 개인 템플릿 소프트 딜리트
-     * isDeleted가 false가 아닌 경우도 포함.
-     * 워크스페이스 내에 다른 사용자가 템플릿을 먼저 지워버릴 경우를 대비
-     */
-    @Transactional
-    public void deleteTemplate(Integer individualTemplateId,
-                               Integer workspaceId,
-                               Integer userId){
-
-        // 워크스페이스 검증
-        workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
-
-        IndividualTemplate individualTemplate = individualTemplateRepository.findById(individualTemplateId)
+        IndividualTemplate individualTemplate = individualTemplateRepository.findByIndividualTemplateIdAndWorkspace_WorkspaceId(individualTemplateId, workspaceId)
                 .orElseThrow(() -> new EntityNotFoundException("템플릿이 존재하지 않습니다. id = " + individualTemplateId));
 
 
@@ -242,14 +220,14 @@ public class IndividualTemplateService {
     public IndividualTemplateResponse updateTemplate(
             Integer workspaceId,
             Integer individualTemplateId,
-            IndividualTemplateUpdateRequest request) {
+            IndividualTemplateUpdateRequest request,
+            Integer userId) {
 
-        IndividualTemplate individualTemplate = individualTemplateRepository.findById(individualTemplateId)
+        // 워크스페이스 검증
+        workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
+
+        IndividualTemplate individualTemplate = individualTemplateRepository.findByIndividualTemplateIdAndWorkspace_WorkspaceId(individualTemplateId, workspaceId)
                 .orElseThrow(() -> new EntityNotFoundException("템플릿이 존재하지 않습니다. id = " + individualTemplateId));
-
-        if(!individualTemplate.getWorkspace().getWorkspaceId().equals(workspaceId)) {
-            throw new AccessDeniedException("해당 워크스페이스 접근 권한이 없습니다.");
-        }
 
         individualTemplate.update(
                 request.getIndividualTemplateTitle(),

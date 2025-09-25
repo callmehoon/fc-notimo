@@ -280,10 +280,9 @@ public class IndividualTemplateController {
             @RequestBody IndividualTemplateUpdateRequest request,
             @AuthenticationPrincipal JwtClaims claims) {
         Integer userId = claims.getUserId();
-        individualTemplateService.validateWorkspaceOwnership(workspaceId, userId);
 
         IndividualTemplateResponse response = individualTemplateService.updateTemplate(workspaceId,
-                individualTemplateId, request);
+                individualTemplateId, request, userId);
 
         return ResponseEntity.ok(response);
     }
