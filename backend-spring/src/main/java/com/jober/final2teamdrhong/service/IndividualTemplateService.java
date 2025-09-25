@@ -7,9 +7,7 @@ import com.jober.final2teamdrhong.entity.PublicTemplate;
 import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
-import com.jober.final2teamdrhong.repository.WorkspaceRepository;
 import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
-import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,8 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-
-import org.springframework.security.access.AccessDeniedException;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -31,22 +28,7 @@ public class IndividualTemplateService {
 
     private final IndividualTemplateRepository individualTemplateRepository;
     private final PublicTemplateRepository publicTemplateRepository;
-    private final WorkspaceRepository workspaceRepository;
     private final WorkspaceValidator workspaceValidator;
-
-    /**
-     * 비어있는 템플릿 생성 (title/content/button 전부 "")
-     * 요청의 문자열 필드는 무시하고 workspaceId만 사용함.
-     */
-    public void validateWorkspaceOwnership(Integer workspaceId, Integer userId) {
-        if (userId == null)
-            throw new AccessDeniedException("인증이 필요합니다.");
-
-        boolean exists = workspaceRepository.existsByWorkspaceIdAndUser_UserId(workspaceId, userId);
-        if(!exists)
-            throw new AccessDeniedException("해당 워크스페이스에 접근 권한이 없습니다.");
-    }
-
 
     @Transactional
     public IndividualTemplateResponse createTemplate(Integer workspaceId, Integer userId) {
