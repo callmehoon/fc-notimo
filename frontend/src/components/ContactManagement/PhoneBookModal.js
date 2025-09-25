@@ -1,11 +1,6 @@
-import React from 'react';
-import { Modal, Box, Typography, List, ListItem, ListItemButton, ListItemText } from '@mui/material';
-
-const mockPhoneBooks = [
-    { id: 1, name: '개발팀' },
-    { id: 2, name: '디자인팀' },
-    { id: 3, name: '기획팀' },
-];
+import React, { useState, useEffect } from 'react';
+import { Modal, Box, Typography, List, ListItem, ListItemButton, ListItemText, CircularProgress } from '@mui/material';
+import phoneBookService from '../../services/phoneBookService';
 
 const style = {
     position: 'absolute',
@@ -20,6 +15,39 @@ const style = {
 };
 
 export default function PhoneBookModal({ open, onClose, onSelect }) {
+    const [phoneBooks, setPhoneBooks] = useState([]);
+    const [loading, setLoading] = useState(false);
+
+    const fetchPhoneBooks = async () => {
+        const workspaceId = localStorage.getItem('selectedWorkspaceId');
+        if (workspaceId) {
+            setLoading(true);
+            try {
+                const data = await phoneBookService.getPhoneBooks(workspaceId);
+                setPhoneBooks(data);
+            } catch (error) {
+                console.error('Failed to fetch phonebooks:', error);
+                setPhoneBooks([]);
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
+    useEffect(() => {
+        if (open) {
+            fetchPhoneBooks();
+        }
+    }, [open]);
+
+    const handleSelect = (phoneBook) => {
+        // 백엔드 API 구조에 맞게 변환
+        onSelect({
+            id: phoneBook.phoneBookId,
+            name: phoneBook.phoneBookName
+        });
+    };
+
     return (
         <Modal
             open={open}
@@ -30,15 +58,26 @@ export default function PhoneBookModal({ open, onClose, onSelect }) {
                 <Typography id="phonebook-modal-title" variant="h6" component="h2">
                     주소록 선택
                 </Typography>
-                <List>
-                    {mockPhoneBooks.map((book) => (
-                        <ListItem key={book.id} disablePadding>
-                            <ListItemButton onClick={() => onSelect(book)}>
-                                <ListItemText primary={book.name} />
-                            </ListItemButton>
-                        </ListItem>
-                    ))}
-                </List>
+                {loading ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                        <CircularProgress />
+                    </Box>
+                ) : (
+                    <List>
+                        {phoneBooks.map((book) => (
+                            <ListItem key={book.phoneBookId} disablePadding>
+                                <ListItemButton onClick={() => handleSelect(book)}>
+                                    <ListItemText primary={book.phoneBookName} />
+                                </ListItemButton>
+                            </ListItem>
+                        ))}
+                        {phoneBooks.length === 0 && !loading && (
+                            <ListItem>
+                                <ListItemText primary="생성된 주소록이 없습니다." />
+                            </ListItem>
+                        )}
+                    </List>
+                )}
             </Box>
         </Modal>
     );
