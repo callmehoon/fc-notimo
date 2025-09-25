@@ -6,6 +6,7 @@ import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateUpdat
 import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
 import com.jober.final2teamdrhong.entity.User.UserRole;
 import com.jober.final2teamdrhong.service.IndividualTemplateService;
+import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
 import org.junit.jupiter.api.DisplayName;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
@@ -39,6 +40,9 @@ class IndividualTemplateControllerTest {
 
     @Mock
     IndividualTemplateService individualTemplateService;
+
+    @Mock
+    WorkspaceValidator workspaceValidator;
 
     @InjectMocks
     IndividualTemplateController controller;
@@ -103,7 +107,7 @@ class IndividualTemplateControllerTest {
         ReflectionTestUtils.setField(expectedResponse, "individualTemplateId", 3);
         ReflectionTestUtils.setField(expectedResponse, "workspaceId", 55);
 
-        given(individualTemplateService.createIndividualTemplateFromPublic(10, 55))
+        given(individualTemplateService.createIndividualTemplateFromPublic(10, 55, 3))
                 .willReturn(expectedResponse);
 
         // when
@@ -116,8 +120,9 @@ class IndividualTemplateControllerTest {
         assertThat(result.getBody().getIndividualTemplateId()).isEqualTo(3);
         assertThat(result.getBody().getWorkspaceId()).isEqualTo(55);
 
-        verify(individualTemplateService).validateWorkspaceOwnership(55, 3);
-        verify(individualTemplateService).createIndividualTemplateFromPublic(10, 55);
+        verify(individualTemplateService).createIndividualTemplateFromPublic(10, 55, 3);
+        verify(workspaceValidator).validateAndGetWorkspace(eq(55), eq(3));
+
     }
 
     @Test
@@ -129,7 +134,7 @@ class IndividualTemplateControllerTest {
         ReflectionTestUtils.setField(expectedResponse, "individualTemplateId", 4);
         ReflectionTestUtils.setField(expectedResponse, "workspaceId", 44);
 
-        given(individualTemplateService.createIndividualTemplateFromPublicAsync(20, 44))
+        given(individualTemplateService.createIndividualTemplateFromPublicAsync(20, 44, 4))
                 .willReturn(CompletableFuture.completedFuture(expectedResponse));
 
         // when
@@ -143,7 +148,7 @@ class IndividualTemplateControllerTest {
         assertThat(result.getBody().getWorkspaceId()).isEqualTo(44);
 
         verify(individualTemplateService).validateWorkspaceOwnership(44, 4);
-        verify(individualTemplateService).createIndividualTemplateFromPublicAsync(20, 44);
+        verify(individualTemplateService).createIndividualTemplateFromPublicAsync(20, 44, 4);
     }
 
     private JwtClaims createMockJwtClaims(Integer userId, String email) {
@@ -253,7 +258,7 @@ class IndividualTemplateControllerTest {
         Page<IndividualTemplateResponse> page =
                 new PageImpl<>(List.of(row), PageRequest.of(0, 10), 1);
 
-        given(individualTemplateService.getAllTemplates(eq(workspaceId), any(Pageable.class)))
+        given(individualTemplateService.getAllTemplates(eq(workspaceId), any(IndividualTemplatePageableRequest.class)))
                 .willReturn(page);
 
         ResponseEntity<Page<IndividualTemplateResponse>> res =
@@ -265,7 +270,7 @@ class IndividualTemplateControllerTest {
         assertThat(res.getBody().getContent().get(0).getIndividualTemplateTitle()).isEqualTo("Test Template");
 
         verify(individualTemplateService).validateWorkspaceOwnership(workspaceId, userId);
-        verify(individualTemplateService).getAllTemplates(eq(workspaceId), any(Pageable.class));
+        verify(individualTemplateService).getAllTemplates(eq(workspaceId), any(IndividualTemplatePageableRequest.class));
     }
 
     @Test
@@ -284,7 +289,7 @@ class IndividualTemplateControllerTest {
         Page<IndividualTemplateResponse> page =
                 new PageImpl<>(List.of(row), PageRequest.of(0, 10), 1);
 
-        given(individualTemplateService.getIndividualTemplateByStatus(eq(workspaceId), eq(IndividualTemplate.Status.DRAFT), any(Pageable.class)))
+        given(individualTemplateService.getAllTemplates(eq(workspaceId), any(IndividualTemplatePageableRequest.class)))
                 .willReturn(page);
 
         ResponseEntity<Page<IndividualTemplateResponse>> res =
@@ -296,7 +301,7 @@ class IndividualTemplateControllerTest {
         assertThat(res.getBody().getContent().get(0).getStatus()).isEqualTo(IndividualTemplate.Status.DRAFT);
 
         verify(individualTemplateService).validateWorkspaceOwnership(workspaceId, userId);
-        verify(individualTemplateService).getIndividualTemplateByStatus(eq(workspaceId), eq(IndividualTemplate.Status.DRAFT), any(Pageable.class));
+        verify(individualTemplateService).getAllTemplates(eq(workspaceId), any(IndividualTemplatePageableRequest.class));
     }
 
     // ----------------------

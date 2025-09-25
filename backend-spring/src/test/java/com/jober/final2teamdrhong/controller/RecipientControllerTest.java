@@ -8,6 +8,7 @@ import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.RecipientRepository;
 import com.jober.final2teamdrhong.repository.UserRepository;
 import com.jober.final2teamdrhong.repository.WorkspaceRepository;
+import jakarta.persistence.EntityManager;
 import com.jober.final2teamdrhong.util.test.WithMockJwtClaims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,9 +22,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.hamcrest.Matchers.*;
@@ -50,6 +50,9 @@ class RecipientControllerTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private EntityManager entityManager;
 
     private User testUser;
     private Workspace testWorkspace;
@@ -185,6 +188,41 @@ class RecipientControllerTest {
     }
 
     @Test
+    @DisplayName("수신자 생성 실패 테스트 - 중복 수신자 존재")
+    @WithMockJwtClaims(userId = 1)
+    void createRecipient_Fail_DuplicateRecipient_Test() throws Exception {
+        // given
+        // 1. DB에 기존 수신자를 미리 저장합니다.
+        recipientRepository.save(Recipient.builder()
+                .recipientName("김철수")
+                .recipientPhoneNumber("010-1111-1111")
+                .workspace(testWorkspace)
+                .build());
+
+        // 2. 동일한 이름과 번호를 가진 수신자 생성을 시도하는 DTO를 준비합니다.
+        RecipientRequest.CreateDTO createDTO = RecipientRequest.CreateDTO.builder()
+                .recipientName("김철수")  // 기존과 동일한 이름
+                .recipientPhoneNumber("010-1111-1111")  // 기존과 동일한 번호
+                .recipientMemo("중복 시도")
+                .build();
+
+        String requestBody = objectMapper.writeValueAsString(createDTO);
+
+        // when
+        // 1. 중복 수신자 생성을 시도하는 API를 호출합니다.
+        ResultActions resultActions = mockMvc.perform(
+                post("/workspaces/" + testWorkspace.getWorkspaceId() + "/recipients")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody)
+        );
+
+        // then
+        // 1. RecipientValidator의 중복 검증 로직에서 예외를 던지고, GlobalExceptionHandler에 의해
+        //    최종적으로 HTTP 상태 코드 400 Bad Request가 반환되는지 확인합니다.
+        resultActions.andExpect(status().isBadRequest());
+    }
+
+    @Test
     @DisplayName("수신자 목록 페이징 조회 성공 테스트")
     @WithMockJwtClaims(userId = 1)
     void readRecipients_Paging_Success_Test() throws Exception {
@@ -273,6 +311,9 @@ class RecipientControllerTest {
         // 3. DTO 객체를 JSON 문자열로 변환합니다.
         String requestBody = objectMapper.writeValueAsString(updateDTO);
 
+        // 4. updatedAt 비교를 위해 1초 대기합니다. (BaseEntity에서 초 단위로 truncate하기 때문)
+        Thread.sleep(1000);
+
         // when
         // 1. MockMvc를 사용하여 PUT /workspaces/{workspaceId}/recipients/{recipientId} 엔드포인트로 API 요청을 보냅니다.
         ResultActions resultActions = mockMvc.perform(
@@ -329,6 +370,114 @@ class RecipientControllerTest {
         // then
         // 1. 컨트롤러의 @Valid 어노테이션에 의해 요청이 차단되고,
         //    HTTP 상태 코드 400 Bad Request가 반환되는지 확인합니다.
+        resultActions.andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("수신자 정보 수정 실패 테스트 - 다른 수신자와 중복")
+    @WithMockJwtClaims(userId = 1)
+    void updateRecipient_Fail_DuplicateWithOtherRecipient_Test() throws Exception {
+        // given
+        // 1. DB에 수정 대상이 될 원본 수신자 데이터를 미리 저장합니다.
+        Recipient savedRecipient = recipientRepository.save(Recipient.builder()
+                .recipientName("홍길동")
+                .recipientPhoneNumber("010-1111-2222")
+                .workspace(testWorkspace)
+                .build());
+
+        // 2. DB에 다른 수신자도 저장합니다. (중복 검증에 걸릴 대상)
+        recipientRepository.save(Recipient.builder()
+                .recipientName("김철수")
+                .recipientPhoneNumber("010-3333-3333")
+                .workspace(testWorkspace)
+                .build());
+
+        // 3. 다른 수신자와 동일한 이름과 번호로 수정을 시도하는 DTO를 준비합니다.
+        RecipientRequest.UpdateDTO updateDTO = RecipientRequest.UpdateDTO.builder()
+                .newRecipientName("김철수")  // 기존 다른 수신자와 동일한 이름
+                .newRecipientPhoneNumber("010-3333-3333")  // 기존 다른 수신자와 동일한 번호
+                .newRecipientMemo("중복 시도")
+                .build();
+
+        // 4. DTO 객체를 JSON 문자열로 변환합니다.
+        String requestBody = objectMapper.writeValueAsString(updateDTO);
+
+        // when
+        // 1. 다른 수신자와 중복되는 정보로 수정을 시도하는 API를 호출합니다.
+        ResultActions resultActions = mockMvc.perform(
+                put("/workspaces/" + testWorkspace.getWorkspaceId() + "/recipients/" +
+                        savedRecipient.getRecipientId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody)
+        );
+
+        // then
+        // 1. RecipientValidator의 중복 검증 로직에서 예외를 던지고, GlobalExceptionHandler에 의해
+        //    최종적으로 HTTP 상태 코드 400 Bad Request가 반환되는지 확인합니다.
+        resultActions.andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("수신자 삭제 성공 테스트")
+    @WithMockJwtClaims(userId = 1)
+    void deleteRecipient_Success_Test() throws Exception {
+        // given
+        // 1. DB에 삭제 대상이 될 수신자 데이터를 미리 저장합니다.
+        Recipient savedRecipient = recipientRepository.save(Recipient.builder()
+                .recipientName("홍길동")
+                .recipientPhoneNumber("010-1111-2222")
+                .workspace(testWorkspace)
+                .build());
+
+        // when
+        // 1. MockMvc를 사용하여 DELETE /workspaces/{workspaceId}/recipients/{recipientId} 엔드포인트로 API 요청을 보냅니다.
+        ResultActions resultActions = mockMvc.perform(
+                delete("/workspaces/" + testWorkspace.getWorkspaceId() + "/recipients/" +
+                        savedRecipient.getRecipientId())
+        );
+
+        // then
+        // 1. API 호출 결과를 검증합니다.
+        resultActions
+                // 1-1. HTTP 상태 코드가 200 OK 인지 확인합니다.
+                .andExpect(status().isOk())
+                // 1-2. 응답 JSON의 recipientId가 삭제한 ID와 일치하는지 확인합니다.
+                .andExpect(jsonPath("$.recipientId").value(savedRecipient.getRecipientId()))
+                // 1-3. 응답 JSON의 deletedAt 필드가 null이 아닌 값으로 채워져 있는지 확인합니다.
+                .andExpect(jsonPath("$.deletedAt").isNotEmpty());
+
+        // 2. (중요) DB에서 실제로 소프트 딜리트되었는지 확인합니다.
+        //    영속성 컨텍스트의 1차 캐시를 비워 DB에서 직접 조회하도록 강제합니다.
+        entityManager.flush();
+        entityManager.clear();
+        //    @SQLRestriction("is_deleted = false") 때문에, 삭제된 엔티티는 findById로 조회되지 않아야 합니다.
+        assertFalse(recipientRepository.findById(savedRecipient.getRecipientId()).isPresent());
+    }
+
+    @Test
+    @DisplayName("수신자 삭제 실패 테스트 - 권한 없음")
+    @WithMockJwtClaims(userId = 1)
+    void deleteRecipient_Fail_UnauthorizedWorkspace_Test() throws Exception {
+        // given
+        // 1. DB에 테스트용 수신자를 저장합니다.
+        Recipient savedRecipient = recipientRepository.save(Recipient.builder()
+                .recipientName("홍길동")
+                .recipientPhoneNumber("010-1111-2222")
+                .workspace(testWorkspace)
+                .build());
+        // 2. 존재하지 않거나 내 소유가 아닌 워크스페이스 ID를 임의로 준비합니다.
+        Integer unauthorizedWorkspaceId = 999;
+
+        // when
+        // 1. 다른 사람의 워크스페이스에 속한 수신자를 삭제하려는 API를 호출합니다.
+        ResultActions resultActions = mockMvc.perform(
+                delete("/workspaces/" + unauthorizedWorkspaceId + "/recipients/" +
+                        savedRecipient.getRecipientId())
+        );
+
+        // then
+        // 1. 서비스 계층의 인가 로직에서 예외를 던지고, GlobalExceptionHandler에 의해
+        //    최종적으로 HTTP 상태 코드 400 Bad Request가 반환되는지 확인합니다.
         resultActions.andExpect(status().isBadRequest());
     }
 }
