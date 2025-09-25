@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from ..services.gen_service import gen_template
 from ..schemas.template import TemplateRequest, TemplateResponse
 
-template_router = APIRouter(prefix="/template", tags=["AI generates template"])
+template_router = APIRouter(tags=["AI generates template"])
 
 @template_router.post("/template")
 async def generate_template(template_request: TemplateRequest)-> TemplateResponse:

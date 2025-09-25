@@ -1,5 +1,6 @@
 package com.jober.final2teamdrhong.exception;
 
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -23,8 +24,8 @@ public class GlobalExceptionHandler {
     }
 
     // 2. 서비스 계층 등에서 비즈니스 로직상 발생하는 예외를 처리하는 메서드
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
+    @ExceptionHandler({IllegalArgumentException.class, InvalidDataAccessApiUsageException.class})
+    public ResponseEntity<ErrorResponse> handleDataRelatedExceptions(RuntimeException ex) {
         ErrorResponse response = new ErrorResponse(ex.getMessage());
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);

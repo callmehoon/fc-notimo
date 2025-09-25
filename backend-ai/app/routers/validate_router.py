@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from ..services.cls_service import cls_template
 from ..schemas.validate import ValidateRequest, ValidateResponse
 
-validate_router = APIRouter(prefix="/validate", tags=["AI classifies a template as approve or reject"])
+validate_router = APIRouter(tags=["AI classifies a template as approve or reject"])
 
 @validate_router.post("/validate")
 async def validate_template(request: ValidateRequest) -> ValidateResponse:

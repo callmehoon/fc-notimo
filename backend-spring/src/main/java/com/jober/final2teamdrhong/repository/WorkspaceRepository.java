@@ -59,10 +59,5 @@ public interface WorkspaceRepository extends JpaRepository<Workspace, Integer> {
                     nativeQuery = true)
     Optional<Workspace> findByIdIncludingDeleted(@Param("workspaceId") Integer workspaceId);
 
-    default Workspace findByIdOrThrow(Integer workspaceId) {
-        return findById(workspaceId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 워크스페이스를 찾을 수 없습니다."));
-    }
-
     boolean existsByWorkspaceIdAndUser_UserId(Integer workspaceId, Integer userId);
 }
