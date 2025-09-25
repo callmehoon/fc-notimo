@@ -19,7 +19,7 @@ const SORT_MAP = {
 };
 
 // 상태 매핑 (Swagger의 실제 Enum 이름으로 교체)
-const TAB_TO_STATUS = { 0: null, 1: 'IN_REVIEW', 2: 'APPROVED', 3: 'REJECTED' };
+const TAB_TO_STATUS = { 0: 'DRAFT', 1: 'PENDING', 2: 'APPROVED', 3: 'REJECTED' };
 
 export default function TemplatePage() {
     const navigate = useNavigate();
@@ -91,6 +91,10 @@ export default function TemplatePage() {
         }
     };
 
+    const handleEdit = (templateId) => {
+        navigate(`/workspace/${workspaceId}/templategenerator/${templateId}`);
+    };
+
     const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
 
     return (
@@ -117,7 +121,6 @@ export default function TemplatePage() {
                         <FormControl size="small">
                             <Select value={sortOrder} onChange={handleSortChange}>
                                 <MenuItem value={'최신 순'}>최신 순</MenuItem>
-                                <MenuItem value={'공유 순'}>공유 순</MenuItem>
                                 <MenuItem value={'가나다 순'}>가나다 순</MenuItem>
                             </Select>
                         </FormControl>
@@ -153,6 +156,7 @@ export default function TemplatePage() {
                                     template={t}
                                     onDelete={() => handleDelete(t.individualTemplateId)}
                                     onShare={() => handleShare(t.individualTemplateId)}
+                                    onEdit={() => handleEdit(t.individualTemplateId)}
                                     showActions
                                     isPublicTemplate={false}
                                 />
