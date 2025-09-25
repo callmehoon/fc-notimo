@@ -2,8 +2,8 @@ package com.jober.final2teamdrhong.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jober.final2teamdrhong.dto.phonebook.PhoneBookRequest;
-import com.jober.final2teamdrhong.dto.phonebook.PhoneBookResponse;
 import com.jober.final2teamdrhong.entity.*;
+import com.jober.final2teamdrhong.repository.GroupMappingRepository;
 import com.jober.final2teamdrhong.repository.PhoneBookRepository;
 import com.jober.final2teamdrhong.repository.RecipientRepository;
 import com.jober.final2teamdrhong.repository.UserRepository;
@@ -26,6 +26,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -54,6 +56,9 @@ class PhoneBookControllerTest {
     private RecipientRepository recipientRepository;
 
     @Autowired
+    private GroupMappingRepository groupMappingRepository;
+
+    @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
@@ -68,11 +73,13 @@ class PhoneBookControllerTest {
     @BeforeEach
     void setUp() {
         // 1. 각 테스트 실행 전, 데이터베이스를 깨끗한 상태로 만들기 위해 모든 관련 테이블의 데이터를 삭제합니다.
+        groupMappingRepository.deleteAll();
         phoneBookRepository.deleteAll();
         recipientRepository.deleteAll();
         workspaceRepository.deleteAll();
         userRepository.deleteAll();
         // 2. H2 DB의 ID 시퀀스를 초기화하여 항상 일관된 ID로 테스트를 시작하도록 보장합니다.
+        jdbcTemplate.execute("ALTER TABLE group_mapping ALTER COLUMN group_mapping_id RESTART WITH 1");
         jdbcTemplate.execute("ALTER TABLE phone_book ALTER COLUMN phone_book_id RESTART WITH 1");
         jdbcTemplate.execute("ALTER TABLE recipient ALTER COLUMN recipient_id RESTART WITH 1");
         jdbcTemplate.execute("ALTER TABLE workspace ALTER COLUMN workspace_id RESTART WITH 1");
@@ -614,4 +621,343 @@ class PhoneBookControllerTest {
                 // 1-2. 에러 메시지가 적절히 반환되는지 확인합니다.
                 .andExpect(jsonPath("$.message").exists());
     }
+
+    @Test
+    @DisplayName("주소록 삭제 성공 테스트")
+    @WithMockJwtClaims(userId = 1)
+    void deletePhoneBook_Success_Test() throws Exception {
+        // given
+        // 1. 테스트에서 사용할 주소록을 미리 데이터베이스에 저장합니다.
+        PhoneBook phoneBookToDelete = PhoneBook.builder()
+                .phoneBookName("삭제할 주소록")
+                .phoneBookMemo("삭제 테스트용 메모")
+                .workspace(testWorkspace)
+                .build();
+        phoneBookRepository.save(phoneBookToDelete);
+
+        // when
+        // 1. MockMvc를 사용하여 DELETE /workspaces/{workspaceId}/phonebooks/{phoneBookId} 엔드포인트로 API 요청을 보냅니다.
+        ResultActions resultActions = mockMvc.perform(
+                delete("/workspaces/" + testWorkspace.getWorkspaceId() + "/phonebooks/" + phoneBookToDelete.getPhoneBookId())
+                        .contentType(MediaType.APPLICATION_JSON)
+        );
+
+        // then
+        // 1. API 호출 결과를 검증합니다.
+        resultActions
+                // 1-1. HTTP 상태 코드가 200 OK인지 확인합니다.
+                .andExpect(status().isOk())
+                // 1-2. 응답 JSON의 구조와 값이 올바른지 확인합니다.
+                .andExpect(jsonPath("$.phoneBookId").value(phoneBookToDelete.getPhoneBookId()))
+                .andExpect(jsonPath("$.phoneBookName").value("삭제할 주소록"))
+                .andExpect(jsonPath("$.phoneBookMemo").value("삭제 테스트용 메모"))
+                .andExpect(jsonPath("$.deletedAt").exists()) // 소프트 딜리트 시간이 설정되었는지 확인
+                .andExpect(jsonPath("$.createdAt").exists())
+                .andExpect(jsonPath("$.updatedAt").exists());
+
+        // 2. 데이터베이스에서 해당 주소록이 소프트 딜리트되었는지 확인합니다.
+        PhoneBook deletedPhoneBook = phoneBookRepository.findByIdIncludingDeleted(phoneBookToDelete.getPhoneBookId()).orElseThrow();
+        assertNotNull(deletedPhoneBook.getDeletedAt()); // 소프트 딜리트 시간이 설정되었는지 확인
+        assertEquals(true, deletedPhoneBook.getIsDeleted()); // isDeleted 플래그가 true인지 확인
+    }
+
+    @Test
+    @DisplayName("주소록 삭제 실패 테스트 - 존재하지 않는 주소록")
+    @WithMockJwtClaims(userId = 1)
+    void deletePhoneBook_Fail_PhoneBookNotFound_Test() throws Exception {
+        // given
+        // 1. 존재하지 않는 주소록 ID를 준비합니다.
+        Integer nonExistentPhoneBookId = 999;
+
+        // when
+        // 1. MockMvc를 사용하여 DELETE /workspaces/{workspaceId}/phonebooks/{phoneBookId} 엔드포인트로 API 요청을 보냅니다.
+        ResultActions resultActions = mockMvc.perform(
+                delete("/workspaces/" + testWorkspace.getWorkspaceId() + "/phonebooks/" + nonExistentPhoneBookId)
+                        .contentType(MediaType.APPLICATION_JSON)
+        );
+
+        // then
+        // 1. API 호출 결과를 검증합니다.
+        resultActions
+                // 1-1. HTTP 상태 코드가 400 Bad Request인지 확인합니다.
+                .andExpect(status().isBadRequest())
+                // 1-2. 에러 메시지가 적절히 반환되는지 확인합니다.
+                .andExpect(jsonPath("$.message").value("해당 워크스페이스에 존재하지 않는 주소록입니다. ID: " + nonExistentPhoneBookId));
+    }
+
+    @Test
+    @DisplayName("주소록 삭제 실패 테스트 - 다른 워크스페이스의 주소록")
+    @WithMockJwtClaims(userId = 1)
+    void deletePhoneBook_Fail_UnauthorizedWorkspace_Test() throws Exception {
+        // given
+        // 1. 다른 사용자의 워크스페이스와 주소록을 생성합니다.
+        User otherUser = User.builder()
+                .userName("다른유저")
+                .userEmail("other@example.com")
+                .userNumber("010-9999-9999")
+                .build();
+        userRepository.save(otherUser);
+
+        Workspace otherWorkspace = Workspace.builder()
+                .workspaceName("다른 워크스페이스")
+                .workspaceUrl("other-url")
+                .representerName("다른 대표")
+                .representerPhoneNumber("010-8888-8888")
+                .companyName("다른 회사")
+                .user(otherUser)
+                .build();
+        workspaceRepository.save(otherWorkspace);
+
+        PhoneBook otherPhoneBook = PhoneBook.builder()
+                .phoneBookName("다른 주소록")
+                .phoneBookMemo("다른 메모")
+                .workspace(otherWorkspace)
+                .build();
+        phoneBookRepository.save(otherPhoneBook);
+
+        // when
+        // 1. MockMvc를 사용하여 다른 워크스페이스의 주소록을 삭제하려고 시도합니다.
+        ResultActions resultActions = mockMvc.perform(
+                delete("/workspaces/" + testWorkspace.getWorkspaceId() + "/phonebooks/" + otherPhoneBook.getPhoneBookId())
+                        .contentType(MediaType.APPLICATION_JSON)
+        );
+
+        // then
+        // 1. API 호출 결과를 검증합니다.
+        resultActions
+                // 1-1. HTTP 상태 코드가 400 Bad Request인지 확인합니다.
+                .andExpect(status().isBadRequest())
+                // 1-2. 에러 메시지가 적절히 반환되는지 확인합니다.
+                .andExpect(jsonPath("$.message").value("해당 워크스페이스에 존재하지 않는 주소록입니다. ID: " + otherPhoneBook.getPhoneBookId()));
+    }
+
+    @Test
+    @DisplayName("주소록에서 수신자 일괄 삭제 성공 테스트")
+    @WithMockJwtClaims(userId = 1)
+    void deleteRecipientsFromPhoneBook_Success_Test() throws Exception {
+        // given
+        // 1. 테스트용 주소록을 생성하고 저장합니다.
+        PhoneBook testPhoneBook = PhoneBook.builder()
+                .phoneBookName("테스트 주소록")
+                .phoneBookMemo("일괄 삭제 테스트용 주소록")
+                .workspace(testWorkspace)
+                .build();
+        phoneBookRepository.save(testPhoneBook);
+
+        // 2. 주소록에 수신자들을 매핑합니다.
+        GroupMapping mapping1 = GroupMapping.builder()
+                .phoneBook(testPhoneBook)
+                .recipient(recipient1)
+                .build();
+        GroupMapping mapping2 = GroupMapping.builder()
+                .phoneBook(testPhoneBook)
+                .recipient(recipient2)
+                .build();
+        groupMappingRepository.saveAll(List.of(mapping1, mapping2));
+
+        // 3. API 요청 본문에 담아 보낼 DTO 객체를 생성합니다. (수신자 1, 2번 삭제 요청)
+        PhoneBookRequest.RecipientIdListDTO requestDTO = new PhoneBookRequest.RecipientIdListDTO(
+                List.of(recipient1.getRecipientId(), recipient2.getRecipientId())
+        );
+        String requestBody = objectMapper.writeValueAsString(requestDTO);
+
+        // when
+        // 1. MockMvc를 사용하여 DELETE /workspaces/{workspaceId}/phonebooks/{phoneBookId}/recipients 엔드포인트로 API 요청을 보냅니다.
+        ResultActions resultActions = mockMvc.perform(
+                delete("/workspaces/" + testWorkspace.getWorkspaceId() + "/phonebooks/" + testPhoneBook.getPhoneBookId() + "/recipients")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody)
+        );
+
+        // then
+        // 1. API 호출 결과를 검증합니다.
+        resultActions
+                // 1-1. HTTP 상태 코드가 200 OK인지 확인합니다.
+                .andExpect(status().isOk())
+                // 1-2. 응답 JSON 본문에 phoneBookId 필드가 존재하고 올바른 값인지 확인합니다.
+                .andExpect(jsonPath("$.phoneBookId").value(testPhoneBook.getPhoneBookId()))
+                // 1-3. 삭제된 수신자 목록의 크기가 2인지 확인합니다.
+                .andExpect(jsonPath("$.recipientList").isArray())
+                .andExpect(jsonPath("$.recipientList.length()").value(2))
+                // 1-4. 삭제된 수신자들의 ID가 올바른지 확인합니다.
+                .andExpect(jsonPath("$.recipientList[?(@.recipientId == " + recipient1.getRecipientId() + ")]").exists())
+                .andExpect(jsonPath("$.recipientList[?(@.recipientId == " + recipient2.getRecipientId() + ")]").exists())
+                // 1-5. 삭제된 수신자들의 이름이 올바른지 확인합니다.
+                .andExpect(jsonPath("$.recipientList[?(@.recipientName == '" + recipient1.getRecipientName() + "')]").exists())
+                .andExpect(jsonPath("$.recipientList[?(@.recipientName == '" + recipient2.getRecipientName() + "')]").exists())
+                // 1-6. Recipient 엔티티 자체의 deletedAt은 변경되지 않으므로, 해당 필드는 비어있어야 합니다.
+                .andExpect(jsonPath("$.recipientList[0].deletedAt").isEmpty())
+                .andExpect(jsonPath("$.recipientList[1].deletedAt").isEmpty());
+
+        // 2. 데이터베이스에서 실제로 소프트 딜리트가 수행되었는지 검증합니다.
+        List<Object[]> deletedMappings = entityManager.createNativeQuery(
+                        "SELECT group_mapping_id, is_deleted, deleted_at FROM group_mapping WHERE phone_book_id = ?1"
+                ).setParameter(1, testPhoneBook.getPhoneBookId())
+                .getResultList();
+
+        // 2-1. 매핑이 2개 존재하는지 확인합니다.
+        assertEquals(2, deletedMappings.size());
+        // 2-2. 모든 매핑이 소프트 딜리트 상태인지 확인합니다.
+        for (Object[] mapping : deletedMappings) {
+            Boolean isDeleted = (Boolean) mapping[1];
+            Object deletedAt = mapping[2];
+            assertEquals(true, isDeleted);
+            assertNotNull(deletedAt);
+        }
+    }
+
+    @Test
+    @DisplayName("주소록에서 수신자 일괄 삭제 테스트 - 삭제할 수신자가 없는 경우")
+    @WithMockJwtClaims(userId = 1)
+    void deleteRecipientsFromPhoneBook_NoRecipientsToDelete_Test() throws Exception {
+        // given
+        // 1. 테스트용 주소록을 생성하고 저장합니다.
+        PhoneBook testPhoneBook = PhoneBook.builder()
+                .phoneBookName("테스트 주소록")
+                .phoneBookMemo("빈 주소록 테스트")
+                .workspace(testWorkspace)
+                .build();
+        phoneBookRepository.save(testPhoneBook);
+
+        // 2. API 요청 본문에 담아 보낼 DTO 객체를 생성합니다. (존재하지 않는 수신자 ID들)
+        PhoneBookRequest.RecipientIdListDTO requestDTO = new PhoneBookRequest.RecipientIdListDTO(
+                List.of(999, 1000) // 존재하지 않는 수신자 ID
+        );
+        String requestBody = objectMapper.writeValueAsString(requestDTO);
+
+        // when
+        // 1. MockMvc를 사용하여 DELETE 엔드포인트로 API 요청을 보냅니다.
+        ResultActions resultActions = mockMvc.perform(
+                delete("/workspaces/" + testWorkspace.getWorkspaceId() + "/phonebooks/" + testPhoneBook.getPhoneBookId() + "/recipients")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody)
+        );
+
+        // then
+        // 1. API 호출 결과를 검증합니다.
+        resultActions
+                // 1-1. HTTP 상태 코드가 400 Bad Request인지 확인합니다.
+                .andExpect(status().isBadRequest())
+                // 1-2. RecipientValidator가 던지는 예외 메시지를 확인합니다.
+                .andExpect(jsonPath("$.message").value("요청된 수신자 목록에 유효하지 않거나 권한이 없는 ID가 포함되어 있습니다."));
+    }
+
+    @Test
+    @DisplayName("주소록에서 수신자 일괄 삭제 실패 테스트 - 권한 없는 워크스페이스")
+    @WithMockJwtClaims(userId = 1)
+    void deleteRecipientsFromPhoneBook_Fail_UnauthorizedWorkspace_Test() throws Exception {
+        // given
+        // 1. 다른 사용자와 워크스페이스를 생성합니다.
+        User otherUser = User.builder()
+                .userName("다른사용자")
+                .userEmail("other@example.com")
+                .userNumber("010-9999-9999")
+                .build();
+        userRepository.save(otherUser);
+
+        Workspace otherWorkspace = Workspace.builder()
+                .workspaceName("다른 워크스페이스")
+                .workspaceUrl("other-url")
+                .representerName("다른대표")
+                .representerPhoneNumber("010-9999-8888")
+                .companyName("다른 회사")
+                .user(otherUser)
+                .build();
+        workspaceRepository.save(otherWorkspace);
+
+        PhoneBook otherPhoneBook = PhoneBook.builder()
+                .phoneBookName("다른 주소록")
+                .phoneBookMemo("다른 메모")
+                .workspace(otherWorkspace)
+                .build();
+        phoneBookRepository.save(otherPhoneBook);
+
+        // 2. API 요청 본문을 생성합니다.
+        PhoneBookRequest.RecipientIdListDTO requestDTO = new PhoneBookRequest.RecipientIdListDTO(
+                List.of(recipient1.getRecipientId(), recipient2.getRecipientId())
+        );
+        String requestBody = objectMapper.writeValueAsString(requestDTO);
+
+        // when
+        // 1. MockMvc를 사용하여 다른 워크스페이스의 주소록에서 수신자를 삭제하려고 시도합니다.
+        ResultActions resultActions = mockMvc.perform(
+                delete("/workspaces/" + testWorkspace.getWorkspaceId() + "/phonebooks/" + otherPhoneBook.getPhoneBookId() + "/recipients")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody)
+        );
+
+        // then
+        // 1. API 호출 결과를 검증합니다.
+        resultActions
+                // 1-1. HTTP 상태 코드가 400 Bad Request인지 확인합니다.
+                .andExpect(status().isBadRequest())
+                // 1-2. 에러 메시지가 적절히 반환되는지 확인합니다.
+                .andExpect(jsonPath("$.message").value("해당 워크스페이스에 존재하지 않는 주소록입니다. ID: " + otherPhoneBook.getPhoneBookId()));
+    }
+
+    @Test
+    @DisplayName("주소록에서 수신자 일괄 삭제 실패 테스트 - 존재하지 않는 주소록")
+    @WithMockJwtClaims(userId = 1)
+    void deleteRecipientsFromPhoneBook_Fail_PhoneBookNotFound_Test() throws Exception {
+        // given
+        // 1. API 요청 본문을 생성합니다.
+        PhoneBookRequest.RecipientIdListDTO requestDTO = new PhoneBookRequest.RecipientIdListDTO(
+                List.of(recipient1.getRecipientId(), recipient2.getRecipientId())
+        );
+        String requestBody = objectMapper.writeValueAsString(requestDTO);
+
+        Integer nonExistentPhoneBookId = 999; // 존재하지 않는 주소록 ID
+
+        // when
+        // 1. MockMvc를 사용하여 존재하지 않는 주소록에서 수신자를 삭제하려고 시도합니다.
+        ResultActions resultActions = mockMvc.perform(
+                delete("/workspaces/" + testWorkspace.getWorkspaceId() + "/phonebooks/" + nonExistentPhoneBookId + "/recipients")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody)
+        );
+
+        // then
+        // 1. API 호출 결과를 검증합니다.
+        resultActions
+                // 1-1. HTTP 상태 코드가 400 Bad Request인지 확인합니다.
+                .andExpect(status().isBadRequest())
+                // 1-2. 에러 메시지가 적절히 반환되는지 확인합니다.
+                .andExpect(jsonPath("$.message").value("해당 워크스페이스에 존재하지 않는 주소록입니다. ID: " + nonExistentPhoneBookId));
+    }
+
+    @Test
+    @DisplayName("주소록에서 수신자 일괄 삭제 실패 테스트 - 빈 요청 본문")
+    @WithMockJwtClaims(userId = 1)
+    void deleteRecipientsFromPhoneBook_Fail_EmptyRequestBody_Test() throws Exception {
+        // given
+        // 1. 테스트용 주소록을 생성하고 저장합니다.
+        PhoneBook testPhoneBook = PhoneBook.builder()
+                .phoneBookName("테스트 주소록")
+                .phoneBookMemo("빈 요청 테스트")
+                .workspace(testWorkspace)
+                .build();
+        phoneBookRepository.save(testPhoneBook);
+
+        // 2. API 요청 본문에 빈 수신자 ID 리스트를 담습니다.
+        PhoneBookRequest.RecipientIdListDTO requestDTO = new PhoneBookRequest.RecipientIdListDTO(List.of());
+        String requestBody = objectMapper.writeValueAsString(requestDTO);
+
+        // when
+        // 1. MockMvc를 사용하여 빈 수신자 ID 리스트로 삭제 요청을 보냅니다.
+        ResultActions resultActions = mockMvc.perform(
+                delete("/workspaces/" + testWorkspace.getWorkspaceId() + "/phonebooks/" + testPhoneBook.getPhoneBookId() + "/recipients")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody)
+        );
+
+        // then
+        // 1. API 호출 결과를 검증합니다.
+        resultActions
+                // 1-1. 서비스 로직 변경에 따라, 빈 리스트는 정상 처리(200 OK)로 간주합니다.
+                .andExpect(status().isOk())
+                // 1-2. 응답으로 빈 recipientList가 반환되는지 확인합니다.
+                .andExpect(jsonPath("$.recipientList").isArray())
+                .andExpect(jsonPath("$.recipientList.length()").value(0));
+    }
 }
+

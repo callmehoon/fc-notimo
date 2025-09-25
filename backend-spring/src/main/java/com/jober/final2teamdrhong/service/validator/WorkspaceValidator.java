@@ -1,6 +1,7 @@
 package com.jober.final2teamdrhong.service.validator;
 
 import com.jober.final2teamdrhong.entity.Workspace;
+import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Component;
 public class WorkspaceValidator {
 
     private final WorkspaceRepository workspaceRepository;
+    private final IndividualTemplateRepository individualTemplateRepository;
 
     /**
      * 워크스페이스의 존재 여부와 사용자의 접근 권한을 검증합니다.
@@ -23,6 +25,18 @@ public class WorkspaceValidator {
     public Workspace validateAndGetWorkspace(Integer workspaceId, Integer userId) {
         return workspaceRepository.findByWorkspaceIdAndUser_UserId(workspaceId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + workspaceId));
+    }
+
+    /**
+     * 특정 개인 템플릿이 주어진 워크스페이스에 속해 있는지 검증합니다.
+     *
+     * @param workspaceId 검증의 기준이 되는 워크스페이스 ID
+     * @param individualTemplateId 검증할 개인 템플릿 ID
+     * @throws IllegalArgumentException 템플릿이 워크스페이스에 속해있지 않을 경우
+     */
+    public void validateTemplateOwnership(Integer workspaceId, Integer individualTemplateId) {
+        individualTemplateRepository.findByIndividualTemplateIdAndWorkspace_WorkspaceId(individualTemplateId, workspaceId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 워크스페이스에 존재하지 않는 템플릿입니다."));
     }
 
     /**
