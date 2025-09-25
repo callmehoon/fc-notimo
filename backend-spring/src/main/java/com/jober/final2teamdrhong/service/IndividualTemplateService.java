@@ -7,6 +7,7 @@ import com.jober.final2teamdrhong.entity.PublicTemplate;
 import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
+import com.jober.final2teamdrhong.repository.WorkspaceRepository;
 import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
 import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.EntityNotFoundException;
@@ -17,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import org.springframework.security.access.AccessDeniedException;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -29,7 +31,22 @@ public class IndividualTemplateService {
 
     private final IndividualTemplateRepository individualTemplateRepository;
     private final PublicTemplateRepository publicTemplateRepository;
+    private final WorkspaceRepository workspaceRepository;
     private final WorkspaceValidator workspaceValidator;
+
+    /**
+     * 비어있는 템플릿 생성 (title/content/button 전부 "")
+     * 요청의 문자열 필드는 무시하고 workspaceId만 사용함.
+     */
+    public void validateWorkspaceOwnership(Integer workspaceId, Integer userId) {
+        if (userId == null)
+            throw new AccessDeniedException("인증이 필요합니다.");
+
+        boolean exists = workspaceRepository.existsByWorkspaceIdAndUser_UserId(workspaceId, userId);
+        if(!exists)
+            throw new AccessDeniedException("해당 워크스페이스에 접근 권한이 없습니다.");
+    }
+
 
     @Transactional
     public IndividualTemplateResponse createTemplate(Integer workspaceId, Integer userId) {
@@ -191,28 +208,6 @@ public class IndividualTemplateService {
                                                                                     Integer individualTemplateId) {
         log.info("[@Async] thread={}, isVirtual={}", Thread.currentThread().getName(), Thread.currentThread().isVirtual());
         return CompletableFuture.completedFuture(getIndividualTemplate(workspaceId, userId, individualTemplateId));
-    }
-
-    /**
-     * 개인 템플릿 소프트 딜리트
-     * isDeleted가 false가 아닌 경우도 포함.
-     * 워크스페이스 내에 다른 사용자가 템플릿을 먼저 지워버릴 경우를 대비
-     */
-    @Transactional
-    public void deleteTemplate(Integer individualTemplateId,
-                               Integer workspaceId,
-                               Integer userId){
-
-        // 워크스페이스 검증
-        workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
-
-        IndividualTemplate individualTemplate = individualTemplateRepository.findById(individualTemplateId)
-                .orElseThrow(() -> new EntityNotFoundException("템플릿이 존재하지 않습니다. id = " + individualTemplateId));
-
-
-        individualTemplate.softDelete();
-        individualTemplateRepository.save(individualTemplate);
-        log.info("Soft deleted template id = {}", individualTemplateId);
     }
 
     /**

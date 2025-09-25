@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.mapping.context.MappingContext;
@@ -35,18 +35,13 @@ class FavoriteControllerTest {
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
 
-    @MockitoBean
-    private FavoriteService favoriteService;
-
-    @MockitoBean
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
-
-    @MockitoBean(name = "jpaMappingContext")
-    private MappingContext<?, ?> jpaMappingContext;
+    @MockBean private FavoriteService favoriteService;
+    @MockBean private JwtAuthenticationFilter jwtAuthenticationFilter;
+    @MockBean(name = "jpaMappingContext") private MappingContext<?, ?> jpaMappingContext;
 
     @Test
     @DisplayName("성공(단위): 개인 템플릿 즐겨찾기 생성")
-    @WithMockJwtClaims
+    @WithMockJwtClaims(userId = 1)
     void createIndividualTemplateFavorite_Success() throws Exception {
         // given
         IndividualTemplateFavoriteRequest request = new IndividualTemplateFavoriteRequest(1, 10);
@@ -76,7 +71,7 @@ class FavoriteControllerTest {
 
     @Test
     @DisplayName("성공(단위): 공용 템플릿 즐겨찾기 생성")
-    @WithMockJwtClaims
+    @WithMockJwtClaims(userId = 1)
     void createPublicTemplateFavorite_Success() throws Exception {
         // given
         PublicTemplateFavoriteRequest request = new PublicTemplateFavoriteRequest(1, 100);
@@ -120,7 +115,8 @@ class FavoriteControllerTest {
                 .thenReturn(mockPage);
 
         // when & then
-        mockMvc.perform((get("/workspace/{workspaceId}/favorites", workspaceId))
+        mockMvc.perform(get("/favorites")
+                        .param("workspaceId", String.valueOf(workspaceId))
                         .param("templateType", "PUBLIC")
                         .param("page", "0")
                         .param("size", "10"))
@@ -143,12 +139,14 @@ class FavoriteControllerTest {
                 .thenThrow(new IllegalArgumentException(errorMessage));
 
         // when & then
-        mockMvc.perform(get("/workspace/{workspaceId}/favorites", workspaceId))
+        mockMvc.perform(get("/favorites")
+                        .param("workspaceId", String.valueOf(workspaceId)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value(errorMessage));
 
         verify(favoriteService).getFavoritesByWorkspace(eq(workspaceId), any(), any(FavoritePageRequest.class), anyInt());
     }
+
 
     // ====================== Delete ======================
     @Test
@@ -181,39 +179,6 @@ class FavoriteControllerTest {
                 .andExpect(jsonPath("$.message").value("해당 즐겨찾기를 찾을 수 없거나, 권한이 없습니다."));
 
         verify(favoriteService, times(1)).deleteFavorite(eq(favoriteId), anyInt());
-    }
-
-    // ====================== Delete ======================
-    @Test
-    @DisplayName("성공(컨트롤러): 즐겨찾기 삭제")
-    @WithMockJwtClaims
-    void deleteFavorite_Success() throws Exception {
-        // given
-        Integer favoriteId = 1;
-        doNothing().when(favoriteService).deleteFavorite(any(JwtClaims.class), eq(favoriteId));
-
-        // when & then
-        mockMvc.perform(delete("/favorites/{favoriteId}", favoriteId))
-                .andExpect(status().isNoContent());
-
-        verify(favoriteService, times(1)).deleteFavorite(any(JwtClaims.class), eq(favoriteId));
-    }
-
-    @Test
-    @DisplayName("실패(컨트롤러): 존재하지 않거나 권한 없는 즐겨찾기 삭제 시 400 에러 발생")
-    @WithMockJwtClaims
-    void deleteFavorite_Fail_UnauthorizedOrNotFound() throws Exception {
-        // given
-        Integer favoriteId = 999;
-        doThrow(new IllegalArgumentException("해당 즐겨찾기를 찾을 수 없거나, 권한이 없습니다."))
-                .when(favoriteService).deleteFavorite(any(JwtClaims.class), eq(favoriteId));
-
-        // when & then
-        mockMvc.perform(delete("/favorites/{favoriteId}", favoriteId))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("해당 즐겨찾기를 찾을 수 없거나, 권한이 없습니다."));
-
-        verify(favoriteService, times(1)).deleteFavorite(any(JwtClaims.class), eq(favoriteId));
     }
 
 
