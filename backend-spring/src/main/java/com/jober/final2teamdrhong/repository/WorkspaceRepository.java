@@ -13,12 +13,12 @@ import java.util.Optional;
 public interface WorkspaceRepository extends JpaRepository<Workspace, Integer> {
 
     /**
-     * 주어진 URL을 가진 워크스페이스가 존재하는지 확인합니다.
+     * 주어진 URL을 가지고 is_delete 컬럼의 값이 false인 워크스페이스가 존재하는지 확인합니다.
      *
      * @param workspaceUrl 확인할 고유 URL
      * @return 존재하면 true, 그렇지 않으면 false
      */
-    boolean existsByWorkspaceUrl(String workspaceUrl);
+    boolean existsByWorkspaceUrlAndIsDeletedFalse(String workspaceUrl);
 
     /**
      * 특정 사용자 ID에 속한 모든 워크스페이스 목록을 조회합니다.
@@ -41,6 +41,18 @@ public interface WorkspaceRepository extends JpaRepository<Workspace, Integer> {
     Optional<Workspace> findByWorkspaceIdAndUser_UserId(Integer workspaceId, Integer userId);
 
     /**
+     * 특정 워크스페이스를 제외하고 주어진 URL을 가진 활성 워크스페이스가 존재하는지 확인합니다.
+     * <p>
+     * 워크스페이스 수정 시 URL 중복 검증에 사용되며, 자기 자신은 제외하고 다른 워크스페이스 중에 동일한 URL이 있는지 확인합니다.
+     * 삭제된 워크스페이스(is_deleted = true)는 검사 대상에서 제외됩니다.
+     *
+     * @param workspaceUrl 확인할 고유 URL
+     * @param workspaceId 제외할 워크스페이스의 ID (현재 수정 중인 워크스페이스)
+     * @return 해당 URL을 가진 다른 활성 워크스페이스가 존재하면 true, 그렇지 않으면 false
+     */
+    boolean existsByWorkspaceUrlAndIsDeletedFalseAndWorkspaceIdNot(String workspaceUrl, Integer workspaceId);
+
+    /**
      * ID를 기준으로 워크스페이스(Workspace) 엔티티를 조회합니다.
      * <p>
      * 이 메서드는 {@link Workspace} 엔티티에 적용된
@@ -58,6 +70,4 @@ public interface WorkspaceRepository extends JpaRepository<Workspace, Integer> {
                     WHERE workspace_id = :workspaceId""",
                     nativeQuery = true)
     Optional<Workspace> findByIdIncludingDeleted(@Param("workspaceId") Integer workspaceId);
-
-    boolean existsByWorkspaceIdAndUser_UserId(Integer workspaceId, Integer userId);
 }
