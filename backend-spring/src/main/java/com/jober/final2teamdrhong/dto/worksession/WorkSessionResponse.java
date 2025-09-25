@@ -13,13 +13,13 @@ public class WorkSessionResponse {
     @Setter
     @NoArgsConstructor
     public static class InfoDTO {
-        private Integer chatSessionId;
+        private Integer sessionId;
         private String sessionTitle;
         private Integer workspaceId;
         private LocalDateTime createdAt;
 
         public InfoDTO(ChatSession chatSession) {
-            this.chatSessionId = chatSession.getSessionId();
+            this.sessionId = chatSession.getSessionId();
             this.sessionTitle = chatSession.getSessionTitle();
             this.workspaceId = chatSession.getWorkspace().getWorkspaceId();
             this.createdAt = chatSession.getCreatedAt();
