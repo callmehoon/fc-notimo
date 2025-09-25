@@ -16,7 +16,7 @@ import TemplateCard from '../components/template/TemplateCard';
 import CommonButton from '../components/button/CommonButton';
 import { getPublicTemplates, createIndividualTemplateFromPublic, deletePublicTemplate } from '../services/publicTemplateService';
 
-const ITEMS_PER_PAGE = 12;
+const ITEMS_PER_PAGE = 8;
 
 export default function PublicTemplatePage() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -67,8 +67,8 @@ export default function PublicTemplatePage() {
 
         try {
             const response = await createIndividualTemplateFromPublic(workspaceId, publicTemplateId);
-            const newTemplateId = response.data.id; // Assuming the response contains the new template with its id
-            navigate(`/workspace/${workspaceId}/templategenerator/${newTemplateId}`);
+            const newTemplateId = response.data.individualTemplateId;
+            navigate(`/mytemplate`);
         } catch (error) {
             console.error("Failed to create template from public:", error);
             alert('Failed to use template.');
@@ -129,7 +129,7 @@ export default function PublicTemplatePage() {
                             <TemplateCard 
                                 key={template.publicTemplateId}
                                 template={template} 
-                                onUse={() => handleUseTemplate(template.publicTemplateId)} 
+                                onUse={() => handleUseTemplate(template.publicTemplateId)}
                                 onDelete={() => handleDeleteTemplate(template.publicTemplateId)}
                                 isPublicTemplate={true}
                             />
