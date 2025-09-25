@@ -16,7 +16,6 @@ class TemplateRequest(BaseModel):
     """템플릿 생성 요청 객체 정의"""
     original_template: Template
     user_input: str
-    related_policy: Optional[List[str]] = None
 
 class TemplateResponse(BaseModel):
     """템플릿 생성 응답 객체 정의"""
