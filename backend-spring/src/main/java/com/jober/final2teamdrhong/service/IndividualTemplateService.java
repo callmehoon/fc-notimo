@@ -2,13 +2,13 @@ package com.jober.final2teamdrhong.service;
 
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplatePageableRequest;
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateResponse;
+import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateUpdateRequest;
 import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import com.jober.final2teamdrhong.entity.PublicTemplate;
 import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
 import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -138,35 +138,6 @@ public class IndividualTemplateService {
     }
 
     /**
-     * 개인 템플릿 상태별 조회
-     */
-    @Transactional(readOnly = true)
-    public Page<IndividualTemplateResponse> getIndividualTemplateByStatus(
-            Integer workspaceId,
-            Integer userId,
-            IndividualTemplate.Status status,
-            Pageable pageable) {
-
-        workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
-
-        return individualTemplateRepository
-                .findByWorkspace_WorkspaceIdAndStatus(workspaceId, status, pageable)
-                .map(IndividualTemplateResponse::toResponse);
-    }
-
-    @Async
-    @Transactional(readOnly = true)
-    public CompletableFuture<Page<IndividualTemplateResponse>> getIndividualTemplateByStatusAsync(
-            Integer workspaceId,
-            Integer userId,
-            IndividualTemplate.Status status,
-            Pageable pageable) {
-
-        log.info("[@Async] thread={}, isVirtual={}", Thread.currentThread().getName(), Thread.currentThread().isVirtual());
-        return CompletableFuture.completedFuture(getIndividualTemplateByStatus(workspaceId, userId, status, pageable));
-    }
-
-    /**
      * 개인 템플릿 단일 조회
      */
     @Transactional(readOnly = true)
@@ -176,9 +147,7 @@ public class IndividualTemplateService {
 
         workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
 
-        IndividualTemplate individualTemplate = individualTemplateRepository
-                .findByIndividualTemplateIdAndWorkspace_WorkspaceId(individualTemplateId, workspaceId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 템플릿이 존재하지 않습니다. id = " + individualTemplateId));
+        IndividualTemplate individualTemplate = workspaceValidator.validateTemplateOwnership(workspaceId, individualTemplateId);
 
         return IndividualTemplateResponse.toResponse(individualTemplate);
     }
@@ -205,12 +174,48 @@ public class IndividualTemplateService {
         // 워크스페이스 검증
         workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
 
-        IndividualTemplate individualTemplate = individualTemplateRepository.findById(individualTemplateId)
-                .orElseThrow(() -> new EntityNotFoundException("템플릿이 존재하지 않습니다. id = " + individualTemplateId));
-
+        IndividualTemplate individualTemplate = workspaceValidator.validateTemplateOwnership(workspaceId, individualTemplateId);
 
         individualTemplate.softDelete();
         individualTemplateRepository.save(individualTemplate);
         log.info("Soft deleted template id = {}", individualTemplateId);
     }
+
+    @Transactional
+    public IndividualTemplateResponse updateTemplate(
+            Integer workspaceId,
+            Integer individualTemplateId,
+            IndividualTemplateUpdateRequest request,
+            Integer userId) {
+
+        // 워크스페이스 검증
+        workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
+
+        IndividualTemplate individualTemplate = workspaceValidator.validateTemplateOwnership(workspaceId, individualTemplateId);
+
+        individualTemplate.update(
+                request.getIndividualTemplateTitle(),
+                request.getIndividualTemplateContent(),
+                request.getButtonTitle(),
+                IndividualTemplate.Status.DRAFT
+        );
+        return IndividualTemplateResponse.toResponse(individualTemplate);
+    }
+
+    @Transactional
+    public IndividualTemplateResponse updateTemplateStatus(
+            Integer workspaceId,
+            Integer individualTemplateId,
+            Integer userId,
+            IndividualTemplate.Status status
+    ) {
+        // 워크스페이스 검증
+        workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
+
+        IndividualTemplate individualTemplate = workspaceValidator.validateTemplateOwnership(workspaceId, individualTemplateId);
+        individualTemplate.updateStatus(status);
+
+        return IndividualTemplateResponse.toResponse(individualTemplate);
+    }
+
 }

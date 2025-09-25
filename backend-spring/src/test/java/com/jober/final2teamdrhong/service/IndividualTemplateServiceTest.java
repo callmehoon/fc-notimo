@@ -2,6 +2,7 @@ package com.jober.final2teamdrhong.service;
 
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplatePageableRequest;
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateResponse;
+import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateUpdateRequest;
 import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import com.jober.final2teamdrhong.entity.PublicTemplate;
 import com.jober.final2teamdrhong.entity.Workspace;
@@ -17,8 +18,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -39,8 +38,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class IndividualTemplateServiceTest {
-
-    private static final Logger log = LoggerFactory.getLogger(IndividualTemplateServiceTest.class);
 
     @Mock
     private IndividualTemplateRepository individualTemplateRepo;
@@ -496,7 +493,8 @@ class IndividualTemplateServiceTest {
                     .thenReturn(workspaceMock);
 
             IndividualTemplate templateMock = mock(IndividualTemplate.class);
-            when(individualTemplateRepo.findById(id)).thenReturn(Optional.of(templateMock));
+            when(individualTemplateRepo.findByIndividualTemplateIdAndWorkspace_WorkspaceId(id, workspaceId))
+                    .thenReturn(Optional.of(templateMock));
             when(individualTemplateRepo.save(templateMock)).thenReturn(templateMock);
 
             // when
@@ -504,7 +502,7 @@ class IndividualTemplateServiceTest {
 
             // then
             verify(workspaceValidator).validateAndGetWorkspace(workspaceId, userId);
-            verify(individualTemplateRepo).findById(id);
+            verify(individualTemplateRepo).findByIndividualTemplateIdAndWorkspace_WorkspaceId(id, workspaceId);
             verify(templateMock).softDelete();
             verify(individualTemplateRepo).save(templateMock);
         }
@@ -520,14 +518,15 @@ class IndividualTemplateServiceTest {
 
             when(workspaceValidator.validateAndGetWorkspace(workspaceId, userId))
                     .thenReturn(workspaceMock);
-            when(individualTemplateRepo.findById(missingId)).thenReturn(Optional.empty());
+            when(individualTemplateRepo.findByIndividualTemplateIdAndWorkspace_WorkspaceId(missingId, workspaceId))
+                    .thenReturn(Optional.empty());
 
             // when & then
             assertThrows(EntityNotFoundException.class,
                     () -> service.deleteTemplate(missingId, workspaceId, userId));
 
             verify(workspaceValidator).validateAndGetWorkspace(workspaceId, userId);
-            verify(individualTemplateRepo).findById(missingId);
+            verify(individualTemplateRepo).findByIndividualTemplateIdAndWorkspace_WorkspaceId(missingId, workspaceId);
             verifyNoMoreInteractions(individualTemplateRepo);
         }
 
@@ -552,4 +551,166 @@ class IndividualTemplateServiceTest {
 
     }
 
+    @Nested
+    @DisplayName("updateTemplate")
+    class UpdateTemplate {
+
+        @Test
+        @DisplayName("존재하는 템플릿을 수정하면 정상적으로 업데이트된다")
+        void updateTemplate_success() {
+            // given
+            Integer workspaceId = 10;
+            Integer templateId = 1;
+            Integer userId = 100;
+
+            IndividualTemplateUpdateRequest request =
+                    new IndividualTemplateUpdateRequest("제목", "내용", "버튼");
+
+            // workspaceMock 생성
+            Workspace workspaceMock = mock(Workspace.class);
+            when(workspaceMock.getWorkspaceId()).thenReturn(workspaceId);
+
+            // templateMock 생성 후 workspace 주입
+            IndividualTemplate templateMock = mock(IndividualTemplate.class);
+            when(templateMock.getWorkspace()).thenReturn(workspaceMock);
+
+            when(workspaceValidator.validateAndGetWorkspace(workspaceId, userId))
+                    .thenReturn(workspaceMock);
+            when(individualTemplateRepo.findByIndividualTemplateIdAndWorkspace_WorkspaceId(templateId, workspaceId))
+                    .thenReturn(Optional.of(templateMock));
+
+            // when & then
+            assertDoesNotThrow(() ->
+                    service.updateTemplate(workspaceId, templateId, request, userId)
+            );
+
+            verify(workspaceValidator).validateAndGetWorkspace(workspaceId, userId);
+            verify(individualTemplateRepo).findByIndividualTemplateIdAndWorkspace_WorkspaceId(templateId, workspaceId);
+            verify(templateMock).update("제목", "내용", "버튼", IndividualTemplate.Status.DRAFT);
+        }
+
+        @Test
+        @DisplayName("없는 템플릿 ID면 EntityNotFoundException 발생")
+        void updateTemplate_notFound_throw404() {
+            // given
+            Integer workspaceId = 10;
+            Integer userId = 100;
+            Integer missingId = 999;
+            IndividualTemplateUpdateRequest request =
+                    new IndividualTemplateUpdateRequest("제목", "내용", "버튼");
+
+            when(workspaceValidator.validateAndGetWorkspace(workspaceId, userId))
+                    .thenReturn(workspaceMock);
+            when(individualTemplateRepo.findByIndividualTemplateIdAndWorkspace_WorkspaceId(missingId, workspaceId))
+                    .thenReturn(Optional.empty());
+
+            // when & then
+            assertThrows(EntityNotFoundException.class,
+                    () -> service.updateTemplate(workspaceId, missingId, request, userId));
+
+            verify(workspaceValidator).validateAndGetWorkspace(workspaceId, userId);
+            verify(individualTemplateRepo).findByIndividualTemplateIdAndWorkspace_WorkspaceId(missingId, workspaceId);
+            verifyNoMoreInteractions(individualTemplateRepo);
+        }
+
+        @Test
+        @DisplayName("워크스페이스 권한이 없으면 IllegalArgumentException 발생")
+        void updateTemplate_wrongWorkspace_throw400() {
+            // given
+            Integer wrongWorkspaceId = 99;
+            Integer userId = 200;
+            Integer templateId = 5;
+
+            IndividualTemplateUpdateRequest request =
+                    new IndividualTemplateUpdateRequest("제목", "내용", "버튼");
+
+            when(workspaceValidator.validateAndGetWorkspace(wrongWorkspaceId, userId))
+                    .thenThrow(new IllegalArgumentException("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + wrongWorkspaceId));
+
+            // when & then
+            assertThrows(IllegalArgumentException.class,
+                    () -> service.updateTemplate(wrongWorkspaceId, templateId, request, userId));
+
+            verify(workspaceValidator).validateAndGetWorkspace(wrongWorkspaceId, userId);
+            verifyNoMoreInteractions(individualTemplateRepo);
+        }
+
+        @Nested
+        @DisplayName("updateTemplateStatus")
+        class UpdateTemplateStatus {
+
+            @Test
+            @DisplayName("정상적으로 상태를 업데이트한다")
+            void updateTemplateStatus_success() {
+                // given
+                Integer workspaceId = 10;
+                Integer templateId = 1;
+                Integer userId = 100;
+
+                // Mock Workspace
+                Workspace workspaceMock = mock(Workspace.class);
+                when(workspaceMock.getWorkspaceId()).thenReturn(workspaceId);
+
+                // Mock IndividualTemplate
+                IndividualTemplate templateMock = mock(IndividualTemplate.class);
+                when(templateMock.getWorkspace()).thenReturn(workspaceMock); // ✅ 중요!
+                doNothing().when(templateMock).updateStatus(IndividualTemplate.Status.APPROVED);
+
+                when(individualTemplateRepo.findByIndividualTemplateIdAndWorkspace_WorkspaceId(templateId, workspaceId))
+                        .thenReturn(Optional.of(templateMock));
+
+                when(workspaceValidator.validateAndGetWorkspace(workspaceId, userId))
+                        .thenReturn(workspaceMock);
+
+                // when
+                assertDoesNotThrow(() -> service.updateTemplateStatus(workspaceId, templateId, userId, IndividualTemplate.Status.APPROVED));
+
+                // then
+                verify(workspaceValidator).validateAndGetWorkspace(workspaceId, userId);
+                verify(individualTemplateRepo).findByIndividualTemplateIdAndWorkspace_WorkspaceId(templateId, workspaceId);
+                verify(templateMock).updateStatus(IndividualTemplate.Status.APPROVED);
+            }
+
+            @Test
+            @DisplayName("없는 템플릿이면 EntityNotFoundException 발생")
+            void updateTemplateStatus_notFound_throw404() {
+                // given
+                Integer workspaceId = 10;
+                Integer templateId = 999;
+                Integer userId = 100;
+
+                when(individualTemplateRepo.findByIndividualTemplateIdAndWorkspace_WorkspaceId(templateId, workspaceId))
+                        .thenReturn(Optional.empty());
+                when(workspaceValidator.validateAndGetWorkspace(workspaceId, userId))
+                        .thenReturn(workspaceMock);
+
+                // when & then
+                assertThrows(EntityNotFoundException.class,
+                        () -> service.updateTemplateStatus(workspaceId, templateId, userId, IndividualTemplate.Status.REJECTED));
+
+                verify(workspaceValidator).validateAndGetWorkspace(workspaceId, userId);
+                verify(individualTemplateRepo).findByIndividualTemplateIdAndWorkspace_WorkspaceId(templateId, workspaceId);
+            }
+
+            @Test
+            @DisplayName("다른 사용자의 워크스페이스 접근 시 IllegalArgumentException 발생")
+            void updateTemplateStatus_wrongWorkspace_throw400() {
+                // given
+                Integer wrongWorkspaceId = 99;
+                Integer templateId = 5;
+                Integer userId = 200;
+
+                when(workspaceValidator.validateAndGetWorkspace(wrongWorkspaceId, userId))
+                        .thenThrow(new IllegalArgumentException("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + wrongWorkspaceId));
+
+                // when & then
+                assertThrows(IllegalArgumentException.class,
+                        () -> service.updateTemplateStatus(wrongWorkspaceId, templateId, userId, IndividualTemplate.Status.PENDING));
+
+                verify(workspaceValidator).validateAndGetWorkspace(wrongWorkspaceId, userId);
+                verifyNoInteractions(individualTemplateRepo);
+            }
+        }
+
+    }
 }

@@ -33,16 +33,10 @@ public class IndividualTemplate extends BaseEntity {
     @Column(name = "button_title", length = 50)
     private String buttonTitle;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    private Status status;
-
-    @PrePersist
-    public void applyDefaultStatus() {
-        if (status == null){
-            status = Status.DRAFT;
-        }
-    }
+    private Status status = Status.DRAFT;
 
     @ManyToOne
     @JoinColumn(name = "workspace_id")
@@ -50,4 +44,22 @@ public class IndividualTemplate extends BaseEntity {
 
     @OneToMany(mappedBy = "individualTemplate")
     private List<TemplateModifiedHistory> histories;
+
+    // 엔티티의 상태 변화 즉, DB 값의 변화이기 때문에 엔티티에서 작성
+    public void update(String individualTemplateTitle,
+                       String individualTemplateContent,
+                       String buttonTitle,
+                       Status status) {
+        this.individualTemplateTitle = individualTemplateTitle;
+        this.individualTemplateContent = individualTemplateContent;
+        this.buttonTitle = buttonTitle;
+        this.status = status; // 항상 DRAFT
+    }
+
+    public void updateStatus(Status newStatus) {
+        if (newStatus == null) {
+            throw new IllegalArgumentException("Status cannot be null");
+        }
+        this.status = newStatus;
+    }
 }
