@@ -49,8 +49,18 @@ export default function ContactListManager({ selectedGroup }) {
     }
   };
 
-  const handleDeleteContact = (id) => {
-    setContacts(contacts.filter(c => c.id !== id));
+  const handleDeleteContact = async (id) => {
+    const workspaceId = localStorage.getItem('selectedWorkspaceId');
+    if (window.confirm('정말로 이 수신자를 삭제하시겠습니까?')) {
+      try {
+        await recipientService.deleteRecipient(workspaceId, id);
+        setContacts(contacts.filter(c => (c.recipientId || c.id) !== id));
+        alert('수신자가 삭제되었습니다.');
+      } catch (error) {
+        console.error('Failed to delete recipient:', error);
+        alert('수신자 삭제에 실패했습니다.');
+      }
+    }
   };
 
   const handleOpenModal = (contactId) => {
@@ -65,7 +75,7 @@ export default function ContactListManager({ selectedGroup }) {
 
   const handleSelectGroup = (group) => {
     setContacts(contacts.map(c => 
-      c.id === editingContactId ? { ...c, group: group.name } : c
+      (c.recipientId || c.id) === editingContactId ? { ...c, group: group.name } : c
     ));
     handleCloseModal();
   };
@@ -116,13 +126,13 @@ export default function ContactListManager({ selectedGroup }) {
         </TableHead>
         <TableBody>
           {contacts.map((contact) => (
-            <TableRow key={contact.id}>
-              <TableCell>{contact.name}</TableCell>
-              <TableCell>{contact.phone}</TableCell>
+            <TableRow key={contact.recipientId || contact.id}>
+              <TableCell>{contact.recipientName || contact.name}</TableCell>
+              <TableCell>{contact.recipientPhoneNumber || contact.phone}</TableCell>
               <TableCell>{contact.group || '-'}</TableCell>
               <TableCell align="right">
-                <Button size="small" onClick={() => handleOpenModal(contact.id)}>그룹 연결</Button>
-                <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteContact(contact.id)}>
+                <Button size="small" onClick={() => handleOpenModal(contact.recipientId || contact.id)}>그룹 연결</Button>
+                <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteContact(contact.recipientId || contact.id)}>
                   <DeleteIcon />
                 </IconButton>
               </TableCell>
