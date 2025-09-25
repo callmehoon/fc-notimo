@@ -33,16 +33,10 @@ public class IndividualTemplate extends BaseEntity {
     @Column(name = "button_title", length = 50)
     private String buttonTitle;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    private Status status;
-
-    @PrePersist
-    public void applyDefaultStatus() {
-        if (status == null){
-            status = Status.DRAFT;
-        }
-    }
+    private Status status = Status.DRAFT;
 
     @ManyToOne
     @JoinColumn(name = "workspace_id")
@@ -60,5 +54,12 @@ public class IndividualTemplate extends BaseEntity {
         this.individualTemplateContent = individualTemplateContent;
         this.buttonTitle = buttonTitle;
         this.status = status; // 항상 DRAFT
+    }
+
+    public void updateStatus(Status newStatus) {
+        if (newStatus == null) {
+            throw new IllegalArgumentException("Status cannot be null");
+        }
+        this.status = newStatus;
     }
 }
