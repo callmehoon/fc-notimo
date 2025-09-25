@@ -94,11 +94,13 @@ public class FavoriteController {
             @AuthenticationPrincipal JwtClaims jwtClaims,
             @PathVariable("workspaceId") Integer workspaceId,
             @RequestParam(value = "templateType", required = false) TemplateType templateType,
-            @ModelAttribute FavoritePageRequest favoritePageRequest) {
+            @Valid @ModelAttribute FavoritePageRequest favoritePageRequest) {
         Integer userId = jwtClaims.getUserId();
         Page<FavoriteResponse> favorites = favoriteService.getFavoritesByWorkspace(workspaceId, templateType, favoritePageRequest, userId);
         return ResponseEntity.ok(favorites);
     }
+
+
 
     @Operation(summary = "즐겨찾기 삭제", description = "사용자가 자신의 즐겨찾기를 삭제합니다.",
             security = @SecurityRequirement(name = "bearerAuth"))
