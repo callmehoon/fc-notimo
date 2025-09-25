@@ -1,12 +1,8 @@
+// src/pages/FavoriteTemplatesPage.js
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import {
-    Box,
-    CssBaseline,
-    Grid,
-    FormControl,
-    Select,
-    MenuItem
+    Box, CssBaseline, FormControl, Select, MenuItem
 } from '@mui/material';
 
 import Sidebar from '../components/layout/Sidebar';
@@ -14,17 +10,20 @@ import WorkspaceList from '../components/layout/WorkspaceList';
 import SearchInput from '../components/common/SearchInput';
 import Pagination from '../components/common/Pagination';
 import TemplateCard from '../components/template/TemplateCard';
-import { getFavoriteTemplates } from '../services/api';
+import { getFavoriteTemplates } from '../services/favoriteService';
 
 const ITEMS_PER_PAGE = 12;
 
 export default function FavoriteTemplatesPage() {
+    const params = useParams();
+    // 라우터에 :workspaceId가 없으면 localStorage에서 보조
+    const workspaceId = params.workspaceId ?? localStorage.getItem('selectedWorkspaceId');
+
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [sortOrder, setSortOrder] = useState('최신 순');
     const [templates, setTemplates] = useState([]);
     const [totalPages, setTotalPages] = useState(0);
-    const { workspaceId } = useParams();
 
     useEffect(() => {
         const fetchFavorites = async () => {
@@ -32,13 +31,25 @@ export default function FavoriteTemplatesPage() {
 
             try {
                 const pageable = {
-                    page: currentPage - 1,
+                    page: currentPage - 1, // 0-based
                     size: ITEMS_PER_PAGE,
-                    // sort: sortOrder === '최신 순' ? 'createdAt,desc' : 'popularity,desc' // 백엔드 정렬 파라미터 확인 필요
+                    // 백엔드 정렬 파라미터가 있으면 여기서 추가
+                    // sortType/direction 등을 쓰는 구조라면 favoriteService에서 params로 넘겨도 됨
                 };
-                const response = await getFavoriteTemplates(workspaceId, null, pageable);
-                setTemplates(response.data.content);
-                setTotalPages(response.data.totalPages);
+
+                // templateType이 필요하면 'PUBLIC' or 'INDIVIDUAL' 등으로 지정
+                const res = await getFavoriteTemplates(workspaceId, null, pageable);
+
+                // 응답 형태에 따라 맞추기
+                const data = res.data;
+                setTemplates(data.content ?? []);
+                if (typeof data.totalPages === 'number') {
+                    setTotalPages(data.totalPages);
+                } else if (typeof data.totalElements === 'number') {
+                    setTotalPages(Math.ceil(data.totalElements / ITEMS_PER_PAGE));
+                } else {
+                    setTotalPages(1);
+                }
             } catch (error) {
                 console.error('Error fetching favorite templates:', error);
             }
@@ -47,28 +58,18 @@ export default function FavoriteTemplatesPage() {
         fetchFavorites();
     }, [workspaceId, currentPage, sortOrder]);
 
-    const handleSearch = (query) => {
-        setSearchQuery(query);
-        setCurrentPage(1);
-    };
+    const handleSearch = (q) => { setSearchQuery(q); setCurrentPage(1); };
+    const handlePageChange = (_, v) => setCurrentPage(v);
+    const handleSortChange = (e) => setSortOrder(e.target.value);
 
-    const handlePageChange = (event, value) => {
-        setCurrentPage(value);
-    };
-
-    const handleSortChange = (event) => {
-        setSortOrder(event.target.value);
-    };
-    
-    // 검색어에 따라 템플릿 필터링 (클라이언트 측)
-    const filteredTemplates = templates.filter(t => 
-        t.templateTitle.toLowerCase().includes(searchQuery.toLowerCase())
+    // 템플릿 제목이 null일 수도 있으니 안전 처리
+    const filteredTemplates = templates.filter(t =>
+        (t.templateTitle ?? '').toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return (
         <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
             <CssBaseline />
-
             <Sidebar>
                 <WorkspaceList />
             </Sidebar>
@@ -86,37 +87,37 @@ export default function FavoriteTemplatesPage() {
                     </Box>
                 </Box>
 
-                <Box sx={{ width: '100%', flexGrow: 1, overflow: 'auto', p: 0.5 }}>
-                    <Box
-                        sx={{
-                            display: 'flex',
-                            flexWrap: 'wrap',
+                <Box sx={{ width: '100%', flexGrow: 1, overflow: 'auto', p: 1 }}>
+                    <Box 
+                        sx={{ 
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(4, 1fr)',
+                            gap: 2,
+                            '@media (max-width: 1200px)': {
+                                gridTemplateColumns: 'repeat(3, 1fr)',
+                            },
+                            '@media (max-width: 900px)': {
+                                gridTemplateColumns: 'repeat(2, 1fr)',
+                            },
+                            '@media (max-width: 600px)': {
+                                gridTemplateColumns: '1fr',
+                            },
                         }}
                     >
                         {filteredTemplates.map(template => (
-                            <Box
-                                key={template.favoriteId}
-                                sx={{
-                                    flex: '0 0 25%',
-                                    boxSizing: 'border-box',
-                                    p: 1,
-                                }}
-                            >
-                                <TemplateCard template={{
+                            <TemplateCard 
+                                key={template.favoriteId ?? `${template.templateId}-fav`} 
+                                template={{
                                     id: template.templateId,
                                     title: template.templateTitle,
                                     content: template.templateContent,
-                                }} />
-                            </Box>
+                                }} 
+                            />
                         ))}
                     </Box>
                 </Box>
 
-                <Pagination
-                    count={totalPages}
-                    page={currentPage}
-                    onChange={handlePageChange}
-                />
+                <Pagination count={totalPages} page={currentPage} onChange={handlePageChange} />
             </Box>
         </Box>
     );
