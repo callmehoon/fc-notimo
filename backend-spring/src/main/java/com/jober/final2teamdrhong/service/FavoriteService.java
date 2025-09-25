@@ -1,7 +1,7 @@
 package com.jober.final2teamdrhong.service;
 
-import com.jober.final2teamdrhong.dto.favorite.FavoriteResponse;
 import com.jober.final2teamdrhong.dto.favorite.FavoritePageRequest;
+import com.jober.final2teamdrhong.dto.favorite.FavoriteResponse;
 import com.jober.final2teamdrhong.dto.favorite.IndividualTemplateFavoriteRequest;
 import com.jober.final2teamdrhong.dto.favorite.PublicTemplateFavoriteRequest;
 import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
@@ -13,7 +13,7 @@ import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.FavoriteRepository;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
-import com.jober.final2teamdrhong.repository.WorkspaceRepository;
+import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -28,7 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class FavoriteService {
 
     private final FavoriteRepository favoriteRepository;
-    private final WorkspaceRepository workspaceRepository;
+    private final WorkspaceValidator workspaceValidator;
     private final IndividualTemplateRepository individualTemplateRepository;
     private final PublicTemplateRepository publicTemplateRepository;
 
@@ -40,7 +40,7 @@ public class FavoriteService {
     @Transactional
     public FavoriteResponse createIndividualTemplateFavorite(JwtClaims jwtClaims, IndividualTemplateFavoriteRequest request) {
         Integer userId = jwtClaims.getUserId();
-        Workspace workspace = workspaceRepository.findByIdOrThrow(request.getWorkspaceId(), userId);
+        Workspace workspace = workspaceValidator.validateAndGetWorkspace(request.getWorkspaceId(), userId);
 
         IndividualTemplate individualTemplate = individualTemplateRepository.findByIdOrThrow(request.getIndividualTemplateId());
 
@@ -63,7 +63,7 @@ public class FavoriteService {
     @Transactional
     public FavoriteResponse createPublicTemplateFavorite(JwtClaims jwtClaims, PublicTemplateFavoriteRequest request) {
         Integer userId = jwtClaims.getUserId();
-        Workspace workspace = workspaceRepository.findByIdOrThrow(request.getWorkspaceId(), userId);
+        Workspace workspace = workspaceValidator.validateAndGetWorkspace(request.getWorkspaceId(), userId);
 
         PublicTemplate publicTemplate = publicTemplateRepository.findByIdOrThrow(request.getPublicTemplateId());
 
@@ -93,7 +93,7 @@ public class FavoriteService {
      */
     public Page<FavoriteResponse> getFavoritesByWorkspace(JwtClaims jwtClaims, Integer workspaceId, TemplateType templateType, FavoritePageRequest favoritePageRequest) {
         Integer userId = jwtClaims.getUserId();
-        Workspace workspace = workspaceRepository.findByIdOrThrow(workspaceId, userId);
+        Workspace workspace = workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
         Pageable pageable = PageRequest.of(favoritePageRequest.getPage(), favoritePageRequest.getSize(), Sort.by(Sort.Direction.DESC, "favoriteId"));
 
         Page<Favorite> favorites = favoriteRepository.findFavorites(workspace, templateType, pageable);

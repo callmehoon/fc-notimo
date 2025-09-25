@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.mapping.context.MappingContext;
@@ -40,18 +40,18 @@ class FavoriteControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
     private FavoriteService favoriteService;
 
-    @MockBean
+    @MockitoBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    @MockBean(name = "jpaMappingContext")
+    @MockitoBean(name = "jpaMappingContext")
     private MappingContext<?, ?> jpaMappingContext;
 
     @Test
     @DisplayName("성공(단위): 개인 템플릿 즐겨찾기 생성")
-    @WithMockJwtClaims(userId = 1)
+    @WithMockJwtClaims
     void createIndividualTemplateFavorite_Success() throws Exception {
         // given
         IndividualTemplateFavoriteRequest request = new IndividualTemplateFavoriteRequest(1, 10);
@@ -81,7 +81,7 @@ class FavoriteControllerTest {
 
     @Test
     @DisplayName("성공(단위): 공용 템플릿 즐겨찾기 생성")
-    @WithMockJwtClaims(userId = 1)
+    @WithMockJwtClaims
     void createPublicTemplateFavorite_Success() throws Exception {
         // given
         PublicTemplateFavoriteRequest request = new PublicTemplateFavoriteRequest(1, 100);
@@ -127,8 +127,7 @@ class FavoriteControllerTest {
                 .thenReturn(mockPage);
 
         // when & then
-        mockMvc.perform(get("/favorites")
-                        .param("workspaceId", String.valueOf(workspaceId))
+        mockMvc.perform((get("/workspace/{workspaceId}/favorites", workspaceId))
                         .param("templateType", "PUBLIC")
                         .param("page", "0")
                         .param("size", "10"))
@@ -151,8 +150,7 @@ class FavoriteControllerTest {
                 .thenThrow(new IllegalArgumentException(errorMessage));
 
         // when & then
-        mockMvc.perform(get("/favorites")
-                        .param("workspaceId", String.valueOf(workspaceId)))
+        mockMvc.perform(get("/workspace/{workspaceId}/favorites", workspaceId))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value(errorMessage));
 

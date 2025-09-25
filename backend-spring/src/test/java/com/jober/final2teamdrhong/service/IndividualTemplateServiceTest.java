@@ -8,6 +8,8 @@ import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
 import com.jober.final2teamdrhong.repository.WorkspaceRepository;
+import jakarta.persistence.EntityNotFoundException;
+import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -27,6 +29,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -45,6 +49,9 @@ class IndividualTemplateServiceTest {
 
     @Mock
     private WorkspaceRepository workspaceRepo;
+
+    @Mock
+    private WorkspaceValidator workspaceValidator;
 
     @Mock
     private PublicTemplateRepository publicTemplateRepo;
@@ -204,7 +211,7 @@ class IndividualTemplateServiceTest {
         void createFromPublic_success() {
             // given
             when(workspaceMock.getWorkspaceId()).thenReturn(10);
-            when(workspaceRepo.findByIdOrThrow(10, 7)).thenReturn(workspaceMock);
+            when(workspaceValidator.validateAndGetWorkspace(10, 7)).thenReturn(workspaceMock);
 
             PublicTemplate publicMock = mock(PublicTemplate.class);
             when(publicMock.getPublicTemplateTitle()).thenReturn("제목");
@@ -235,7 +242,7 @@ class IndividualTemplateServiceTest {
             assertThat(res.getButtonTitle()).isEqualTo("버튼");
 
             verify(publicTemplateRepo).findByIdOrThrow(99);
-            verify(workspaceRepo).findByIdOrThrow(10, 7);
+            verify(workspaceValidator).validateAndGetWorkspace(10, 7);
             verify(individualTemplateRepo).save(any(IndividualTemplate.class));
         }
     }
@@ -249,7 +256,7 @@ class IndividualTemplateServiceTest {
         void createFromPublicAsync_success() throws Exception {
             // given
             when(workspaceMock.getWorkspaceId()).thenReturn(20);
-            when(workspaceRepo.findByIdOrThrow(20, 8)).thenReturn(workspaceMock);
+            when(workspaceValidator.validateAndGetWorkspace(20, 8)).thenReturn(workspaceMock);
 
             PublicTemplate publicMock = mock(PublicTemplate.class);
             when(publicMock.getPublicTemplateTitle()).thenReturn("Async제목");
@@ -280,7 +287,7 @@ class IndividualTemplateServiceTest {
             assertThat(res.getIndividualTemplateTitle()).isEqualTo("Async제목");
 
             verify(publicTemplateRepo).findByIdOrThrow(200);
-            verify(workspaceRepo).findByIdOrThrow(20, 8);
+            verify(workspaceValidator).validateAndGetWorkspace(20, 8);
             verify(individualTemplateRepo).save(any(IndividualTemplate.class));
         }
     }
@@ -473,4 +480,78 @@ class IndividualTemplateServiceTest {
         when(mockEntity.getIsDeleted()).thenReturn(isDeleted);
         return mockEntity;
     }
+
+    // SoftDelete
+    @Nested
+    @DisplayName("deleteTemplate")
+    class DeleteTemplate {
+
+        @Test
+        @DisplayName("존재하는 템플릿을 삭제하면 softDelete가 호출되고 저장된다")
+        void deleteTemplate_success() {
+            // given
+            Integer workspaceId = 10;
+            Integer id = 1;
+
+            Workspace workspaceMock = mock(Workspace.class);
+            when(workspaceMock.getWorkspaceId()).thenReturn(workspaceId);
+
+            IndividualTemplate templateMock = mock(IndividualTemplate.class);
+            when(templateMock.getWorkspace()).thenReturn(workspaceMock);
+
+            when(individualTemplateRepo.findById(id)).thenReturn(Optional.of(templateMock));
+            when(individualTemplateRepo.save(templateMock)).thenReturn(templateMock);
+
+            // when
+            assertDoesNotThrow(() -> service.deleteTemplate(id, workspaceId));
+
+            // then
+            verify(individualTemplateRepo).findById(id);
+            verify(templateMock).getWorkspace();
+            verify(templateMock).softDelete();
+            verify(individualTemplateRepo).save(templateMock);
+        }
+
+        @Test
+        @DisplayName("없는 템플릿 ID면 EntityNotFoundException 발생")
+        void deleteTemplate_notFound_throw404() {
+            // given
+            Integer workspaceId = 10;
+            Integer missingId = 999;
+            when(individualTemplateRepo.findById(missingId)).thenReturn(Optional.empty());
+
+            // when & then
+            assertThrows(EntityNotFoundException.class,
+                    () -> service.deleteTemplate(missingId, workspaceId));
+
+            verify(individualTemplateRepo).findById(missingId);
+            verifyNoMoreInteractions(individualTemplateRepo);
+        }
+
+        @Test
+        @DisplayName("템플릿은 있지만 다른 workspaceId에 속하면 AccessDeniedException 발생")
+        void deleteTemplate_wrongWorkspace_throw403() {
+            // given
+            Integer correctWorkspaceId = 10;
+            Integer wrongWorkspaceId = 99;
+            Integer id = 5;
+
+            Workspace workspaceMock = mock(Workspace.class);
+            when(workspaceMock.getWorkspaceId()).thenReturn(correctWorkspaceId);
+
+            IndividualTemplate templateMock = mock(IndividualTemplate.class);
+            when(templateMock.getWorkspace()).thenReturn(workspaceMock);
+
+            when(individualTemplateRepo.findById(id)).thenReturn(Optional.of(templateMock));
+
+            // when & then
+            assertThrows(AccessDeniedException.class,
+                    () -> service.deleteTemplate(id, wrongWorkspaceId));
+
+            verify(individualTemplateRepo).findById(id);
+            verify(templateMock).getWorkspace();
+            verifyNoMoreInteractions(individualTemplateRepo);
+        }
+    }
+
 }

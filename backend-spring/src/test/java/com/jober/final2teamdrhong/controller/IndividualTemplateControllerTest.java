@@ -5,7 +5,9 @@ import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateRespo
 import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
 import com.jober.final2teamdrhong.entity.User.UserRole;
 import com.jober.final2teamdrhong.service.IndividualTemplateService;
+import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
 import org.junit.jupiter.api.DisplayName;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -22,18 +24,24 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class IndividualTemplateControllerTest {
 
     @Mock
     IndividualTemplateService individualTemplateService;
+
+    @Mock
+    WorkspaceValidator workspaceValidator;
 
     @InjectMocks
     IndividualTemplateController controller;
@@ -111,8 +119,9 @@ class IndividualTemplateControllerTest {
         assertThat(result.getBody().getIndividualTemplateId()).isEqualTo(3);
         assertThat(result.getBody().getWorkspaceId()).isEqualTo(55);
 
-        verify(individualTemplateService).validateWorkspaceOwnership(55, 3);
         verify(individualTemplateService).createIndividualTemplateFromPublic(10, 55, 3);
+        verify(workspaceValidator).validateAndGetWorkspace(eq(55), eq(3));
+
     }
 
     @Test
@@ -293,4 +302,56 @@ class IndividualTemplateControllerTest {
         verify(individualTemplateService).validateWorkspaceOwnership(workspaceId, userId);
         verify(individualTemplateService).getAllTemplates(eq(workspaceId), any(IndividualTemplatePageableRequest.class));
     }
+
+    // ----------------------
+// DELETE : 단일 템플릿 삭제
+// ----------------------
+    @Test
+    @DisplayName("DELETE 성공 시 204 No Content (순수 단위 테스트)")
+    void deleteTemplate_success_returns204_withoutMockMvc() {
+        // given
+        Integer workspaceId = 1;
+        Integer individualTemplateId = 10;
+        Integer userId = 100; // 임의 사용자 ID
+        JwtClaims claims = createMockJwtClaims(userId, "delete@example.com");
+
+        doNothing().when(individualTemplateService)
+                .deleteTemplate(individualTemplateId, workspaceId);
+        doNothing().when(individualTemplateService)
+                .validateWorkspaceOwnership(workspaceId, userId);
+
+        // when
+        ResponseEntity<Void> res =
+                controller.deleteTemplate(workspaceId, individualTemplateId, claims);
+
+        // then
+        assertEquals(204, res.getStatusCodeValue());
+        verify(individualTemplateService).validateWorkspaceOwnership(workspaceId, userId);
+        verify(individualTemplateService).deleteTemplate(individualTemplateId, workspaceId);
+    }
+
+    @Test
+    @DisplayName("없는 템플릿 삭제 시 컨트롤러는 예외를 그대로 던짐 (404 매핑은 전역어드바이스 책임)")
+    void deleteTemplate_notFound_throwsException_withoutMockMvc() {
+        // given
+        Integer workspaceId = 1;
+        Integer missingId = 999;
+        Integer userId = 100;
+        JwtClaims claims = createMockJwtClaims(userId, "delete@example.com");
+
+        doNothing().when(individualTemplateService)
+                .validateWorkspaceOwnership(workspaceId, userId);
+        doThrow(new EntityNotFoundException("not found"))
+                .when(individualTemplateService)
+                .deleteTemplate(missingId, workspaceId);
+
+        // when & then
+        assertThrows(EntityNotFoundException.class,
+                () -> controller.deleteTemplate(workspaceId, missingId, claims));
+
+        verify(individualTemplateService).validateWorkspaceOwnership(workspaceId, userId);
+        verify(individualTemplateService).deleteTemplate(missingId, workspaceId);
+    }
+
+
 }

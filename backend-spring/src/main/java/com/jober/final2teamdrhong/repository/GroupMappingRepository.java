@@ -2,6 +2,8 @@ package com.jober.final2teamdrhong.repository;
 
 import com.jober.final2teamdrhong.entity.GroupMapping;
 import com.jober.final2teamdrhong.entity.PhoneBook;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
@@ -75,4 +77,16 @@ public interface GroupMappingRepository extends JpaRepository<GroupMapping, Inte
      * @return 조건에 일치하는 GroupMapping 엔티티 목록
      */
     List<GroupMapping> findAllByPhoneBook_PhoneBookIdAndRecipient_RecipientIdIn(Integer phoneBookId, List<Integer> recipientIds);
+
+    /**
+     * 특정 주소록에 속한 GroupMapping 목록을 페이징하여 조회합니다.
+     * <p>
+     * 수신자의 생성 시간(createdAt) 내림차순으로 정렬되어 반환됩니다.
+     * 이를 통해 최신에 생성된 수신자가 먼저 표시됩니다.
+     *
+     * @param phoneBook 조회할 주소록 엔티티
+     * @param pageable  페이징 및 정렬 정보 (정렬 조건은 무시되고 수신자 생성 시간 기준으로 정렬됨)
+     * @return 페이징된 GroupMapping 엔티티 목록 (Page<GroupMapping>)
+     */
+    Page<GroupMapping> findByPhoneBookOrderByRecipient_CreatedAtDescRecipient_RecipientIdDesc(PhoneBook phoneBook, Pageable pageable);
 }
