@@ -37,7 +37,7 @@ public class Workspace extends BaseEntity {
     private String workspaceDetailAddress;
 
     @NonNull
-    @Column(name = "workspace_url", nullable = false, unique = true)
+    @Column(name = "workspace_url", nullable = false)
     private String workspaceUrl;
 
     @NonNull
