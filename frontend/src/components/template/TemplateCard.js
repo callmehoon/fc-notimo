@@ -1,74 +1,157 @@
-import * as React from 'react';
-import { Card, Box, Typography, Button, CardContent } from '@mui/material';
+// src/components/template/TemplateCard.jsx
+import { Card, CardContent, CardActions, IconButton, Typography, Tooltip, Button, Box, Chip } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import ShareIcon from '@mui/icons-material/Share';
 
-export default function TemplateCard({ template, onUse, onDelete }) {
+export default function TemplateCard({ template, onDelete, onShare, onUse, showActions, isPublicTemplate }) {
+    const title = template.individualTemplateTitle || template.publicTemplateTitle || template.title || '제목 없음';
+    const content = template.individualTemplateContent || template.publicTemplateContent || template.content || '내용 없음';
+    const buttonTitle = template.buttonTitle;
     const userRole = localStorage.getItem('userRole');
-
-    const statusStyles = {
-        '심사중': { bgcolor: '#e3f2fd', color: '#1565c0' },
-        '심사완료': { bgcolor: '#616161', color: '#ffffff' },
-        '반려': { bgcolor: 'white', color: 'black', borderTop: '1px solid #ccc' },
-        '심사요청': { bgcolor: '#e8eaf6', color: '#303f9f' },
+    
+    // 상태값에 따른 스타일 설정
+    const getStatusChip = (status) => {
+        if (!status) return null;
+        
+        const statusConfig = {
+            'DRAFT': { label: '작성중', color: 'default' },
+            'PENDING': { label: '심사중', color: 'warning' },
+            'APPROVED': { label: '승인됨', color: 'success' },
+            'REJECTED': { label: '반려됨', color: 'error' }
+        };
+        
+        const config = statusConfig[status] || { label: status, color: 'default' };
+        
+        return (
+            <Chip
+                label={config.label}
+                color={config.color}
+                size="small"
+                sx={{ fontSize: '0.7rem', height: '20px' }}
+            />
+        );
     };
 
     return (
-        <Card
-            variant="outlined"
-            sx={{
-                width: '100%',
-                height: '100%',
-                display: 'flex',
+        <Card 
+            className="shadow-md rounded-2xl" 
+            sx={{ 
+                height: '200px', 
+                display: 'flex', 
                 flexDirection: 'column',
-                borderColor: '#ccc',
+                width: '100%'
             }}
         >
-            {/* HEADER */}
-            <Box sx={{ p: 1, borderBottom: '1px solid #ccc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="h6" fontWeight="bold">{template.title}</Typography>
-                <Box>
-                    <Button size="small" variant="text" sx={{ color: 'black', minWidth: 'auto', p: 0.5 }}>즐겨찾기</Button>
-                    {userRole === 'ADMIN' && onDelete && (
-                        <Button size="small" variant="text" sx={{ color: 'red' }} onClick={() => onDelete(template.id)}>
-                            삭제하기
-                        </Button>
-                    )}
+            <CardContent sx={{ flexGrow: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                    <Typography 
+                        variant="subtitle1" 
+                        sx={{ 
+                            fontWeight: 600,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            flex: 1,
+                            mr: 1
+                        }}
+                    >
+                        {title}
+                    </Typography>
+                    {!isPublicTemplate && getStatusChip(template.status)}
                 </Box>
-            </Box>
-
-            {/* CONTENT */}
-            <CardContent sx={{ flexGrow: 1, wordBreak: 'break-word', bgcolor: '#f8f9fa', p: 2 }}>
-                <Typography color="text.secondary" sx={{ mb: 2 }}>{template.content}</Typography>
-                {template.buttonTitle && (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
-                        <Box sx={{
-                            bgcolor: '#007bff',
-                            color: 'white',
-                            padding: '6px 16px',
-                            borderRadius: '4px',
-                            display: 'inline-block',
-                            fontSize: '0.8125rem',
-                            fontWeight: 500,
-                        }}>
-                            {template.buttonTitle}
-                        </Box>
+                <Typography 
+                    variant="body2" 
+                    sx={{ 
+                        color: 'text.secondary',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        lineHeight: 1.4,
+                        mb: 2
+                    }}
+                >
+                    {content}
+                </Typography>
+                
+                {/* 자세히보기 버튼 - 내용 아래에 배치 */}
+                {isPublicTemplate && buttonTitle && (
+                    <Box sx={{ mt: 'auto', display: 'flex', justifyContent: 'center' }}>
+                        <Button 
+                            variant="outlined" 
+                            size="small"
+                            disabled
+                            sx={{ 
+                                color: 'text.secondary', 
+                                borderColor: 'text.secondary',
+                                textTransform: 'none'
+                            }}
+                        >
+                            {buttonTitle}
+                        </Button>
                     </Box>
                 )}
             </CardContent>
 
-            {/* FOOTER */}
-            {onUse ? (
-                <Box sx={{ p: 1, borderTop: '1px solid #ccc' }}>
-                    <Button variant="contained" fullWidth onClick={() => onUse(template.id)}>
-                        사용하기
+            {/* 개인 템플릿의 액션 버튼들 (공유/삭제) */}
+            {!isPublicTemplate && showActions && (
+                <CardActions sx={{ justifyContent: 'flex-end', pt: 0, pb: 1 }}>
+                    <Tooltip title="공유하기">
+                        <IconButton 
+                            onClick={onShare}
+                            sx={{ 
+                                bgcolor: '#f5f5f5',
+                                '&:hover': { bgcolor: '#e0e0e0' },
+                                mr: 1
+                            }}
+                        >
+                            <ShareIcon fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title="삭제하기">
+                        <IconButton 
+                            onClick={onDelete}
+                            sx={{ 
+                                bgcolor: '#ffebee',
+                                color: '#d32f2f',
+                                '&:hover': { bgcolor: '#ffcdd2' }
+                            }}
+                        >
+                            <CloseIcon fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+                </CardActions>
+            )}
+
+            {/* 공용 템플릿의 Admin 삭제 버튼 */}
+            {isPublicTemplate && userRole === 'ADMIN' && onDelete && (
+                <CardActions sx={{ justifyContent: 'flex-end', pt: 0 }}>
+                    <Tooltip title="삭제">
+                        <IconButton onClick={onDelete}><CloseIcon /></IconButton>
+                    </Tooltip>
+                </CardActions>
+            )}
+
+            {/* 사용하기 버튼 - footer에 꽉 차게 */}
+            {onUse && (
+                <Box sx={{ p: 1 }}>
+                    <Button 
+                        variant="contained" 
+                        fullWidth
+                        onClick={onUse}
+                        sx={{ 
+                            bgcolor: '#343a40', 
+                            color: 'white', 
+                            '&:hover': { bgcolor: '#495057' },
+                            borderRadius: 1
+                        }}
+                    >
+                        사용
                     </Button>
                 </Box>
-            ) : (
-                // Fallback to status if onUse is not provided
-                template.status && statusStyles[template.status] && (
-                     <Box sx={{ p: 1.5, textAlign: 'center', ...statusStyles[template.status] }}>
-                        <Typography variant="body2" fontWeight="bold">{template.status}</Typography>
-                    </Box>
-                )
             )}
         </Card>
     );
