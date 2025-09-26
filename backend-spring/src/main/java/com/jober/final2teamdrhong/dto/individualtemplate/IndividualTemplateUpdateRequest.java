@@ -9,4 +9,6 @@ public class IndividualTemplateUpdateRequest {
     private String individualTemplateTitle;
     private String individualTemplateContent;
     private String buttonTitle;
+    private String chatAi;
+    private String chatUser;
 }

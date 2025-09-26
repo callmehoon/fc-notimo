@@ -15,10 +15,6 @@ import org.hibernate.annotations.SQLRestriction;
 @SQLRestriction("is_deleted = false")
 public class TemplateModifiedHistory extends BaseEntity {
 
-    public enum Status {
-        DRAFT, PENDING, APPROVED, REJECTED
-    }
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "history_id")
@@ -41,7 +37,7 @@ public class TemplateModifiedHistory extends BaseEntity {
 
     @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
-    private Status status;
+    private IndividualTemplate.Status status;
 
     // ===== 관계 필드 =====
     @ManyToOne(fetch = FetchType.LAZY)
