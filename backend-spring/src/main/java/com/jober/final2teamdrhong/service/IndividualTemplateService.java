@@ -188,7 +188,7 @@ public class IndividualTemplateService {
 
     @Transactional(readOnly = true)
     public List<HistoryResponse> getTemplateModifiedHistories(Integer workspaceId, Integer individualTemplateId, Integer userId) {
-        workspaceValidator.validateTemplateOwnership(workspaceId, userId);
+        workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
         IndividualTemplate individualTemplate = workspaceValidator.validateTemplateOwnership(workspaceId, individualTemplateId);
 
         List<TemplateModifiedHistory> histories = templateModifiedHistoryRepository
@@ -214,8 +214,14 @@ public class IndividualTemplateService {
 
         IndividualTemplate individualTemplate = workspaceValidator.validateTemplateOwnership(workspaceId, individualTemplateId);
 
+        List<TemplateModifiedHistory> histories = templateModifiedHistoryRepository
+                .findAllByIndividualTemplateOrderByCreatedAtDesc(individualTemplate);
+
+        histories.forEach(TemplateModifiedHistory::softDelete);
+
         individualTemplate.softDelete();
         individualTemplateRepository.save(individualTemplate);
+        templateModifiedHistoryRepository.saveAll(histories);
         log.info("Soft deleted template id = {}", individualTemplateId);
     }
 
