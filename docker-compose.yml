@@ -4,6 +4,8 @@ services:
     container_name: redis
     ports:
       - "6379:6379"
+    environment:
+      - TZ=Asia/Seoul
     volumes:
       - redis-data:/data
 
@@ -21,6 +23,8 @@ services:
     container_name: python-ai
     ports:
       - "8000:8000"
+    environment:
+      - TZ=Asia/Seoul
     env_file:
       - .env
 
