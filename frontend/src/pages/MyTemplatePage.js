@@ -25,7 +25,7 @@ export default function TemplatePage() {
     const navigate = useNavigate();
 
     // 워크스페이스 id 관리(프로젝트 상황에 맞게 가져오세요)
-    const [workspaceId] = useState(() => localStorage.getItem('selectedWorkspaceId') || 1);
+    const [workspaceId, setWorkspaceId] = useState(() => localStorage.getItem('selectedWorkspaceId') || 1);
 
     const [tabValue, setTabValue] = useState(0);
     const [sortOrder, setSortOrder] = useState('최신 순');
@@ -63,6 +63,26 @@ export default function TemplatePage() {
             setLoading(false);
         }
     };
+
+    // localStorage 변경 감지
+    useEffect(() => {
+        const handleStorageChange = () => {
+            const newWorkspaceId = localStorage.getItem('selectedWorkspaceId');
+            if (newWorkspaceId && newWorkspaceId !== workspaceId) {
+                setWorkspaceId(newWorkspaceId);
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+
+        // 같은 탭에서의 변경도 감지하기 위해 주기적으로 체크
+        const interval = setInterval(handleStorageChange, 100);
+
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+            clearInterval(interval);
+        };
+    }, [workspaceId]);
 
     useEffect(() => { load(); /* eslint-disable-next-line */ }, [workspaceId, tabValue, sortOrder, searchQuery, currentPage]);
 
