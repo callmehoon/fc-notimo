@@ -1,33 +1,48 @@
 import * as React from 'react';
 import { Drawer, Box, List, ListItem, ListItemButton, ListItemText } from '@mui/material';
-import { useNavigate, useLocation } from 'react-router-dom'; // Import useNavigate and useLocation
+import { useNavigate, useLocation } from 'react-router-dom';
 import WorkspaceList from './WorkspaceList';
+import workspaceService from '../../services/workspaceService'; // Import workspaceService
 
 const sidebarWidth = 240;
 const menuItems = ['공용 템플릿', '나의 템플릿', '즐겨찾기', '회원정보 수정', '연락처 관리', '워크스페이스 관리'];
-const routeMap = { // Map menu items to their routes
+const routeMap = {
     '공용 템플릿': '/publicTemplate',
     '나의 템플릿': '/mytemplate',
     '즐겨찾기': '/favoritetemplates',
-    '회원정보 수정': '/profile-edit', // Added route for User Profile Edit
-    '연락처 관리': '/contact-management', // Added route for Contact Management
+    '회원정보 수정': '/profile-edit',
+    '연락처 관리': '/contact-management',
     '워크스페이스 관리': '/workspace-edit/:id',
 };
 
-// 목업 데이터와 상태 관리를 Sidebar로 가져옵니다.
-const allWorkspaces = [
-    { id: '1', name: '워크스페이스 1' },
-    { id: '2', name: '워크스페이스 2' },
-    { id: '3', name: '워크스페이스 3' },
-];
-
-export default function Sidebar() { // Remove selectedIndex prop, will determine internally
+export default function Sidebar() {
     const navigate = useNavigate();
     const location = useLocation();
-    const [selectedWorkspace, setSelectedWorkspace] = React.useState(allWorkspaces[0]);
+    const [allWorkspaces, setAllWorkspaces] = React.useState([]);
+    const [selectedWorkspace, setSelectedWorkspace] = React.useState(null);
     const [open, setOpen] = React.useState(false);
 
-    // Determine selectedIndex based on current path
+    React.useEffect(() => {
+        const fetchWorkspaces = async () => {
+            try {
+                const workspaces = await workspaceService.getWorkspaces();
+                setAllWorkspaces(workspaces);
+
+                if (workspaces.length > 0) {
+                    const storedWorkspaceId = localStorage.getItem('selectedWorkspaceId');
+                    const workspaceToSelect = workspaces.find(ws => ws && ws.workspaceId && ws.workspaceId.toString() === storedWorkspaceId) || workspaces[0];
+                    setSelectedWorkspace(workspaceToSelect);
+                    localStorage.setItem('selectedWorkspaceId', workspaceToSelect.workspaceId.toString());
+                }
+            } catch (error) {
+                console.error("Failed to fetch workspaces:", error);
+                // Handle error appropriately
+            }
+        };
+
+        fetchWorkspaces();
+    }, []);
+
     const currentPath = location.pathname;
     const selectedIndex = React.useMemo(() => {
         const currentRoute = Object.values(routeMap).find(route => currentPath.startsWith(route));
@@ -35,15 +50,26 @@ export default function Sidebar() { // Remove selectedIndex prop, will determine
             const menuItemText = Object.keys(routeMap).find(key => routeMap[key] === currentRoute);
             return menuItems.indexOf(menuItemText);
         }
-        return -1; // No item selected
+        return -1;
     }, [currentPath]);
 
-
     const handleMenuItemClick = (text) => {
-        const path = routeMap[text];
+        let path = routeMap[text];
         if (path) {
+            if (text === '워크스페이스 관리' && selectedWorkspace) {
+                path = path.replace(':id', selectedWorkspace.workspaceId);
+            } else if (text === '워크스페이스 관리' && !selectedWorkspace) {
+                alert('워크스페이스를 선택해주세요.');
+                return;
+            }
             navigate(path);
         }
+    };
+
+    const handleSelectWorkspace = (workspace) => {
+        setSelectedWorkspace(workspace);
+        localStorage.setItem('selectedWorkspaceId', workspace.workspaceId.toString());
+        setOpen(false);
     };
 
     return (
@@ -66,14 +92,14 @@ export default function Sidebar() { // Remove selectedIndex prop, will determine
                         <ListItem key={text} disablePadding sx={{ mb: 1 }}>
                             <ListItemButton
                                 selected={selectedIndex === index}
-                                onClick={() => handleMenuItemClick(text)} // Add onClick handler
+                                onClick={() => handleMenuItemClick(text)}
                                 sx={{
                                     bgcolor: '#e9ecef',
                                     border: '1px solid #ccc',
                                     borderRadius: '4px',
                                     '&.Mui-selected': {
-                                        bgcolor: 'white', // 선택 시 배경색
-                                        border: '1px solid #333', // 선택 시 테두리색
+                                        bgcolor: 'white',
+                                        border: '1px solid #333',
                                         '&:hover': { bgcolor: 'white' }
                                     },
                                     '&:hover': { bgcolor: '#dee2e6' }
@@ -88,17 +114,15 @@ export default function Sidebar() { // Remove selectedIndex prop, will determine
                     ))}
                 </List>
 
-                <WorkspaceList
-                    allWorkspaces={allWorkspaces}
-                    selectedWorkspace={selectedWorkspace}
-                    open={open}
-                    onToggle={() => setOpen(!open)}
-                    onSelect={(workspace) => {
-                        setSelectedWorkspace(workspace);
-                        setOpen(false);
-                    }}
-                />
-
+                {selectedWorkspace && (
+                    <WorkspaceList
+                        allWorkspaces={allWorkspaces}
+                        selectedWorkspace={selectedWorkspace}
+                        open={open}
+                        onToggle={() => setOpen(!open)}
+                        onSelect={handleSelectWorkspace}
+                    />
+                )}
             </Box>
         </Drawer>
     );

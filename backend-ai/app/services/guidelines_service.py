@@ -62,7 +62,7 @@ async def retrieve(state: dict) -> dict:
     """
     await _ensure_index()
 
-    k = state.get("k", 10)
+    k = state.get("k", 3)
     # keyword = state.get("keyword")
 
     results = await vector_store.asimilarity_search_with_score(state["question"], k=k)

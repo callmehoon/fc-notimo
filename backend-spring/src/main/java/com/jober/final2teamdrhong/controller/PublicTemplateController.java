@@ -31,6 +31,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 public class PublicTemplateController {
     private final PublicTemplateService publicTemplateService;
 
+
     /**
      * 공용 템플릿 목록을 조회합니다.
      * 삭제되지 않은 템플릿만 조회되며, 다양한 정렬 옵션과 페이징, 검색을 지원합니다.
