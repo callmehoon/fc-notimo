@@ -5,8 +5,11 @@ from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 
+from ..schemas.validate import ValidateResult
+
 class AgentInitializer:
     agent_executor: AgentExecutor = None
+    llm = None
 
     @classmethod
     def initialize(cls):
@@ -14,6 +17,7 @@ class AgentInitializer:
         GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
         llm = ChatGoogleGenerativeAI(model='gemini-2.5-flash')
+        cls.llm = llm.with_structured_output(ValidateResult)
 
         if os.getenv('IS_GPU_AVAILABLE') == 'TRUE': # agent 가 파인튜닝 된 템플릿 생성 모델을 사용해서 Template 생성
             from ..services.tools import generate_template, parse_template_from_generative_model_output, create_final_output
