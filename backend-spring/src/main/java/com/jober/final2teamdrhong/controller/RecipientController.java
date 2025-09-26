@@ -158,8 +158,7 @@ public class RecipientController {
             @ApiResponse(responseCode = "200", description = "수신자 삭제 성공",
                     content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = RecipientResponse.SimpleDTO.class))),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청: 존재하지 않거나 권한 없는 워크스페이스, " +
-                    "또는 해당 워크스페이스에 속하지 않는 수신자에 접근 시 발생",
+            @ApiResponse(responseCode = "400", description = "잘못된 요청: 존재하지 않거나 권한 없는 워크스페이스, 또는 해당 워크스페이스에 속하지 않는 수신자에 접근 시 발생",
                     content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "401", description = "인증 실패 (로그인 필요)",
