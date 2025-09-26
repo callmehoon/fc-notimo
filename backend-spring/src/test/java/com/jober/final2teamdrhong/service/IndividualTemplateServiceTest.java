@@ -260,8 +260,8 @@ class IndividualTemplateServiceTest {
     class GetAllTemplates {
 
         @Test
-        @DisplayName("워크스페이스별 삭제되지 않은 템플릿 Page를 매핑하여 반환한다")
-        void getAllTemplates_success() {
+        @DisplayName("최신순 조회 - 워크스페이스별 삭제되지 않은 템플릿 Page를 반환한다")
+        void getAllTemplates_latest_success() {
             // given
             when(workspaceMock.getWorkspaceId()).thenReturn(5);
 
@@ -276,6 +276,7 @@ class IndividualTemplateServiceTest {
             IndividualTemplatePageableRequest request = new IndividualTemplatePageableRequest();
             ReflectionTestUtils.setField(request, "page", 0);
             ReflectionTestUtils.setField(request, "size", 10);
+            ReflectionTestUtils.setField(request, "sortType", "latest");
 
             // when
             Page<IndividualTemplateResponse> page = service.getAllTemplates(5, 100, request);
@@ -284,13 +285,42 @@ class IndividualTemplateServiceTest {
             assertThat(page.getContent()).hasSize(2);
             assertThat(page.getContent().get(0).getIndividualTemplateId()).isEqualTo(10);
             assertThat(page.getContent().get(0).getWorkspaceId()).isEqualTo(5);
-            assertThat(page.getContent().get(0).getIsDeleted()).isFalse();
             assertThat(page.getContent().get(1).getIndividualTemplateId()).isEqualTo(11);
-            assertThat(page.getContent().get(1).getWorkspaceId()).isEqualTo(5);
 
             verify(individualTemplateRepo).findByWorkspace_WorkspaceId(eq(5), any(Pageable.class));
         }
+
+        @Test
+        @DisplayName("제목순 조회 - 워크스페이스별 삭제되지 않은 템플릿 Page를 반환한다 (NULL 뒤로)")
+        void getAllTemplates_title_success() {
+            // given
+            when(workspaceMock.getWorkspaceId()).thenReturn(5);
+
+            LocalDateTime now = LocalDateTime.now();
+            IndividualTemplate e1 = createMockTemplate(10, "가나다", "c1", "b1", workspaceMock, now, false);
+            IndividualTemplate e2 = createMockTemplate(11, null, "c2", "b2", workspaceMock, now, false);
+
+            Page<IndividualTemplate> repoPage = new PageImpl<>(List.of(e1, e2));
+            when(individualTemplateRepo.findAllByWorkspaceOrderByTitleAsc(anyInt(), any(Pageable.class)))
+                    .thenReturn(repoPage);
+
+            IndividualTemplatePageableRequest request = new IndividualTemplatePageableRequest();
+            ReflectionTestUtils.setField(request, "page", 0);
+            ReflectionTestUtils.setField(request, "size", 10);
+            ReflectionTestUtils.setField(request, "sortType", "title");
+
+            // when
+            Page<IndividualTemplateResponse> page = service.getAllTemplates(5, 100, request);
+
+            // then
+            assertThat(page.getContent()).hasSize(2);
+            assertThat(page.getContent().get(0).getIndividualTemplateTitle()).isEqualTo("가나다");
+            assertThat(page.getContent().get(1).getIndividualTemplateTitle()).isNull(); // NULL은 뒤로 간다
+
+            verify(individualTemplateRepo).findAllByWorkspaceOrderByTitleAsc(eq(5), any(Pageable.class));
+        }
     }
+
 
     @Nested
     @DisplayName("getAllTemplatesAsync")

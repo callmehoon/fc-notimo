@@ -51,19 +51,19 @@ class RecipientServiceTest {
         // 1. 테스트에 사용할 ID와 요청 DTO를 준비합니다.
         Integer userId = 1;
         Integer workspaceId = 1;
-        RecipientRequest.CreateDTO createDTO = RecipientRequest.CreateDTO.builder()
-                .recipientName("홍길동")
-                .recipientPhoneNumber("010-1234-5678")
-                .recipientMemo("테스트 메모")
-                .build();
+        RecipientRequest.CreateDTO createDTO = new RecipientRequest.CreateDTO(
+                "홍길동",
+                "010-1234-5678",
+                "테스트 메모"
+        );
 
         // 2. 의존성 메서드가 반환할 가짜(Mock) 객체들을 준비합니다.
         Workspace mockWorkspace = mock(Workspace.class);
-        Recipient savedRecipient = Recipient.builder()
+        Recipient savedRecipient =  Recipient.builder()
                 .recipientId(1) // DTO 변환 시 필요한 ID 값 설정
-                .recipientName(createDTO.getRecipientName())
-                .recipientPhoneNumber(createDTO.getRecipientPhoneNumber())
-                .recipientMemo(createDTO.getRecipientMemo())
+                .recipientName(createDTO.recipientName())
+                .recipientPhoneNumber(createDTO.recipientPhoneNumber())
+                .recipientMemo(createDTO.recipientMemo())
                 .workspace(mockWorkspace)
                 .build();
 
@@ -79,10 +79,10 @@ class RecipientServiceTest {
         // then
         // 1. 반환된 DTO가 null이 아닌지, 그리고 필드 값들이 요청한 데이터와 일치하는지 검증합니다.
         assertNotNull(result);
-        assertEquals(1, result.getRecipientId());
-        assertEquals("홍길동", result.getRecipientName());
-        assertEquals("010-1234-5678", result.getRecipientPhoneNumber());
-        assertEquals("테스트 메모", result.getRecipientMemo());
+        assertEquals(1, result.recipientId());
+        assertEquals("홍길동", result.recipientName());
+        assertEquals("010-1234-5678", result.recipientPhoneNumber());
+        assertEquals("테스트 메모", result.recipientMemo());
 
         // 2. 의존성 객체의 메서드들이 정확히 1번씩 호출되었는지 검증합니다.
         verify(workspaceValidator, times(1)).validateAndGetWorkspace(workspaceId, userId);
@@ -96,7 +96,11 @@ class RecipientServiceTest {
         // 1. 테스트에 사용할 ID와 요청 DTO를 준비합니다.
         Integer userId = 1;
         Integer nonExistingWorkspaceId = 999; // 존재하지 않거나 권한 없는 ID를 대표
-        RecipientRequest.CreateDTO createDTO = new RecipientRequest.CreateDTO();
+        RecipientRequest.CreateDTO createDTO = new RecipientRequest.CreateDTO(
+                "홍길동",
+                "010-1234-5678",
+                "테스트 메모"
+        );
 
         // 2. Mockito 행동 정의: workspaceValidator가 예외를 던지도록 설정합니다.
         when(workspaceValidator.validateAndGetWorkspace(nonExistingWorkspaceId, userId))
@@ -122,10 +126,11 @@ class RecipientServiceTest {
         // 1. 테스트에 사용할 ID와 요청 DTO를 준비합니다.
         Integer userId = 1;
         Integer workspaceId = 1;
-        RecipientRequest.CreateDTO createDTO = RecipientRequest.CreateDTO.builder()
-                .recipientName("홍길동")
-                .recipientPhoneNumber("010-1234-5678")
-                .build();
+        RecipientRequest.CreateDTO createDTO = new RecipientRequest.CreateDTO(
+                "홍길동",
+                "010-1234-5678",
+                "테스트 메모"
+        );
 
         // 2. Mock 객체를 준비합니다.
         Workspace mockWorkspace = mock(Workspace.class);
@@ -137,8 +142,8 @@ class RecipientServiceTest {
         doThrow(new IllegalArgumentException("해당 워크스페이스에 동일한 이름과 번호의 수신자가 이미 존재합니다."))
                 .when(recipientValidator).validateNoDuplicateRecipientExists(
                         mockWorkspace,
-                        createDTO.getRecipientName(),
-                        createDTO.getRecipientPhoneNumber()
+                        createDTO.recipientName(),
+                        createDTO.recipientPhoneNumber()
                 );
 
         // when
@@ -162,11 +167,11 @@ class RecipientServiceTest {
         Integer userId = 1;
         Integer workspaceId = 1;
         Integer recipientId = 1;
-        RecipientRequest.UpdateDTO updateDTO = RecipientRequest.UpdateDTO.builder()
-                .newRecipientName("김철수")
-                .newRecipientPhoneNumber("010-3333-3333")
-                .newRecipientMemo("수정된 메모")
-                .build();
+        RecipientRequest.UpdateDTO updateDTO = new RecipientRequest.UpdateDTO(
+                "김철수",
+                "010-3333-3333",
+                "수정된 메모"
+        );
 
         // 2. Mock 객체를 준비합니다.
         Workspace mockWorkspace = mock(Workspace.class);
@@ -179,8 +184,8 @@ class RecipientServiceTest {
         doThrow(new IllegalArgumentException("해당 정보와 동일한 다른 수신자가 이미 존재합니다."))
                 .when(recipientValidator).validateNoDuplicateRecipientExistsOnUpdate(
                         any(Workspace.class),
-                        eq(updateDTO.getNewRecipientName()),
-                        eq(updateDTO.getNewRecipientPhoneNumber()),
+                        eq(updateDTO.newRecipientName()),
+                        eq(updateDTO.newRecipientPhoneNumber()),
                         eq(recipientId)
                 );
         //    - mockRecipient의 getWorkspace 메소드 행동 정의
@@ -237,7 +242,7 @@ class RecipientServiceTest {
         assertThat(resultPage.getTotalElements()).isEqualTo(2);
         assertThat(resultPage.getContent().size()).isEqualTo(2);
         // 2. Page에 담긴 내용(DTO)을 검증합니다.
-        assertThat(resultPage.getContent()).extracting(RecipientResponse.SimpleDTO::getRecipientName)
+        assertThat(resultPage.getContent()).extracting(RecipientResponse.SimpleDTO::recipientName)
                 .containsExactly("홍길동", "임꺽정");
 
         verify(workspaceValidator, times(1)).validateAndGetWorkspace(workspaceId, userId);
@@ -273,11 +278,11 @@ class RecipientServiceTest {
         Integer userId = 1;
         Integer workspaceId = 1;
         Integer recipientId = 1;
-        RecipientRequest.UpdateDTO updateDTO = RecipientRequest.UpdateDTO.builder()
-                .newRecipientName("김길동")
-                .newRecipientPhoneNumber("010-9999-8888")
-                .newRecipientMemo("수정된 메모")
-                .build();
+        RecipientRequest.UpdateDTO updateDTO = new RecipientRequest.UpdateDTO(
+                "김길동",
+                "010-9999-8888",
+                "수정된 메모"
+        );
 
         // 2. Mock 객체와 Spy 객체를 준비합니다.
         Workspace mockWorkspace = mock(Workspace.class);
@@ -319,7 +324,11 @@ class RecipientServiceTest {
         Integer userId = 1;
         Integer workspaceId = 1;
         Integer nonExistingRecipientId = 999;
-        RecipientRequest.UpdateDTO updateDTO = new RecipientRequest.UpdateDTO(); // 내용은 중요하지 않음
+        RecipientRequest.UpdateDTO updateDTO = new RecipientRequest.UpdateDTO(
+                "김길동",
+                "010-9999-8888",
+                "수정된 메모"
+        );
 
         // 2. Mockito 행동 정의
         //    - 워크스페이스 권한 검증은 통과시킵니다.
@@ -348,7 +357,11 @@ class RecipientServiceTest {
         Integer userId = 1;
         Integer unauthorizedWorkspaceId = 999;
         Integer recipientId = 1;
-        RecipientRequest.UpdateDTO updateDTO = new RecipientRequest.UpdateDTO();
+        RecipientRequest.UpdateDTO updateDTO = new RecipientRequest.UpdateDTO(
+                "김길동",
+                "010-9999-8888",
+                "수정된 메모"
+        );
 
         // 2. Mockito 행동 정의: 워크스페이스 권한 검증 단계에서 실패하도록 설정합니다.
         when(workspaceValidator.validateAndGetWorkspace(unauthorizedWorkspaceId, userId))
