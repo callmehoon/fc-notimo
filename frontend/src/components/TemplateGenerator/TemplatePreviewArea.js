@@ -6,7 +6,7 @@ import ErrorIcon from '@mui/icons-material/Error';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useNavigate } from 'react-router-dom';
 
-function TemplatePreviewArea({ template, validationResult, validationLoading }) {
+function TemplatePreviewArea({ template, validationResult, validationLoading, isPreviewingHistory, onReturnToLatest }) {
   const navigate = useNavigate();
 
   const handleGoBack = () => {
@@ -67,7 +67,17 @@ function TemplatePreviewArea({ template, validationResult, validationLoading }) 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Typography variant="h6">템플릿 미리보기</Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary', opacity: 0.7 }}>
+          {isPreviewingHistory && (
+            <Button 
+              onClick={onReturnToLatest}
+              size="small"
+              variant="text"
+              sx={{ ml: 1 }}
+            >
+              (현재 템플릿으로 돌아가기)
+            </Button>
+          )}
+          <Typography variant="caption" sx={{ color: 'text.secondary', opacity: 0.7, ml: isPreviewingHistory ? 0 : 1 }}>
             템플릿은 자동 저장됩니다.
           </Typography>
         </Box>

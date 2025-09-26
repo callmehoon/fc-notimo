@@ -6,7 +6,7 @@ import Sidebar from '../components/layout/Sidebar';
 import SearchInput from "../components/common/SearchInput";
 import Pagination from "../components/common/Pagination";
 import TemplateCard from "../components/template/TemplateCard";
-import { listMyTemplates, deleteMyTemplate, shareMyTemplate } from '../services/individualTemplateService';
+import { listMyTemplates, deleteMyTemplate, shareMyTemplate, getMyTemplate, getTemplateHistories } from '../services/individualTemplateService';
 import { addIndividualTemplateToFavorites, removeIndividualTemplateFromFavorites, getFavoriteTemplates } from '../services/favoriteService';
 
 const ITEMS_PER_PAGE = 8;
@@ -139,8 +139,30 @@ export default function TemplatePage() {
         }
     };
 
-    const handleEdit = (templateId) => {
-        navigate(`/workspace/${workspaceId}/templategenerator/${templateId}`);
+    const handleEdit = async (templateId) => {
+        try {
+            // 템플릿 기본 정보와 채팅 이력을 동시에 조회
+            const [templateResponse, historiesResponse] = await Promise.all([
+                getMyTemplate(workspaceId, templateId),
+                getTemplateHistories(workspaceId, templateId)
+            ]);
+
+            const templateData = templateResponse.data;
+            const histories = historiesResponse.data;
+
+            // 템플릿 생성 페이지로 데이터와 함께 이동
+            navigate(`/workspace/${workspaceId}/templategenerator/${templateId}`, {
+                state: {
+                    templateData,
+                    chatHistories: histories,
+                    isEdit: true
+                }
+            });
+        } catch (error) {
+            console.error('Failed to load template for editing:', error);
+            const errorMessage = error.response?.data?.message || error.message || '템플릿 로딩에 실패했습니다.';
+            alert(errorMessage);
+        }
     };
 
     const handleFavoriteToggle = async (templateId) => {

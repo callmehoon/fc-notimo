@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-function ChatArea({ chatHistory, onSendMessage, loading }) {
+function ChatArea({ chatHistory, onSendMessage, loading, onPreviewTemplate }) {
   const [message, setMessage] = useState('');
   const chatEndRef = useRef(null);
 
@@ -23,6 +23,7 @@ function ChatArea({ chatHistory, onSendMessage, loading }) {
           <div key={index} style={{
             marginBottom: '12px',
             display: 'flex',
+            alignItems: 'center', // Vertically align bubble and button
             justifyContent: msg.type === 'user' ? 'flex-end' : 'flex-start',
           }}>
             <div style={{
@@ -35,9 +36,27 @@ function ChatArea({ chatHistory, onSendMessage, loading }) {
             }}>
               {msg.text}
             </div>
+            {msg.type === 'bot' && (
+              <button 
+                onClick={() => onPreviewTemplate(msg.template)}
+                disabled={!msg.template}
+                style={{
+                  marginLeft: '8px',
+                  padding: '4px 8px',
+                  fontSize: '12px',
+                  cursor: msg.template ? 'pointer' : 'not-allowed',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  backgroundColor: msg.template ? '#f8f9fa' : '#e9ecef',
+                  opacity: msg.template ? 1 : 0.5,
+                }}
+                title={msg.template ? "이 버전 미리보기" : "저장된 이력은 미리보기를 지원하지 않습니다."}
+              >
+                돋보기
+              </button>
+            )}
           </div>
-        ))}
-        {loading && (
+        ))}        {loading && (
           <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
             <div style={{ backgroundColor: '#e9ecef', color: '#333', padding: '10px 15px', borderRadius: '18px' }}>
               <i>템플릿을 생성 중입니다...</i>

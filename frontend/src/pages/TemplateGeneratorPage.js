@@ -5,11 +5,12 @@ import ChatArea from '../components/TemplateGenerator/ChatArea';
 import TemplatePreviewArea from '../components/TemplateGenerator/TemplatePreviewArea';
 import '../styles/TemplateGenerator.css';
 import apiAi from '../services/apiAi';
-import {getMyTemplate, createMyTemplate, updateMyTemplate} from '../services/individualTemplateService';
+import {getMyTemplate, createMyTemplate, updateMyTemplate, getTemplateHistories} from '../services/individualTemplateService';
 
 function TemplateGeneratorPage() {
   const { workspaceId, templateId } = useParams();
   const [template, setTemplate] = useState(null);
+  const [latestTemplate, setLatestTemplate] = useState(null);
   const templateIdRef = useRef(templateId !== 'new' ? parseInt(templateId) : null);
   const hasInitialized = useRef(false);
   const validationAbortControllerRef = useRef(null); // 검증 요청 취소를 위한 AbortController
@@ -40,20 +41,59 @@ function TemplateGeneratorPage() {
           const newId = createResponse.data.individualTemplateId;
           templateIdRef.current = newId;
           
-          // 빈 템플릿을 미리보기에 설정
-          setTemplate({
+          const newTemplate = {
             title: '',
             text: '',
             button_name: null
-          });
+          };
+          setTemplate(newTemplate);
+          setLatestTemplate(newTemplate);
         } else {
           // 기존 템플릿 불러오기
           console.log('기존 템플릿 불러오기 시작:', { workspaceId, templateId });
           if (!workspaceId || !templateId) return;
-          const res = await getMyTemplate(workspaceId, templateId);
-          console.log('기존 템플릿 불러오기 응답:', res.data);
-          setTemplate(res.data);
-          templateIdRef.current = parseInt(templateId);
+          const [templateRes, historyRes] = await Promise.all([
+            getMyTemplate(workspaceId, templateId),
+            getTemplateHistories(workspaceId, templateId),
+          ]);
+
+          console.log('기존 템플릿 불러오기 응답:', templateRes.data);
+          setTemplate(templateRes.data);
+          setLatestTemplate(templateRes.data);
+
+          console.log('채팅 이력 불러오기 응답:', historyRes.data);
+          if (historyRes.data && historyRes.data.length > 0) {
+            // Sort by creation date to ensure correct chronological order
+            const sortedHistory = [...historyRes.data].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+            const formattedHistory = sortedHistory.flatMap(turn => {
+              const messages = [];
+              // User message
+              if (turn.chatUser) {
+                messages.push({ type: 'user', text: turn.chatUser });
+              }
+              // Bot message with its corresponding template snapshot
+              if (turn.chatAi) {
+                const historyTemplate = {
+                  individualTemplateTitle: turn.individualTemplateTitle,
+                  individualTemplateContent: turn.individualTemplateContent,
+                  buttonTitle: turn.buttonTitle,
+                  // Add aliases for compatibility with preview components
+                  title: turn.individualTemplateTitle,
+                  content: turn.individualTemplateContent,
+                  text: turn.individualTemplateContent,
+                  button_name: turn.buttonTitle
+                };
+                messages.push({ 
+                  type: 'bot', 
+                  text: turn.chatAi, 
+                  template: historyTemplate 
+                });
+              }
+              return messages;
+            });
+            setChatHistory(formattedHistory);
+          }          templateIdRef.current = parseInt(templateId);
           console.log('templateIdRef 설정 완료:', templateIdRef.current);
         }
       } catch (err) {
@@ -163,7 +203,8 @@ function TemplateGeneratorPage() {
 
       // 2) 프리뷰 반영
       setTemplate(newTemplate);
-      setChatHistory(prev => [...prev, { type: 'bot', text: chatResponse }]);
+      setLatestTemplate(newTemplate);
+      setChatHistory(prev => [...prev, { type: 'bot', text: chatResponse, template: newTemplate }]);
 
       // 3) Spring 백엔드에 업데이트 먼저 수행
       console.log('업데이트 시작:', { workspaceId, templateId: templateIdRef.current });
@@ -173,6 +214,8 @@ function TemplateGeneratorPage() {
           individualTemplateContent: newTemplate.text || newTemplate.content || '',
           buttonTitle: newTemplate.button_name || newTemplate.buttonTitle || null,
           status: newTemplate.status ?? 'DRAFT',
+          chatUser: userInput,
+          chatAi: chatResponse,
         };
 
         console.log('업데이트 페이로드:', payload);
@@ -199,6 +242,14 @@ function TemplateGeneratorPage() {
     }
   };
 
+  const handlePreviewHistoryTemplate = (historyTemplate) => {
+    setTemplate(historyTemplate);
+  };
+
+  const handleReturnToLatest = () => {
+    setTemplate(latestTemplate);
+  };
+
   // 기존 템플릿을 불러오는 경우에만 로딩 화면 표시 (새 템플릿 생성인 경우는 제외)
   if (!template && templateId !== 'new') {
     return <div>{error || '템플릿을 불러오는 중입니다...'}</div>;
@@ -207,13 +258,20 @@ function TemplateGeneratorPage() {
   return (
       <div className="template-generator-container">
         <div className="chat-area-wrapper">
-          <ChatArea chatHistory={chatHistory} onSendMessage={handleSendMessage} loading={loading} />
+          <ChatArea 
+            chatHistory={chatHistory} 
+            onSendMessage={handleSendMessage} 
+            loading={loading}
+            onPreviewTemplate={handlePreviewHistoryTemplate} 
+          />
         </div>
         <div className="preview-area-wrapper">
           <TemplatePreviewArea 
             template={template} 
             validationResult={validationResult}
             validationLoading={validationLoading}
+            isPreviewingHistory={template !== latestTemplate}
+            onReturnToLatest={handleReturnToLatest}
           />
         </div>
       </div>

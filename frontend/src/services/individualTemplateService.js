@@ -31,3 +31,7 @@ export const deleteMyTemplate = (workspaceId, templateId) =>
 /** 공유 (엔드포인트는 Swagger에서 확인) */
 export const shareMyTemplate = (workspaceId, templateId) =>
     api.post(`/${workspaceId}/templates/${templateId}/share`);
+
+/** 채팅 이력 조회 */
+export const getTemplateHistories = (workspaceId, templateId) =>
+    api.get(`/${workspaceId}/templates/${templateId}/histories`);
