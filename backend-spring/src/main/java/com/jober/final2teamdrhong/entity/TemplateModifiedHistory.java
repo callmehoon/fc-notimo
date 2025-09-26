@@ -33,6 +33,12 @@ public class TemplateModifiedHistory extends BaseEntity {
     @Column(name = "button_title", length = 50)
     private String buttonTitle;
 
+    @Column(name = "chat_ai", columnDefinition = "TEXT")
+    private String chatAi;
+
+    @Column(name = "chat_user", columnDefinition = "TEXT")
+    private String chatUser;
+
     @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
     private Status status;
@@ -42,7 +48,4 @@ public class TemplateModifiedHistory extends BaseEntity {
     @JoinColumn(name = "individual_template_id", nullable = false)
     private IndividualTemplate individualTemplate;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "chat_message_id", nullable = false)
-    private ChatMessage chatMessage;
 }
