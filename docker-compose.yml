@@ -21,10 +21,8 @@ services:
     container_name: python-ai
     ports:
       - "8000:8000"
-    environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN}
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    env_file:
+      - .env
 
   frontend:
     # 로컬에서는 별도 스크립트로 실행할 것이므로, Docker 서비스를 비활성화합니다.
