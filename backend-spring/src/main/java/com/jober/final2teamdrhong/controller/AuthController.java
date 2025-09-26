@@ -8,7 +8,6 @@ import com.jober.final2teamdrhong.dto.userLogin.UserLoginRequest;
 import com.jober.final2teamdrhong.dto.userLogin.UserLoginResponse;
 import com.jober.final2teamdrhong.dto.userLogout.UserLogoutRequest;
 import com.jober.final2teamdrhong.dto.userSignup.UserSignupRequest;
-import com.jober.final2teamdrhong.dto.userSignup.UserSignupResponse;
 import com.jober.final2teamdrhong.exception.ErrorResponse;
 import com.jober.final2teamdrhong.service.AuthService;
 import com.jober.final2teamdrhong.service.EmailService;
@@ -79,19 +78,14 @@ public class AuthController {
     @Operation(summary = "로컬 회원가입", description = "이메일 인증을 완료한 후 로컬 계정으로 회원가입을 진행합니다.")
     @ApiResponses(value = {
         @ApiResponse(
-            responseCode = "200",
+            responseCode = "201",
             description = "회원가입 성공",
             content = @Content(
-                schema = @Schema(implementation = UserSignupResponse.class),
                 examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
                     name = "회원가입 성공",
-                    value = """
-                    {
-                        "success": true,
-                        "message": "회원가입이 성공적으로 완료되었습니다.",
-                        "data": null
-                    }
-                    """
+                        value = "{}"
+
+
                 )
             )
         ),
@@ -113,7 +107,7 @@ public class AuthController {
         )
     })
     @PostMapping("/signup")
-    public ResponseEntity<UserSignupResponse> signup(
+    public ResponseEntity<Void> signup(
             @Parameter(description = "회원가입 요청 정보 (사용자명, 이메일, 비밀번호, 인증코드 포함)", required = true)
             @Valid @RequestBody UserSignupRequest userSignupRequest,
             HttpServletRequest request) {
@@ -124,9 +118,9 @@ public class AuthController {
         authService.signupWithRateLimit(userSignupRequest, clientIp);
 
         log.info("회원가입 성공: ip={}, email={}", clientIp, userSignupRequest.email());
-        return ResponseEntity.status(201).body(
-            UserSignupResponse.success("회원가입이 성공적으로 완료되었습니다.")
-        );
+        return ResponseEntity.status(201).build();
+
+
     }
 
     @Operation(summary = "로컬 로그인", description = "이메일과 비밀번호를 사용하여 로컬 계정으로 로그인합니다.")
