@@ -68,7 +68,12 @@ public class SecurityConfig implements WebMvcConfigurer {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .headers(headers -> {
                     // 클릭재킹 공격 방지 (X-Frame-Options)
-                    headers.frameOptions(frameOptions -> frameOptions.deny());
+                    // 개발 환경에서는 H2 Console을 위해 iframe 허용
+                    if (isDevelopment) {
+                        headers.frameOptions(frameOptions -> frameOptions.sameOrigin());
+                    } else {
+                        headers.frameOptions(frameOptions -> frameOptions.deny());
+                    }
                     // MIME 타입 스니핑 방지 (X-Content-Type-Options)
                     headers.contentTypeOptions(contentType -> {});
 
