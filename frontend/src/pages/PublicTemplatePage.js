@@ -14,7 +14,9 @@ import SearchInput from '../components/common/SearchInput';
 import Pagination from '../components/common/Pagination';
 import TemplateCard from '../components/template/TemplateCard';
 import CommonButton from '../components/button/CommonButton';
+import ErrorBoundary from '../components/common/ErrorBoundary';
 import { getPublicTemplates, createIndividualTemplateFromPublic, deletePublicTemplate } from '../services/publicTemplateService';
+import { addPublicTemplateToFavorites, removePublicTemplateFromFavorites, getFavoriteTemplates } from '../services/favoriteService';
 
 const ITEMS_PER_PAGE = 8;
 
@@ -24,6 +26,7 @@ export default function PublicTemplatePage() {
     const [sortOrder, setSortOrder] = useState('createdAt,desc'); // API-compatible sort order
     const [templates, setTemplates] = useState([]);
     const [totalPages, setTotalPages] = useState(0);
+    const [favoriteTemplates, setFavoriteTemplates] = useState(new Set()); // 즐겨찾기 템플릿 ID 저장
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -36,12 +39,12 @@ export default function PublicTemplatePage() {
                     sort: sortField,
                     direction: sortDirection.toUpperCase(),
                 };
-                
+
                 // 검색어가 있으면 추가
                 if (searchQuery.trim()) {
                     pageable.q = searchQuery.trim();
                 }
-                
+
                 const response = await getPublicTemplates(pageable);
                 setTemplates(response.data.content);
                 setTotalPages(response.data.totalPages);
@@ -51,7 +54,31 @@ export default function PublicTemplatePage() {
             }
         };
 
+        const fetchFavorites = async () => {
+            try {
+                const workspaceId = localStorage.getItem('selectedWorkspaceId');
+                if (workspaceId) {
+                    const favoriteResponse = await getFavoriteTemplates(workspaceId, 'PUBLIC', { page: 0, size: 1000 });
+                    const favoriteIds = new Set(
+                        favoriteResponse.data.content?.map(fav => fav.publicTemplateId).filter(Boolean) || []
+                    );
+                    setFavoriteTemplates(favoriteIds);
+                }
+            } catch (error) {
+                console.error("Failed to fetch favorites:", error);
+                console.error("즐겨찾기 로드 실패 상세:", {
+                    message: error.message,
+                    response: error.response?.data,
+                    status: error.response?.status,
+                    url: error.response?.config?.url
+                });
+                // 즐겨찾기 로드 실패해도 빈 Set으로 초기화하여 앱 동작 계속
+                setFavoriteTemplates(new Set());
+            }
+        };
+
         fetchTemplates();
+        fetchFavorites();
     }, [currentPage, sortOrder, searchQuery]);
 
     const handleSearch = (query) => { setSearchQuery(query); setCurrentPage(1); };
@@ -88,10 +115,49 @@ export default function PublicTemplatePage() {
         }
     };
 
+    const handleFavoriteToggle = async (templateId) => {
+        const workspaceId = localStorage.getItem('selectedWorkspaceId');
+        if (!workspaceId) {
+            alert('워크스페이스를 선택해주세요.');
+            return;
+        }
+
+        const isFavorite = favoriteTemplates.has(templateId);
+
+        if (isFavorite) {
+            // 이미 즐겨찾기에 있으면 삭제는 즐겨찾기 페이지에서만
+            alert('즐겨찾기 해제는 즐겨찾기 페이지에서 가능합니다.');
+            return;
+        }
+
+        // 즐겨찾기 추가는 여기서 가능
+        try {
+            await addPublicTemplateToFavorites(workspaceId, templateId);
+            setFavoriteTemplates(prev => new Set(prev).add(templateId));
+            console.log('공용 템플릿 즐겨찾기에 추가됨:', templateId);
+        } catch (error) {
+            console.error("즐겨찾기 추가 실패:", error);
+
+            let errorMessage = '즐겨찾기 추가 중 오류가 발생했습니다.';
+            if (error.response?.status === 404) {
+                errorMessage = '템플릿을 찾을 수 없습니다.';
+            } else if (error.response?.status === 401) {
+                errorMessage = '로그인이 필요합니다.';
+            } else if (error.response?.status === 409) {
+                errorMessage = '이미 즐겨찾기에 등록된 템플릿입니다.';
+            } else if (error.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            }
+
+            alert(errorMessage);
+        }
+    };
+
     return (
-        <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-            <CssBaseline />
-            <Sidebar />
+        <ErrorBoundary>
+            <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+                <CssBaseline />
+                <Sidebar />
 
             <Box component="main" sx={{ flexGrow: 1, p: 3, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexShrink: 0 }}>
@@ -125,15 +191,19 @@ export default function PublicTemplatePage() {
                             },
                         }}
                     >
-                        {templates.map(template => (
-                            <TemplateCard 
+                        {templates && templates.length > 0 ? templates.map(template => (
+                            <TemplateCard
                                 key={template.publicTemplateId}
-                                template={template} 
+                                template={template}
                                 onUse={() => handleUseTemplate(template.publicTemplateId)}
                                 onDelete={() => handleDeleteTemplate(template.publicTemplateId)}
+                                onFavorite={() => handleFavoriteToggle(template.publicTemplateId)}
+                                isFavorite={favoriteTemplates.has(template.publicTemplateId)}
                                 isPublicTemplate={true}
                             />
-                        ))}
+                        )) : (
+                            <div>템플릿이 없습니다.</div>
+                        )}
                     </Box>
                 </Box>
 
@@ -144,5 +214,6 @@ export default function PublicTemplatePage() {
                 />
             </Box>
         </Box>
+        </ErrorBoundary>
     );
 }
