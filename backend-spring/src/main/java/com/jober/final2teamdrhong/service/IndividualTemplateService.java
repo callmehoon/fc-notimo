@@ -1,5 +1,6 @@
 package com.jober.final2teamdrhong.service;
 
+import com.jober.final2teamdrhong.dto.individualtemplate.HistoryResponse;
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplatePageableRequest;
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateResponse;
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateUpdateRequest;
@@ -20,7 +21,9 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import static com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateResponse.toResponse;
 
@@ -181,6 +184,19 @@ public class IndividualTemplateService {
                                                                                     Integer individualTemplateId) {
         log.info("[@Async] thread={}, isVirtual={}", Thread.currentThread().getName(), Thread.currentThread().isVirtual());
         return CompletableFuture.completedFuture(getIndividualTemplate(workspaceId, userId, individualTemplateId));
+    }
+
+    @Transactional(readOnly = true)
+    public List<HistoryResponse> getTemplateModifiedHistories(Integer workspaceId, Integer individualTemplateId, Integer userId) {
+        workspaceValidator.validateTemplateOwnership(workspaceId, userId);
+        IndividualTemplate individualTemplate = workspaceValidator.validateTemplateOwnership(workspaceId, individualTemplateId);
+
+        List<TemplateModifiedHistory> histories = templateModifiedHistoryRepository
+                .findAllByIndividualTemplateOrderByCreatedAtDesc(individualTemplate);
+
+        return histories.stream()
+                .map(HistoryResponse::fromEntity)
+                .collect(Collectors.toList());
     }
 
     /**
