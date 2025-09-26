@@ -30,12 +30,12 @@ export default function ContactManagementPage() {
         <Box sx={{ flexGrow: 1, display: 'flex', gap: 3, overflow: 'hidden' }}>
           {/* 중앙 영역: 주소록 관리 */}
           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', border: '1px solid #ddd', borderRadius: '8px', p: 2, overflow: 'hidden' }}>
-            <AddressBookManager onGroupSelect={handleGroupSelect} />
+            <AddressBookManager onGroupSelect={handleGroupSelect} selectedGroup={selectedGroup} />
           </Box>
 
           {/* 우측 영역: 연락처 목록 */}
           <Box sx={{ flex: 2, display: 'flex', flexDirection: 'column', border: '1px solid #ddd', borderRadius: '8px', p: 2, overflow: 'hidden' }}>
-            <ContactListManager selectedGroup={selectedGroup} onClearGroup={() => handleGroupSelect(null)} />
+            <ContactListManager selectedGroup={selectedGroup} onGroupSelect={handleGroupSelect} />
           </Box>
         </Box>
       </Box>
