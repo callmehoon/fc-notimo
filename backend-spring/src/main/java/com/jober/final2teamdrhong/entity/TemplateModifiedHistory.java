@@ -15,10 +15,6 @@ import org.hibernate.annotations.SQLRestriction;
 @SQLRestriction("is_deleted = false")
 public class TemplateModifiedHistory extends BaseEntity {
 
-    public enum Status {
-        DRAFT, PENDING, APPROVED, REJECTED
-    }
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "history_id")
@@ -33,16 +29,19 @@ public class TemplateModifiedHistory extends BaseEntity {
     @Column(name = "button_title", length = 50)
     private String buttonTitle;
 
+    @Column(name = "chat_ai", columnDefinition = "TEXT")
+    private String chatAi;
+
+    @Column(name = "chat_user", columnDefinition = "TEXT")
+    private String chatUser;
+
     @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
-    private Status status;
+    private IndividualTemplate.Status status;
 
     // ===== 관계 필드 =====
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "individual_template_id", nullable = false)
     private IndividualTemplate individualTemplate;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "chat_message_id", nullable = false)
-    private ChatMessage chatMessage;
 }
