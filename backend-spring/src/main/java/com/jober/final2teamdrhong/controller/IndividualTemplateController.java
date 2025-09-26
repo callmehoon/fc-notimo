@@ -262,7 +262,8 @@ public class IndividualTemplateController {
     @Operation(
             summary = "개인 템플릿 수정",
             description = "개인 템플릿의 제목, 내용, 버튼 제목을 수정합니다." +
-            "수정 시 상태는 항상 DRAFT로 설정"
+            "수정 시 상태는 항상 DRAFT로 설정",
+            security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "템플릿 수정 성공"),
@@ -289,7 +290,8 @@ public class IndividualTemplateController {
     @PutMapping("/{workspaceId}/templates/{individualTemplateId}/status")
     @Operation(
             summary = "개인 템플릿 상태 수정",
-            description = "템플릿의 상태(Status)를 변경합니다."
+            description = "템플릿의 상태(Status)를 변경합니다.",
+            security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "상태 변경 성공"),

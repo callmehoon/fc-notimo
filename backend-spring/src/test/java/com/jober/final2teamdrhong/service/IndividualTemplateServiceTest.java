@@ -8,6 +8,7 @@ import com.jober.final2teamdrhong.entity.PublicTemplate;
 import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
+import com.jober.final2teamdrhong.repository.TemplateModifiedHistoryRepository;
 import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -19,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -45,6 +47,9 @@ class IndividualTemplateServiceTest {
 
     @Mock
     private PublicTemplateRepository publicTemplateRepo;
+
+    @Mock
+    private TemplateModifiedHistoryRepository templateModifiedHistoryRepo;
 
     @InjectMocks
     private IndividualTemplateService service;
@@ -576,7 +581,7 @@ class IndividualTemplateServiceTest {
             Integer userId = 100;
 
             IndividualTemplateUpdateRequest request =
-                    new IndividualTemplateUpdateRequest("제목", "내용", "버튼");
+                    new IndividualTemplateUpdateRequest("제목", "내용", "버튼", "AI채팅", "사용자채팅");
 
             IndividualTemplate templateMock = mock(IndividualTemplate.class);
 
@@ -603,7 +608,7 @@ class IndividualTemplateServiceTest {
             Integer userId = 100;
             Integer missingId = 999;
             IndividualTemplateUpdateRequest request =
-                    new IndividualTemplateUpdateRequest("제목", "내용", "버튼");
+                    new IndividualTemplateUpdateRequest("제목", "내용", "버튼", "AI채팅", "사용자채팅");
 
             when(workspaceValidator.validateAndGetWorkspace(workspaceId, userId))
                     .thenReturn(workspaceMock);
@@ -628,7 +633,7 @@ class IndividualTemplateServiceTest {
             Integer templateId = 5;
 
             IndividualTemplateUpdateRequest request =
-                    new IndividualTemplateUpdateRequest("제목", "내용", "버튼");
+                    new IndividualTemplateUpdateRequest("제목", "내용", "버튼", "AI채팅", "사용자채팅");
 
             when(workspaceValidator.validateAndGetWorkspace(wrongWorkspaceId, userId))
                     .thenThrow(new IllegalArgumentException("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + wrongWorkspaceId));

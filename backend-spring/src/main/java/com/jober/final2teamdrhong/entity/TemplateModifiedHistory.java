@@ -35,7 +35,7 @@ public class TemplateModifiedHistory extends BaseEntity {
     @Column(name = "chat_user", columnDefinition = "TEXT")
     private String chatUser;
 
-    @Column(name = "status", nullable = false)
+    @Column(name = "status", nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
     private IndividualTemplate.Status status;
 

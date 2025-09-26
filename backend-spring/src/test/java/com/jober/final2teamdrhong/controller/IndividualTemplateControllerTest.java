@@ -265,7 +265,7 @@ class IndividualTemplateControllerTest {
         Integer workspaceId = 10, templateId = 1;
 
         IndividualTemplateUpdateRequest request =
-                new IndividualTemplateUpdateRequest("수정된 제목", "수정된 내용", "수정된 버튼");
+                new IndividualTemplateUpdateRequest("수정된 제목", "수정된 내용", "수정된 버튼", "AI채팅", "사용자채팅");
 
         IndividualTemplateResponse expected = makeResponse(
                 templateId,
