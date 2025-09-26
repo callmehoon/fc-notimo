@@ -66,17 +66,17 @@ class PhoneBookServiceTest {
         // 1. 테스트에 사용할 ID와 요청 DTO를 준비합니다.
         Integer userId = 1;
         Integer workspaceId = 1;
-        PhoneBookRequest.CreateDTO createDTO = PhoneBookRequest.CreateDTO.builder()
-                .phoneBookName("테스트 주소록")
-                .phoneBookMemo("테스트 메모입니다.")
-                .build();
+        PhoneBookRequest.CreateDTO createDTO = new PhoneBookRequest.CreateDTO(
+                "테스트 주소록",
+                "테스트 메모입니다."
+        );
 
         // 2. Mock 객체들을 준비합니다.
         Workspace mockWorkspace = mock(Workspace.class);
         PhoneBook phoneBookToSave = PhoneBook.builder()
                 .phoneBookId(1) // DTO 변환을 위해 ID 설정
-                .phoneBookName(createDTO.getPhoneBookName())
-                .phoneBookMemo(createDTO.getPhoneBookMemo())
+                .phoneBookName(createDTO.phoneBookName())
+                .phoneBookMemo(createDTO.phoneBookMemo())
                 .workspace(mockWorkspace)
                 .build();
 
@@ -95,9 +95,9 @@ class PhoneBookServiceTest {
         // then
         // 1. 반환된 DTO가 null이 아닌지, 그리고 필드 값들이 요청한 데이터와 일치하는지 검증합니다.
         assertNotNull(result);
-        assertEquals(1, result.getPhoneBookId());
-        assertEquals("테스트 주소록", result.getPhoneBookName());
-        assertEquals("테스트 메모입니다.", result.getPhoneBookMemo());
+        assertEquals(1, result.phoneBookId());
+        assertEquals("테스트 주소록", result.phoneBookName());
+        assertEquals("테스트 메모입니다.", result.phoneBookMemo());
 
         // 2. Validator와 Repository의 메소드가 각각 정확히 1번씩 호출되었는지 검증합니다.
         verify(workspaceValidator, times(1)).validateAndGetWorkspace(workspaceId, userId);
@@ -111,7 +111,10 @@ class PhoneBookServiceTest {
         // 1. 테스트에 사용할 ID와 요청 DTO를 준비합니다.
         Integer userId = 1;
         Integer unauthorizedWorkspaceId = 999;
-        PhoneBookRequest.CreateDTO createDTO = new PhoneBookRequest.CreateDTO();
+        PhoneBookRequest.CreateDTO createDTO = new PhoneBookRequest.CreateDTO(
+                "테스트 주소록",
+                "테스트 메모입니다."
+        );
 
         // 2. Mockito 행동 정의: workspaceValidator가 예외를 던지도록 설정합니다.
         when(workspaceValidator.validateAndGetWorkspace(unauthorizedWorkspaceId, userId))
@@ -167,7 +170,7 @@ class PhoneBookServiceTest {
                 .thenReturn(mockWorkspace); // 워크스페이스 검증 통과
         when(phoneBookValidator.validateAndGetPhoneBook(workspaceId, phoneBookId))
                 .thenReturn(mockPhoneBook); // 주소록 검증 통과
-        when(recipientValidator.validateAndGetRecipients(workspaceId, requestDTO.getRecipientIds()))
+        when(recipientValidator.validateAndGetRecipients(workspaceId, requestDTO.recipientIds()))
                 .thenReturn(mockRecipients); // 수신자 검증 통과
 
         // 4. Mock Repository들의 동작을 정의합니다.
@@ -197,11 +200,11 @@ class PhoneBookServiceTest {
         // 1. 결과 DTO가 null이 아닌지 확인합니다.
         assertThat(result).isNotNull();
         // 2. 결과 DTO의 주소록 ID가 올바른지 확인합니다.
-        assertThat(result.getPhoneBookId()).isEqualTo(phoneBookId);
+        assertThat(result.phoneBookId()).isEqualTo(phoneBookId);
         // 3. 실제로 추가된 수신자 목록의 크기가 2인지 확인합니다.
-        assertThat(result.getRecipientList().size()).isEqualTo(2);
+        assertThat(result.recipientList().size()).isEqualTo(2);
         // 4. 추가된 수신자들의 ID가 2와 3인지 확인합니다.
-        assertThat(result.getRecipientList()).extracting("recipientId").containsExactlyInAnyOrder(2, 3);
+        assertThat(result.recipientList()).extracting("recipientId").containsExactlyInAnyOrder(2, 3);
         // 5. bulkInsertMappings와 findAllByPhoneBook_PhoneBookIdAndRecipient_RecipientIdIn가 정확히 1번씩 호출되었는지 검증합니다.
         verify(groupMappingRepository, times(1)).bulkInsertMappings(eq(phoneBookId), eq(List.of(2, 3)), any(LocalDateTime.class));
         verify(groupMappingRepository, times(1)).findAllByPhoneBook_PhoneBookIdAndRecipient_RecipientIdIn(eq(phoneBookId), eq(List.of(2, 3)));
@@ -243,7 +246,7 @@ class PhoneBookServiceTest {
                 .thenReturn(mockWorkspace);
         when(phoneBookValidator.validateAndGetPhoneBook(workspaceId, phoneBookId))
                 .thenReturn(mockPhoneBook);
-        when(recipientValidator.validateAndGetRecipients(workspaceId, requestDTO.getRecipientIds()))
+        when(recipientValidator.validateAndGetRecipients(workspaceId, requestDTO.recipientIds()))
                 .thenReturn(mockRecipients);
         when(groupMappingRepository.findRecipientIdsByPhoneBook(mockPhoneBook))
                 .thenReturn(existingRecipientIds);
@@ -267,9 +270,9 @@ class PhoneBookServiceTest {
         // 1. 결과 DTO가 null이 아닌지 확인합니다.
         assertThat(result).isNotNull();
         // 2. 실제로 추가된 수신자는 1명(2번)이어야 합니다.
-        assertThat(result.getRecipientList().size()).isEqualTo(1);
+        assertThat(result.recipientList().size()).isEqualTo(1);
         // 3. 추가된 수신자의 ID가 2번인지 확인합니다.
-        assertThat(result.getRecipientList().getFirst().getRecipientId()).isEqualTo(2);
+        assertThat(result.recipientList().getFirst().recipientId()).isEqualTo(2);
         // 4. bulkInsertMappings와 findAllByPhoneBook_PhoneBookIdAndRecipient_RecipientIdIn가 정확히 1번씩 호출되었는지 검증합니다.
         verify(groupMappingRepository, times(1)).bulkInsertMappings(eq(phoneBookId), eq(List.of(2)), any(LocalDateTime.class));
         verify(groupMappingRepository, times(1)).findAllByPhoneBook_PhoneBookIdAndRecipient_RecipientIdIn(eq(phoneBookId), eq(List.of(2)));
@@ -303,7 +306,7 @@ class PhoneBookServiceTest {
                 .thenReturn(mockWorkspace);
         when(phoneBookValidator.validateAndGetPhoneBook(workspaceId, phoneBookId))
                 .thenReturn(mockPhoneBook);
-        when(recipientValidator.validateAndGetRecipients(workspaceId, requestDTO.getRecipientIds()))
+        when(recipientValidator.validateAndGetRecipients(workspaceId, requestDTO.recipientIds()))
                 .thenReturn(mockRecipients);
         when(groupMappingRepository.findRecipientIdsByPhoneBook(mockPhoneBook))
                 .thenReturn(existingRecipientIds);
@@ -316,7 +319,7 @@ class PhoneBookServiceTest {
         // 1. 결과 DTO가 null이 아닌지 확인합니다.
         assertThat(result).isNotNull();
         // 2. 추가된 수신자 목록이 비어있는지 확인합니다.
-        assertThat(result.getRecipientList()).isEmpty();
+        assertThat(result.recipientList()).isEmpty();
         // 3. (중요) 신규 추가할 수신자가 없으므로 bulkInsertMappings와 findAllByPhoneBook_PhoneBookIdAndRecipient_RecipientIdIn 메서드가 호출되지 않아야 합니다.
         verify(groupMappingRepository, never()).bulkInsertMappings(any(), any(), any());
         verify(groupMappingRepository, never()).findAllByPhoneBook_PhoneBookIdAndRecipient_RecipientIdIn(any(), any());
@@ -362,10 +365,10 @@ class PhoneBookServiceTest {
         assertThat(result).hasSize(2);
         // 3. 반환된 주소록들의 ID와 이름이 예상과 일치하는지 확인합니다.
         assertThat(result)
-                .extracting(PhoneBookResponse.SimpleDTO::getPhoneBookId)
+                .extracting(PhoneBookResponse.SimpleDTO::phoneBookId)
                 .containsExactly(1, 2);
         assertThat(result)
-                .extracting(PhoneBookResponse.SimpleDTO::getPhoneBookName)
+                .extracting(PhoneBookResponse.SimpleDTO::phoneBookName)
                 .containsExactly("주소록1", "주소록2");
 
         // 4. Validator와 Repository의 메소드가 각각 정확히 1번씩 호출되었는지 검증합니다.
@@ -460,11 +463,11 @@ class PhoneBookServiceTest {
         assertThat(result.getNumberOfElements()).isEqualTo(2);
         // 4. 반환된 수신자들의 ID가 예상과 일치하는지 확인합니다.
         assertThat(result.getContent())
-                .extracting(RecipientResponse.SimpleDTO::getRecipientId)
+                .extracting(RecipientResponse.SimpleDTO::recipientId)
                 .containsExactly(1, 2);
         // 5. 반환된 수신자들의 이름이 예상과 일치하는지 확인합니다.
         assertThat(result.getContent())
-                .extracting(RecipientResponse.SimpleDTO::getRecipientName)
+                .extracting(RecipientResponse.SimpleDTO::recipientName)
                 .containsExactly("수신자1", "수신자2");
 
         // 6. Validator와 Repository의 메소드가 각각 정확히 1번씩 호출되었는지 검증합니다.
@@ -514,10 +517,10 @@ class PhoneBookServiceTest {
         Integer workspaceId = 1;
         Integer phoneBookId = 1;
         Integer userId = 1;
-        PhoneBookRequest.UpdateDTO updateDTO = PhoneBookRequest.UpdateDTO.builder()
-                .newPhoneBookName("수정된 주소록명")
-                .newPhoneBookMemo("수정된 메모입니다.")
-                .build();
+        PhoneBookRequest.UpdateDTO updateDTO = new PhoneBookRequest.UpdateDTO(
+                "수정된 주소록명",
+                "수정된 메모입니다."
+        );
 
         // 2. Mock 객체들을 준비합니다.
         Workspace mockWorkspace = mock(Workspace.class);
@@ -543,9 +546,9 @@ class PhoneBookServiceTest {
         // then
         // 1. 반환된 DTO가 null이 아닌지, 그리고 필드 값들이 수정된 데이터와 일치하는지 검증합니다.
         assertNotNull(result);
-        assertEquals(phoneBookId, result.getPhoneBookId());
-        assertEquals("수정된 주소록명", result.getPhoneBookName());
-        assertEquals("수정된 메모입니다.", result.getPhoneBookMemo());
+        assertEquals(phoneBookId, result.phoneBookId());
+        assertEquals("수정된 주소록명", result.phoneBookName());
+        assertEquals("수정된 메모입니다.", result.phoneBookMemo());
 
         // 2. 엔티티의 필드가 실제로 업데이트되었는지 검증합니다.
         assertEquals("수정된 주소록명", existingPhoneBook.getPhoneBookName());
@@ -567,10 +570,10 @@ class PhoneBookServiceTest {
         Integer unauthorizedWorkspaceId = 999;
         Integer phoneBookId = 1;
         Integer userId = 1;
-        PhoneBookRequest.UpdateDTO updateDTO = PhoneBookRequest.UpdateDTO.builder()
-                .newPhoneBookName("수정된 주소록명")
-                .newPhoneBookMemo("수정된 메모입니다.")
-                .build();
+        PhoneBookRequest.UpdateDTO updateDTO = new PhoneBookRequest.UpdateDTO(
+                "수정된 주소록명",
+                "수정된 메모입니다."
+        );
 
         // 2. Mockito 행동 정의: workspaceValidator가 예외를 던지도록 설정합니다.
         when(workspaceValidator.validateAndGetWorkspace(unauthorizedWorkspaceId, userId))
@@ -598,10 +601,10 @@ class PhoneBookServiceTest {
         Integer workspaceId = 1;
         Integer nonExistentPhoneBookId = 999;
         Integer userId = 1;
-        PhoneBookRequest.UpdateDTO updateDTO = PhoneBookRequest.UpdateDTO.builder()
-                .newPhoneBookName("수정된 주소록명")
-                .newPhoneBookMemo("수정된 메모입니다.")
-                .build();
+        PhoneBookRequest.UpdateDTO updateDTO = new PhoneBookRequest.UpdateDTO(
+                "수정된 주소록명",
+                "수정된 메모입니다."
+        );
 
         // 2. Mock 객체를 준비합니다.
         Workspace mockWorkspace = mock(Workspace.class);
@@ -663,9 +666,9 @@ class PhoneBookServiceTest {
         // then
         // 1. 반환된 DTO가 null이 아닌지, 그리고 필드 값들이 예상과 일치하는지 검증합니다.
         assertNotNull(result);
-        assertEquals(phoneBookId, result.getPhoneBookId());
-        assertEquals("삭제할 주소록", result.getPhoneBookName());
-        assertEquals("삭제 테스트용 메모", result.getPhoneBookMemo());
+        assertEquals(phoneBookId, result.phoneBookId());
+        assertEquals("삭제할 주소록", result.phoneBookName());
+        assertEquals("삭제 테스트용 메모", result.phoneBookMemo());
 
         // 2. 엔티티의 softDelete() 메서드가 호출되었는지 검증합니다.
         verify(existingPhoneBook, times(1)).softDelete();
@@ -856,7 +859,7 @@ class PhoneBookServiceTest {
                 .thenReturn(mockWorkspace);
         when(phoneBookValidator.validateAndGetPhoneBook(workspaceId, phoneBookId))
                 .thenReturn(mockPhoneBook);
-        when(recipientValidator.validateAndGetRecipients(workspaceId, requestDTO.getRecipientIds()))
+        when(recipientValidator.validateAndGetRecipients(workspaceId, requestDTO.recipientIds()))
                 .thenReturn(List.of(recipient1, recipient2)); // 유효한 수신자 반환
         when(groupMappingRepository.findAllByPhoneBookAndRecipient_RecipientIdIn(mockPhoneBook, List.of(1, 2)))
                 .thenReturn(mappingsToDelete);
@@ -871,11 +874,11 @@ class PhoneBookServiceTest {
         // 1. 결과 DTO가 null이 아닌지 확인합니다.
         assertThat(result).isNotNull();
         // 2. 결과 DTO의 주소록 ID가 올바른지 확인합니다.
-        assertThat(result.getPhoneBookId()).isEqualTo(phoneBookId);
+        assertThat(result.phoneBookId()).isEqualTo(phoneBookId);
         // 3. 삭제된 수신자 목록의 크기가 2인지 확인합니다.
-        assertThat(result.getRecipientList().size()).isEqualTo(2);
+        assertThat(result.recipientList().size()).isEqualTo(2);
         // 4. 삭제된 수신자들의 ID가 1과 2인지 확인합니다.
-        assertThat(result.getRecipientList()).extracting("recipientId").containsExactlyInAnyOrder(1, 2);
+        assertThat(result.recipientList()).extracting("recipientId").containsExactlyInAnyOrder(1, 2);
 
         // 5. groupMappingRepository.softDeleteAllInBatch가 정확히 1번 호출되었는지 검증합니다.
         verify(groupMappingRepository, times(1)).softDeleteAllInBatch(eq(mappingsToDelete), any(LocalDateTime.class));
@@ -922,7 +925,7 @@ class PhoneBookServiceTest {
                 .thenReturn(mockWorkspace);
         when(phoneBookValidator.validateAndGetPhoneBook(workspaceId, phoneBookId))
                 .thenReturn(mockPhoneBook);
-        when(recipientValidator.validateAndGetRecipients(workspaceId, requestDTO.getRecipientIds()))
+        when(recipientValidator.validateAndGetRecipients(workspaceId, requestDTO.recipientIds()))
                 .thenReturn(validRecipients); // 유효한 수신자 반환
         when(groupMappingRepository.findAllByPhoneBookAndRecipient_RecipientIdIn(mockPhoneBook, List.of(1, 2)))
                 .thenReturn(List.of()); // 삭제할 매핑이 없음
@@ -935,9 +938,9 @@ class PhoneBookServiceTest {
         // 1. 결과 DTO가 null이 아닌지 확인합니다.
         assertThat(result).isNotNull();
         // 2. 결과 DTO의 주소록 ID가 올바른지 확인합니다.
-        assertThat(result.getPhoneBookId()).isEqualTo(phoneBookId);
+        assertThat(result.phoneBookId()).isEqualTo(phoneBookId);
         // 3. 삭제된 수신자 목록이 비어있는지 확인합니다.
-        assertThat(result.getRecipientList()).isEmpty();
+        assertThat(result.recipientList()).isEmpty();
 
         // 4. 삭제할 매핑이 없으므로 softDeleteAllInBatch가 호출되지 않았는지 검증합니다.
         verify(groupMappingRepository, never()).softDeleteAllInBatch(anyList(), any(LocalDateTime.class));
@@ -1061,7 +1064,7 @@ class PhoneBookServiceTest {
                 .thenReturn(mockWorkspace);
         when(phoneBookValidator.validateAndGetPhoneBook(workspaceId, phoneBookId))
                 .thenReturn(mockPhoneBook);
-        when(recipientValidator.validateAndGetRecipients(workspaceId, requestDTO.getRecipientIds()))
+        when(recipientValidator.validateAndGetRecipients(workspaceId, requestDTO.recipientIds()))
                 .thenReturn(List.of(validRecipient1, validRecipient2)); // 유효한 수신자 반환
         when(groupMappingRepository.findAllByPhoneBookAndRecipient_RecipientIdIn(mockPhoneBook, List.of(1, 2)))
                 .thenReturn(mappingsToDelete);
@@ -1077,9 +1080,9 @@ class PhoneBookServiceTest {
         // 1. 결과 DTO가 null이 아닌지 확인합니다.
         assertThat(result).isNotNull();
         // 2. 결과 DTO의 주소록 ID가 올바른지 확인합니다.
-        assertThat(result.getPhoneBookId()).isEqualTo(phoneBookId);
+        assertThat(result.phoneBookId()).isEqualTo(phoneBookId);
         // 3. 재조회 결과가 빈 리스트이므로 수신자 목록도 빈 것으로 반환됩니다.
-        assertThat(result.getRecipientList()).isEmpty();
+        assertThat(result.recipientList()).isEmpty();
 
         // 4. 소프트 딜리트는 실행되었는지 검증합니다.
         verify(groupMappingRepository, times(1)).softDeleteAllInBatch(eq(mappingsToDelete), any(LocalDateTime.class));

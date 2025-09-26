@@ -56,8 +56,8 @@ public class PhoneBookService {
 
         // 2. 엔티티 생성: DTO의 데이터를 기반으로 PhoneBook 엔티티를 생성합니다.
         PhoneBook phoneBook = PhoneBook.builder()
-                .phoneBookName(createDTO.getPhoneBookName())
-                .phoneBookMemo(createDTO.getPhoneBookMemo())
+                .phoneBookName(createDTO.phoneBookName())
+                .phoneBookMemo(createDTO.phoneBookMemo())
                 .workspace(workspace)
                 .build();
 
@@ -95,7 +95,7 @@ public class PhoneBookService {
         // 1. 폰북과 워크스페이스 권한 검증
         workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
         PhoneBook phoneBook = phoneBookValidator.validateAndGetPhoneBook(workspaceId, phoneBookId);
-        List<Recipient> allRequestedRecipients = recipientValidator.validateAndGetRecipients(workspaceId, recipientIdListDTO.getRecipientIds());
+        List<Recipient> allRequestedRecipients = recipientValidator.validateAndGetRecipients(workspaceId, recipientIdListDTO.recipientIds());
 
         // 2. 중복 방지를 위해 이미 존재하는 수신자 필터링
         List<Integer> existingRecipientIds = groupMappingRepository.findRecipientIdsByPhoneBook(phoneBook);
@@ -197,8 +197,8 @@ public class PhoneBookService {
         PhoneBook existingPhoneBook = phoneBookValidator.validateAndGetPhoneBook(workspaceId, phoneBookId);
 
         // 3. 정보 업데이트
-        existingPhoneBook.setPhoneBookName(updateDTO.getNewPhoneBookName());
-        existingPhoneBook.setPhoneBookMemo(updateDTO.getNewPhoneBookMemo());
+        existingPhoneBook.setPhoneBookName(updateDTO.newPhoneBookName());
+        existingPhoneBook.setPhoneBookMemo(updateDTO.newPhoneBookMemo());
         existingPhoneBook.update();
 
         return new PhoneBookResponse.SimpleDTO(existingPhoneBook);
@@ -279,7 +279,7 @@ public class PhoneBookService {
         // 1. 폰북과 워크스페이스 권한 검증
         workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
         PhoneBook phoneBook = phoneBookValidator.validateAndGetPhoneBook(workspaceId, phoneBookId);
-        List<Recipient> allRequestedRecipients = recipientValidator.validateAndGetRecipients(workspaceId, recipientIdListDTO.getRecipientIds());
+        List<Recipient> allRequestedRecipients = recipientValidator.validateAndGetRecipients(workspaceId, recipientIdListDTO.recipientIds());
 
         // 2. 삭제할 대상이 될 GroupMapping 엔티티들을 DB에서 조회합니다.
         List<Integer> existingRecipientIds = allRequestedRecipients.stream()

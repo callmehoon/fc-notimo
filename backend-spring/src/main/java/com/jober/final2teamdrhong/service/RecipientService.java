@@ -45,13 +45,13 @@ public class RecipientService {
         Workspace workspace = workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
 
         // 2. 중복 확인: 해당 워크스페이스에 동일한 이름과 번호의 수신자가 이미 존재하는지 검증합니다.
-        recipientValidator.validateNoDuplicateRecipientExists(workspace, createDTO.getRecipientName(), createDTO.getRecipientPhoneNumber());
+        recipientValidator.validateNoDuplicateRecipientExists(workspace, createDTO.recipientName(), createDTO.recipientPhoneNumber());
 
         // 3. 엔티티 생성: DTO의 데이터를 기반으로 Recipient 엔티티를 생성합니다.
         Recipient recipient = Recipient.builder()
-                .recipientName(createDTO.getRecipientName())
-                .recipientPhoneNumber(createDTO.getRecipientPhoneNumber())
-                .recipientMemo(createDTO.getRecipientMemo())
+                .recipientName(createDTO.recipientName())
+                .recipientPhoneNumber(createDTO.recipientPhoneNumber())
+                .recipientMemo(createDTO.recipientMemo())
                 .workspace(workspace)
                 .build();
 
@@ -112,12 +112,12 @@ public class RecipientService {
         Recipient existingRecipient = recipientValidator.validateAndGetRecipient(workspaceId, recipientId);
 
         // 3. 수정하려는 정보가 다른 수신자와 중복되는지 검증
-        recipientValidator.validateNoDuplicateRecipientExistsOnUpdate(existingRecipient.getWorkspace(), updateDTO.getNewRecipientName(), updateDTO.getNewRecipientPhoneNumber(), recipientId);
+        recipientValidator.validateNoDuplicateRecipientExistsOnUpdate(existingRecipient.getWorkspace(), updateDTO.newRecipientName(), updateDTO.newRecipientPhoneNumber(), recipientId);
 
         // 4. 정보 업데이트
-        existingRecipient.setRecipientName(updateDTO.getNewRecipientName());
-        existingRecipient.setRecipientPhoneNumber(updateDTO.getNewRecipientPhoneNumber());
-        existingRecipient.setRecipientMemo(updateDTO.getNewRecipientMemo());
+        existingRecipient.setRecipientName(updateDTO.newRecipientName());
+        existingRecipient.setRecipientPhoneNumber(updateDTO.newRecipientPhoneNumber());
+        existingRecipient.setRecipientMemo(updateDTO.newRecipientMemo());
         existingRecipient.update();
 
         return new RecipientResponse.SimpleDTO(existingRecipient);

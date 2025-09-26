@@ -28,10 +28,6 @@ public class IndividualTemplatePageableRequest {
     @Pattern(regexp = "(?i)latest|title", message = "sortType은 latest 또는 title 이어야 합니다.")
     private String sortType = "latest";
 
-    @Schema(description = "정렬 방향", example = "desc", allowableValues = {"asc", "desc"})
-    @Pattern(regexp = "(?i)asc|desc", message = "direction은 asc 또는 desc 이어야 합니다.")
-    private String direction = "desc";
-
     @Schema(description = "상태 필터(선택). 미지정 시 전체 조회", example = "DRAFT", nullable = true)
     private IndividualTemplate.Status status;
 
@@ -43,24 +39,21 @@ public class IndividualTemplatePageableRequest {
      * 필요 시 여기만 수정하면 전체 정책이 일관되게 반영됨
      */
     public Pageable toPageable() {
-        // 안전한 방향 파싱
-        Sort.Direction dir = "asc".equalsIgnoreCase(direction) ? Sort.Direction.ASC : Sort.Direction.DESC;
-
         Sort sort;
-        switch (sortType.toLowerCase()) {   // 👈 항상 소문자로 통일
-            case "title" -> sort = Sort.by(Sort.Order.by("individualTemplateTitle")
-                    .with(dir)
-                    .ignoreCase());
-            case "latest" -> sort = Sort.by(Sort.Order.by("updatedAt").with(dir));
-            default -> sort = Sort.by(Sort.Order.by("updatedAt").with(Sort.Direction.DESC));
+        switch (sortType.toLowerCase()) {
+            case "title" -> sort = Sort.by(Sort.Order.asc("individualTemplateTitle").ignoreCase());
+
+            case "latest" -> sort = Sort.by(Sort.Order.desc("updatedAt"));
+
+            default -> sort = Sort.by(Sort.Order.desc("updatedAt"));
         }
 
         // 보조 정렬
         sort = sort.and(Sort.by(Sort.Order.desc("individualTemplateId")));
-
-        log.info("[PageableRequest] sortType={}, direction={}, sort={}", sortType, direction, sort);
+        log.info("[PageableRequest] sortType={}, sort={}", sortType, sort);
 
         return PageRequest.of(page, size, sort);
     }
+
 
 }
