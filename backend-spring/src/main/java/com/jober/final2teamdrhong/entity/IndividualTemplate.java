@@ -42,7 +42,7 @@ public class IndividualTemplate extends BaseEntity {
     @JoinColumn(name = "workspace_id")
     private Workspace workspace;
 
-    @OneToMany(mappedBy = "individualTemplate", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "individualTemplate")
     private List<TemplateModifiedHistory> histories;
 
     // 엔티티의 상태 변화 즉, DB 값의 변화이기 때문에 엔티티에서 작성
