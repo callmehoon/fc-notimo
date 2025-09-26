@@ -41,6 +41,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         
         // 인증이 필요한 엔드포인트인지 확인
         if (isPublicEndpoint(request.getRequestURI())) {
+            // 공개 엔드포인트는 익명 인증으로 처리
+            SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("anonymous", null, Collections.emptyList())
+            );
             filterChain.doFilter(request, response);
             return;
         }
