@@ -66,6 +66,7 @@ public class User extends BaseEntity {
                 .userName(userName)
                 .userEmail(userEmail)
                 .userNumber(userNumber)
+                .userRole(UserRole.USER) // 명시적으로 USER 권한 설정
                 .build();
     }
 

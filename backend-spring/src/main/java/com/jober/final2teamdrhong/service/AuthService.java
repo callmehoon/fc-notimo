@@ -2,14 +2,17 @@ package com.jober.final2teamdrhong.service;
 
 import com.jober.final2teamdrhong.config.AuthProperties;
 import com.jober.final2teamdrhong.config.JwtConfig;
+import com.jober.final2teamdrhong.dto.auth.SocialSignupRequest;
+import com.jober.final2teamdrhong.dto.auth.SocialSignupResponse;
 import com.jober.final2teamdrhong.dto.userLogin.TokenRefreshResponse;
 import com.jober.final2teamdrhong.dto.userLogin.UserLoginRequest;
 import com.jober.final2teamdrhong.dto.userLogin.UserLoginResponse;
 import com.jober.final2teamdrhong.dto.userSignup.UserSignupRequest;
 import com.jober.final2teamdrhong.entity.User;
 import com.jober.final2teamdrhong.entity.UserAuth;
+import com.jober.final2teamdrhong.dto.auth.OAuth2UserInfoFactory;
 import com.jober.final2teamdrhong.exception.AuthenticationException;
-import com.jober.final2teamdrhong.exception.DuplicateResourceException;
+import com.jober.final2teamdrhong.exception.BusinessException;
 import com.jober.final2teamdrhong.repository.UserRepository;
 import com.jober.final2teamdrhong.service.storage.VerificationStorage;
 import com.jober.final2teamdrhong.util.LogMaskingUtil;
@@ -37,6 +40,7 @@ public class AuthService {
     private final BlacklistService blacklistService;
     private final AuthProperties authProperties;
     private final TimingAttackProtection timingAttackProtection;
+    private final UserValidationService userValidationService;
 
     /**
      * Rate limiting과 함께 회원가입 처리
@@ -53,7 +57,7 @@ public class AuthService {
         log.info("회원가입 시작: email={}", requestDto.email());
 
         // 1. 비즈니스 규칙 검증 (기본 유효성 검증은 @Valid에서 처리됨)
-        validateBusinessRules(requestDto);
+        userValidationService.validateLocalSignupBusinessRules(requestDto);
 
         // 2. 인증 코드 검증
         validateVerificationCode(requestDto.email(), requestDto.verificationCode());
@@ -88,15 +92,6 @@ public class AuthService {
         }
     }
 
-    private void validateBusinessRules(UserSignupRequest requestDto) {
-        // 이메일 중복 확인 (비즈니스 규칙)
-        if (userRepository.findByUserEmail(requestDto.email()).isPresent()) {
-            throw new DuplicateResourceException("이미 가입된 이메일입니다.");
-        }
-
-        // 추가 비즈니스 규칙들이 여기에 들어갈 수 있음
-        // 예: 이메일 도메인 제한, 사용자명 금지어 체크 등
-    }
 
     private void validateVerificationCode(String email, String inputCode) {
         // Rate limiting 검사: 이메일별 검증 실패 제한
@@ -111,6 +106,93 @@ public class AuthService {
         }
 
         log.info("인증 코드 검증 성공 (일회성): email={}", LogMaskingUtil.maskEmail(email));
+    }
+
+    /**
+     * 소셜 로그인 회원가입 완료 처리
+     * OAuth2 정보와 사용자가 입력한 핸드폰 번호를 결합하여 회원가입을 완료합니다.
+     *
+     * @param request 소셜 회원가입 요청 정보
+     * @return 회원가입 완료 응답 (JWT 토큰 포함)
+     */
+    public SocialSignupResponse completeSocialSignup(SocialSignupRequest request) {
+        log.info("소셜 회원가입 완료 시작 - 제공자: {}, 이메일: {}", request.provider(), LogMaskingUtil.maskEmail(request.email()));
+
+        try {
+            // 1. 소셜 회원가입 비즈니스 규칙 검증
+            userValidationService.validateSocialSignupBusinessRules(request.email(), request.name(), request);
+
+            // 2. 새로운 User 및 소셜 인증 생성
+            User newUser = createSocialUser(request);
+
+            // 3. JWT 토큰 발급
+            String accessToken = jwtConfig.generateAccessToken(newUser.getUserEmail(), newUser.getUserId());
+            String refreshToken = refreshTokenService.createRefreshToken(newUser, "social-signup");
+
+            log.info("소셜 회원가입 완료 성공 - 사용자 ID: {}, 이메일: {}, 제공자: {}",
+                    newUser.getUserId(), LogMaskingUtil.maskEmail(newUser.getUserEmail()), request.provider());
+
+            // 4. 응답 생성
+            return SocialSignupResponse.success(
+                    newUser.getUserId(),
+                    accessToken,
+                    refreshToken,
+                    newUser.getUserEmail(),
+                    newUser.getUserName(),
+                    newUser.getUserRole().name(),
+                    request.provider()
+            );
+
+        } catch (BusinessException | AuthenticationException e) {
+            log.warn("소셜 회원가입 완료 실패 - 제공자: {}, 이메일: {}, 오류: {}",
+                    request.provider(), LogMaskingUtil.maskEmail(request.email()), e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("소셜 회원가입 완료 중 예상치 못한 오류 - 제공자: {}, 이메일: {}, 오류: {}",
+                    request.provider(), LogMaskingUtil.maskEmail(request.email()), e.getMessage(), e);
+            throw new BusinessException("회원가입 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+        }
+    }
+
+
+    /**
+     * 소셜 사용자 생성 및 저장
+     */
+    private User createSocialUser(SocialSignupRequest request) {
+        try {
+            // 1. 새로운 User 생성
+            User newUser = User.create(
+                    request.name(),
+                    request.email(),
+                    request.getNormalizedPhoneNumber()
+            );
+
+            // 2. OAuth2 제공자에 따른 AuthType 결정
+            UserAuth.AuthType authType = OAuth2UserInfoFactory.getAuthType(request.provider());
+
+            // 3. 소셜 인증 정보 생성
+            UserAuth socialAuth = UserAuth.createSocialAuth(
+                    newUser,
+                    authType,
+                    request.socialId()
+            );
+
+            // 4. 소셜 인증은 이미 완료된 상태로 설정
+            socialAuth.markAsVerified();
+
+            // 5. 관계 설정
+            newUser.addUserAuth(socialAuth);
+
+            // 6. 사용자 저장
+            userRepository.save(newUser);
+
+            return newUser;
+
+        } catch (Exception e) {
+            log.error("소셜 사용자 생성 실패 - 이메일: {}, 제공자: {}, 오류: {}",
+                    LogMaskingUtil.maskEmail(request.email()), request.provider(), e.getMessage());
+            throw new BusinessException("사용자 계정 생성에 실패했습니다.");
+        }
     }
 
     /**
