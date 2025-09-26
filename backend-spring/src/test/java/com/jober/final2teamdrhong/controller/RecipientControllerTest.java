@@ -94,11 +94,11 @@ class RecipientControllerTest {
     void createRecipient_Success_Test() throws Exception {
         // given
         // 1. API 요청 본문에 담아 보낼 DTO 객체를 생성합니다.
-        RecipientRequest.CreateDTO createDTO = RecipientRequest.CreateDTO.builder()
-                .recipientName("홍길동")
-                .recipientPhoneNumber("010-1234-5678")
-                .recipientMemo("VIP 고객")
-                .build();
+        RecipientRequest.CreateDTO createDTO = new RecipientRequest.CreateDTO(
+                "홍길동",
+                "010-1234-5678",
+                "VIP 고객"
+        );
 
         // 2. DTO 객체를 JSON 문자열로 변환합니다.
         String requestBody = objectMapper.writeValueAsString(createDTO);
@@ -136,10 +136,11 @@ class RecipientControllerTest {
     void createRecipient_Fail_Validation_Test() throws Exception {
         // given
         // 1. DTO의 @NotBlank 제약조건을 위반하는, 비어있는 recipientName을 가진 DTO를 준비합니다.
-        RecipientRequest.CreateDTO createDTO = RecipientRequest.CreateDTO.builder()
-                .recipientName("") // @NotBlank 위반
-                .recipientPhoneNumber("010-1234-5678")
-                .build();
+        RecipientRequest.CreateDTO createDTO = new RecipientRequest.CreateDTO(
+                "",
+                "010-1234-5678",
+                "VIP 고객"
+        );
 
         String requestBody = objectMapper.writeValueAsString(createDTO);
 
@@ -166,10 +167,11 @@ class RecipientControllerTest {
         Integer unauthorizedWorkspaceId = 999;
 
         // 2. 요청 본문에 담길 DTO를 준비합니다.
-        RecipientRequest.CreateDTO createDTO = RecipientRequest.CreateDTO.builder()
-                .recipientName("홍길동")
-                .recipientPhoneNumber("010-1234-5678")
-                .build();
+        RecipientRequest.CreateDTO createDTO = new RecipientRequest.CreateDTO(
+                "홍길동",
+                "010-1234-5678",
+                "VIP 고객"
+        );
 
         String requestBody = objectMapper.writeValueAsString(createDTO);
 
@@ -200,11 +202,11 @@ class RecipientControllerTest {
                 .build());
 
         // 2. 동일한 이름과 번호를 가진 수신자 생성을 시도하는 DTO를 준비합니다.
-        RecipientRequest.CreateDTO createDTO = RecipientRequest.CreateDTO.builder()
-                .recipientName("김철수")  // 기존과 동일한 이름
-                .recipientPhoneNumber("010-1111-1111")  // 기존과 동일한 번호
-                .recipientMemo("중복 시도")
-                .build();
+        RecipientRequest.CreateDTO createDTO = new RecipientRequest.CreateDTO(
+                "김철수",
+                "010-1111-1111",
+                "중복 시도"
+        );
 
         String requestBody = objectMapper.writeValueAsString(createDTO);
 
@@ -302,11 +304,11 @@ class RecipientControllerTest {
         String originalUpdatedAt = savedRecipient.getUpdatedAt().toString();
 
         // 2. API 요청 본문에 담아 보낼 수정용 DTO 객체를 생성합니다.
-        RecipientRequest.UpdateDTO updateDTO = RecipientRequest.UpdateDTO.builder()
-                .newRecipientName("김길동")
-                .newRecipientPhoneNumber("010-9999-8888")
-                .newRecipientMemo("수정된 메모")
-                .build();
+        RecipientRequest.UpdateDTO updateDTO = new RecipientRequest.UpdateDTO(
+                "김길동",
+                "010-9999-8888",
+                "수정된 메모"
+        );
 
         // 3. DTO 객체를 JSON 문자열로 변환합니다.
         String requestBody = objectMapper.writeValueAsString(updateDTO);
@@ -351,10 +353,11 @@ class RecipientControllerTest {
                 .build());
 
         // 2. DTO의 @NotBlank 제약조건을 위반하는, 비어있는 newRecipientName을 가진 DTO를 준비합니다.
-        RecipientRequest.UpdateDTO updateDTO = RecipientRequest.UpdateDTO.builder()
-                .newRecipientName("") // @NotBlank 위반
-                .newRecipientPhoneNumber("010-9999-8888")
-                .build();
+        RecipientRequest.UpdateDTO updateDTO = new RecipientRequest.UpdateDTO(
+                "",
+                "010-9999-8888",
+                "수정된 메모"
+        );
 
         String requestBody = objectMapper.writeValueAsString(updateDTO);
 
@@ -393,11 +396,11 @@ class RecipientControllerTest {
                 .build());
 
         // 3. 다른 수신자와 동일한 이름과 번호로 수정을 시도하는 DTO를 준비합니다.
-        RecipientRequest.UpdateDTO updateDTO = RecipientRequest.UpdateDTO.builder()
-                .newRecipientName("김철수")  // 기존 다른 수신자와 동일한 이름
-                .newRecipientPhoneNumber("010-3333-3333")  // 기존 다른 수신자와 동일한 번호
-                .newRecipientMemo("중복 시도")
-                .build();
+        RecipientRequest.UpdateDTO updateDTO = new RecipientRequest.UpdateDTO(
+                "김철수",
+                "010-3333-3333",
+                "중복 시도"
+        );
 
         // 4. DTO 객체를 JSON 문자열로 변환합니다.
         String requestBody = objectMapper.writeValueAsString(updateDTO);

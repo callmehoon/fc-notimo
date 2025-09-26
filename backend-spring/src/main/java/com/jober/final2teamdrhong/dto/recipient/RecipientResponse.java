@@ -3,7 +3,6 @@ package com.jober.final2teamdrhong.dto.recipient;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.jober.final2teamdrhong.entity.Recipient;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Getter;
 
 import java.time.LocalDateTime;
 
@@ -15,33 +14,34 @@ public class RecipientResponse {
     /**
      * 수신자의 기본 정보 응답을 위한 DTO
      */
-    @Getter
     @Schema(name = "RecipientSimpleDTO")
-    public static class SimpleDTO {
-        private final Integer recipientId;
-        private final String recipientName;
-        private final String recipientPhoneNumber;
-        private final String recipientMemo;
+    public record SimpleDTO(
+        Integer recipientId,
+        String recipientName,
+        String recipientPhoneNumber,
+        String recipientMemo,
         @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
-        private final LocalDateTime createdAt;
+        LocalDateTime createdAt,
         @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
-        private final LocalDateTime updatedAt;
+        LocalDateTime updatedAt,
         @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
-        private final LocalDateTime deletedAt;
-
+        LocalDateTime deletedAt
+    ) {
         /**
          * Recipient 엔티티를 SimpleDTO로 변환하는 생성자입니다.
          *
          * @param recipient 변환할 Recipient 엔티티 객체
          */
         public SimpleDTO(Recipient recipient) {
-            this.recipientId = recipient.getRecipientId();
-            this.recipientName = recipient.getRecipientName();
-            this.recipientPhoneNumber = recipient.getRecipientPhoneNumber();
-            this.recipientMemo = recipient.getRecipientMemo();
-            this.createdAt = recipient.getCreatedAt();
-            this.updatedAt = recipient.getUpdatedAt();
-            this.deletedAt = recipient.getDeletedAt();
+            this(
+                recipient.getRecipientId(),
+                recipient.getRecipientName(),
+                recipient.getRecipientPhoneNumber(),
+                recipient.getRecipientMemo(),
+                recipient.getCreatedAt(),
+                recipient.getUpdatedAt(),
+                recipient.getDeletedAt()
+            );
         }
     }
 }
