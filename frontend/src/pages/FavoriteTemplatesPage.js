@@ -17,7 +17,7 @@ const ITEMS_PER_PAGE = 12;
 export default function FavoriteTemplatesPage() {
     const params = useParams();
     // 라우터에 :workspaceId가 없으면 localStorage에서 보조
-    const workspaceId = params.workspaceId ?? localStorage.getItem('selectedWorkspaceId');
+    const [workspaceId, setWorkspaceId] = useState(() => params.workspaceId ?? localStorage.getItem('selectedWorkspaceId'));
 
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
@@ -57,6 +57,26 @@ export default function FavoriteTemplatesPage() {
 
         fetchFavorites();
     }, [workspaceId, currentPage, sortOrder]);
+
+    // localStorage 변경 감지
+    useEffect(() => {
+        const handleStorageChange = () => {
+            const newWorkspaceId = localStorage.getItem('selectedWorkspaceId');
+            if (newWorkspaceId && newWorkspaceId !== workspaceId) {
+                setWorkspaceId(newWorkspaceId);
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+
+        // 같은 탭에서의 변경도 감지하기 위해 주기적으로 체크
+        const interval = setInterval(handleStorageChange, 100);
+
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+            clearInterval(interval);
+        };
+    }, [workspaceId]);
 
     const handleSearch = (q) => { setSearchQuery(q); setCurrentPage(1); };
     const handlePageChange = (_, v) => setCurrentPage(v);
