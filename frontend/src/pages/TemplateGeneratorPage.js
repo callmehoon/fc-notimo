@@ -12,6 +12,7 @@ function TemplateGeneratorPage() {
   const [template, setTemplate] = useState(null);
   const templateIdRef = useRef(templateId !== 'new' ? parseInt(templateId) : null);
   const hasInitialized = useRef(false);
+  const validationAbortControllerRef = useRef(null); // 검증 요청 취소를 위한 AbortController
   const [chatHistory, setChatHistory] = useState([
     { type: 'bot', text: '안녕하세요. 템플릿 수정을 도와드릴게요. 어떤 변경을 원하시나요?' },
   ]);
@@ -65,8 +66,28 @@ function TemplateGeneratorPage() {
     initializeTemplate();
   }, [workspaceId, templateId]);
 
+  // 컴포넌트 언마운트 시 진행 중인 검증 요청 정리
+  useEffect(() => {
+    return () => {
+      if (validationAbortControllerRef.current) {
+        validationAbortControllerRef.current.abort();
+        console.log('컴포넌트 언마운트로 인한 검증 요청 취소');
+      }
+    };
+  }, []);
+
   // 템플릿 검증 함수
   const validateTemplate = async (templateToValidate) => {
+    // 이전 검증 요청이 있으면 취소
+    if (validationAbortControllerRef.current) {
+      validationAbortControllerRef.current.abort();
+      console.log('이전 검증 요청 취소됨');
+    }
+
+    // 새로운 AbortController 생성
+    const abortController = new AbortController();
+    validationAbortControllerRef.current = abortController;
+
     setValidationLoading(true);
     try {
       const validateRequest = {
@@ -76,20 +97,42 @@ function TemplateGeneratorPage() {
           button_name: templateToValidate.button_name || templateToValidate.buttonTitle || null
         }
       };
-      
-      const response = await apiAi.post('/validate', validateRequest);
-      setValidationResult(response.data);
-      return response.data;
+
+      const response = await apiAi.post('/validate', validateRequest, {
+        signal: abortController.signal // AbortController signal 추가
+      });
+
+      // 요청이 취소되지 않았을 때만 결과 설정
+      if (!abortController.signal.aborted) {
+        setValidationResult(response.data);
+        validationAbortControllerRef.current = null; // 완료된 요청 정리
+        return response.data;
+      }
     } catch (error) {
+      if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
+        console.log('검증 요청이 취소되었습니다.');
+        return null; // 취소된 경우 null 반환
+      }
       console.error('템플릿 검증 실패:', error);
-      setValidationResult({ result: 'error', probability: '검증 중 오류가 발생했습니다.' });
+      if (!abortController.signal.aborted) {
+        setValidationResult({ result: 'error', probability: '검증 중 오류가 발생했습니다.' });
+      }
     } finally {
-      setValidationLoading(false);
+      if (!abortController.signal.aborted) {
+        setValidationLoading(false);
+      }
     }
   };
 
   const handleSendMessage = async (userInput) => {
     if (!userInput.trim()) return;
+
+    // 새로운 사용자 요청이 들어오면 진행 중인 FastAPI 검증 즉시 취소
+    if (validationAbortControllerRef.current) {
+      validationAbortControllerRef.current.abort();
+      console.log('새로운 사용자 요청으로 인한 검증 취소');
+      setValidationLoading(false); // 검증 로딩 상태도 초기화
+    }
 
     setChatHistory(prev => [...prev, { type: 'user', text: userInput }]);
     setLoading(true);
@@ -122,10 +165,7 @@ function TemplateGeneratorPage() {
       setTemplate(newTemplate);
       setChatHistory(prev => [...prev, { type: 'bot', text: chatResponse }]);
 
-      // 3) 템플릿 검증
-      await validateTemplate(newTemplate);
-
-      // 4) 백엔드에 업데이트 (빈 템플릿은 이미 생성됨)
+      // 3) Spring 백엔드에 업데이트 먼저 수행
       console.log('업데이트 시작:', { workspaceId, templateId: templateIdRef.current });
       if (templateIdRef.current) {
         const payload = {
@@ -134,14 +174,20 @@ function TemplateGeneratorPage() {
           buttonTitle: newTemplate.button_name || newTemplate.buttonTitle || null,
           status: newTemplate.status ?? 'DRAFT',
         };
-        
+
         console.log('업데이트 페이로드:', payload);
         await updateMyTemplate(workspaceId, templateIdRef.current, payload);
-        console.log('업데이트 완료');
+        console.log('Spring 백엔드 업데이트 완료');
       } else {
         console.error('templateIdRef.current가 없음:', templateIdRef.current);
         throw new Error('템플릿 ID가 없습니다. 페이지를 새로고침해주세요.');
       }
+
+      // 4) FastAPI 검증을 비동기로 처리 (채팅 진행을 방해하지 않음)
+      validateTemplate(newTemplate).catch(error => {
+        console.error('백그라운드 검증 실패:', error);
+        // 검증 실패해도 사용자 경험에는 영향 없음
+      });
 
     } catch (err) {
       const errorMessage = 'API 호출에 실패했습니다. 다시 시도해주세요.';
