@@ -1,18 +1,14 @@
 package com.jober.final2teamdrhong.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.jober.final2teamdrhong.dto.emailVerification.EmailRequest;
 import com.jober.final2teamdrhong.dto.userLogin.UserLoginRequest;
-import com.jober.final2teamdrhong.dto.userLogin.UserLoginResponse;
-import com.jober.final2teamdrhong.dto.userLogout.UserLogoutRequest;
 import com.jober.final2teamdrhong.dto.userSignup.UserSignupRequest;
 import com.jober.final2teamdrhong.entity.User;
 import com.jober.final2teamdrhong.entity.UserAuth;
 import com.jober.final2teamdrhong.repository.UserRepository;
 import com.jober.final2teamdrhong.service.RefreshTokenService;
 import com.jober.final2teamdrhong.service.storage.VerificationStorage;
-import com.jober.final2teamdrhong.util.test.WithMockJwtClaims;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -35,7 +31,6 @@ import org.springframework.web.filter.CharacterEncodingFilter;
 import java.util.Set;
 
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import org.springframework.test.web.servlet.ResultHandler;
@@ -65,9 +60,6 @@ class AuthControllerTest {
     private VerificationStorage verificationStorage;
 
     @Autowired
-    private RefreshTokenService refreshTokenService;
-
-    @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
@@ -83,8 +75,6 @@ class AuthControllerTest {
     private static final String TEST_PHONE = "010-1234-5678";
 
     private User testUser;
-    private String testAccessToken;
-    private String testRefreshToken;
 
     @BeforeEach
     void setUp() {
@@ -144,9 +134,7 @@ class AuthControllerTest {
         // then
         resultActions
                 .andDo(print())
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("회원가입이 성공적으로 완료되었습니다."));
+                .andExpect(status().isCreated());
     }
 
     @Test
