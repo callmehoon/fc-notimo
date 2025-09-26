@@ -5,9 +5,11 @@ import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateRespo
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateUpdateRequest;
 import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import com.jober.final2teamdrhong.entity.PublicTemplate;
+import com.jober.final2teamdrhong.entity.TemplateModifiedHistory;
 import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
+import com.jober.final2teamdrhong.repository.TemplateModifiedHistoryRepository;
 import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +31,7 @@ public class IndividualTemplateService {
     private final IndividualTemplateRepository individualTemplateRepository;
     private final PublicTemplateRepository publicTemplateRepository;
     private final WorkspaceValidator workspaceValidator;
+    private final TemplateModifiedHistoryRepository templateModifiedHistoryRepository;
 
     @Transactional
     public IndividualTemplateResponse createTemplate(Integer workspaceId, Integer userId) {
@@ -199,6 +202,19 @@ public class IndividualTemplateService {
                 request.getButtonTitle(),
                 IndividualTemplate.Status.DRAFT
         );
+
+        TemplateModifiedHistory history = TemplateModifiedHistory.builder()
+                .historyTitle(individualTemplate.getIndividualTemplateTitle())
+                .historyContent(individualTemplate.getIndividualTemplateContent())
+                .buttonTitle(individualTemplate.getButtonTitle())
+                .chatAi(request.getChatAi())
+                .chatUser(request.getChatUser())
+                .status(individualTemplate.getStatus())
+                .individualTemplate(individualTemplate)
+                .build();
+
+        templateModifiedHistoryRepository.save(history);
+
         return IndividualTemplateResponse.toResponse(individualTemplate);
     }
 
