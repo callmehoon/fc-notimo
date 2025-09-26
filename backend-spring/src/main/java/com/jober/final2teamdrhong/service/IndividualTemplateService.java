@@ -214,14 +214,10 @@ public class IndividualTemplateService {
 
         IndividualTemplate individualTemplate = workspaceValidator.validateTemplateOwnership(workspaceId, individualTemplateId);
 
-        List<TemplateModifiedHistory> histories = templateModifiedHistoryRepository
-                .findAllByIndividualTemplateOrderByCreatedAtDesc(individualTemplate);
-
-        histories.forEach(TemplateModifiedHistory::softDelete);
+        templateModifiedHistoryRepository.bulkSoftDeleteByTemplate(individualTemplate);
 
         individualTemplate.softDelete();
         individualTemplateRepository.save(individualTemplate);
-        templateModifiedHistoryRepository.saveAll(histories);
         log.info("Soft deleted template id = {}", individualTemplateId);
     }
 

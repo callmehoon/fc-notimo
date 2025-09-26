@@ -515,8 +515,6 @@ class IndividualTemplateServiceTest {
 
             when(workspaceValidator.validateAndGetWorkspace(workspaceId, userId)).thenReturn(workspaceMock);
             when(workspaceValidator.validateTemplateOwnership(workspaceId, id)).thenReturn(templateMock);
-            when(templateModifiedHistoryRepo.findAllByIndividualTemplateOrderByCreatedAtDesc(any(IndividualTemplate.class)))
-                    .thenReturn(Collections.emptyList());
 
             // when
             assertDoesNotThrow(() -> service.deleteTemplate(id, workspaceId, userId));
