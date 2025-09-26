@@ -7,6 +7,7 @@ import SearchInput from "../components/common/SearchInput";
 import Pagination from "../components/common/Pagination";
 import TemplateCard from "../components/template/TemplateCard";
 import { listMyTemplates, deleteMyTemplate, shareMyTemplate } from '../services/individualTemplateService';
+import { addIndividualTemplateToFavorites, removeIndividualTemplateFromFavorites, getFavoriteTemplates } from '../services/favoriteService';
 
 const ITEMS_PER_PAGE = 8;
 const tabLabels = ['전체', '심사중', '심사완료', '반려'];
@@ -36,6 +37,7 @@ export default function TemplatePage() {
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState(null);
+    const [favoriteTemplates, setFavoriteTemplates] = useState(new Set()); // 즐겨찾기 템플릿 ID 저장
 
     const load = async () => {
         setLoading(true); setErr(null);
@@ -64,6 +66,28 @@ export default function TemplatePage() {
         }
     };
 
+    const loadFavorites = async () => {
+        try {
+            if (workspaceId) {
+                const favoriteResponse = await getFavoriteTemplates(workspaceId, 'INDIVIDUAL', { page: 0, size: 1000 });
+                const favoriteIds = new Set(
+                    favoriteResponse.data.content?.map(fav => fav.individualTemplateId).filter(Boolean) || []
+                );
+                setFavoriteTemplates(favoriteIds);
+            }
+        } catch (error) {
+            console.error("Failed to fetch favorites:", error);
+            console.error("즐겨찾기 로드 실패 상세:", {
+                message: error.message,
+                response: error.response?.data,
+                status: error.response?.status,
+                url: error.response?.config?.url
+            });
+            // 즐겨찾기 로드 실패해도 빈 Set으로 초기화하여 앱 동작 계속
+            setFavoriteTemplates(new Set());
+        }
+    };
+
     // localStorage 변경 감지
     useEffect(() => {
         const handleStorageChange = () => {
@@ -84,7 +108,11 @@ export default function TemplatePage() {
         };
     }, [workspaceId]);
 
-    useEffect(() => { load(); /* eslint-disable-next-line */ }, [workspaceId, tabValue, sortOrder, searchQuery, currentPage]);
+    useEffect(() => {
+        load();
+        loadFavorites();
+        /* eslint-disable-next-line */
+    }, [workspaceId, tabValue, sortOrder, searchQuery, currentPage]);
 
     const handleTabChange = (_, v) => { setTabValue(v); setCurrentPage(1); };
     const handleSortChange = (e) => { setSortOrder(e.target.value); setCurrentPage(1); };
@@ -113,6 +141,43 @@ export default function TemplatePage() {
 
     const handleEdit = (templateId) => {
         navigate(`/workspace/${workspaceId}/templategenerator/${templateId}`);
+    };
+
+    const handleFavoriteToggle = async (templateId) => {
+        if (!workspaceId) {
+            alert('워크스페이스를 선택해주세요.');
+            return;
+        }
+
+        const isFavorite = favoriteTemplates.has(templateId);
+
+        if (isFavorite) {
+            // 이미 즐겨찾기에 있으면 삭제는 즐겨찾기 페이지에서만
+            alert('즐겨찾기 해제는 즐겨찾기 페이지에서 가능합니다.');
+            return;
+        }
+
+        // 즐겨찾기 추가는 여기서 가능
+        try {
+            await addIndividualTemplateToFavorites(workspaceId, templateId);
+            setFavoriteTemplates(prev => new Set(prev).add(templateId));
+            console.log('개인 템플릿 즐겨찾기에 추가됨:', templateId);
+        } catch (error) {
+            console.error("즐겨찾기 추가 실패:", error);
+
+            let errorMessage = '즐겨찾기 추가 중 오류가 발생했습니다.';
+            if (error.response?.status === 404) {
+                errorMessage = '템플릿을 찾을 수 없습니다.';
+            } else if (error.response?.status === 401) {
+                errorMessage = '로그인이 필요합니다.';
+            } else if (error.response?.status === 409) {
+                errorMessage = '이미 즐겨찾기에 등록된 템플릿입니다.';
+            } else if (error.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            }
+
+            alert(errorMessage);
+        }
     };
 
     const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
@@ -177,6 +242,8 @@ export default function TemplatePage() {
                                     onDelete={() => handleDelete(t.individualTemplateId)}
                                     onShare={() => handleShare(t.individualTemplateId)}
                                     onEdit={() => handleEdit(t.individualTemplateId)}
+                                    onFavorite={() => handleFavoriteToggle(t.individualTemplateId)}
+                                    isFavorite={favoriteTemplates.has(t.individualTemplateId)}
                                     showActions
                                     isPublicTemplate={false}
                                 />
