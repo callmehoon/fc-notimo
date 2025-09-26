@@ -12,6 +12,7 @@ import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -113,19 +114,37 @@ public class IndividualTemplateService {
         // 워크스페이스 검증
         workspaceValidator.validateAndGetWorkspace(workspaceId, userId);
 
-        Pageable pageable = pageableRequest.toPageable();
+        // 최신순은 기존 DTO 정렬(Pageable) 그대로 사용 가능
+        if ("latest".equalsIgnoreCase(pageableRequest.getSortType())) {
+            Pageable pageable = pageableRequest.toPageable();
+
+            if (pageableRequest.getStatus() == null) {
+                return individualTemplateRepository.findByWorkspace_WorkspaceId(workspaceId, pageable)
+                        .map(IndividualTemplateResponse::toResponse);
+            } else {
+                return individualTemplateRepository.findByWorkspace_WorkspaceIdAndStatus(
+                                workspaceId,
+                                pageableRequest.getStatus(),
+                                pageable)
+                        .map(IndividualTemplateResponse::toResponse);
+            }
+        }
+
+        // 제목순은 NULL 뒤로 가야 하므로 Repository 전용 쿼리 사용
+        Pageable pageable = PageRequest.of(pageableRequest.getPage(), pageableRequest.getSize());
 
         if (pageableRequest.getStatus() == null) {
-            return individualTemplateRepository.findByWorkspace_WorkspaceId(workspaceId, pageable)
+            return individualTemplateRepository.findAllByWorkspaceOrderByTitleAsc(workspaceId, pageable)
                     .map(IndividualTemplateResponse::toResponse);
         } else {
-            return individualTemplateRepository.findByWorkspace_WorkspaceIdAndStatus(
-                    workspaceId,
-                    pageableRequest.getStatus(),
-                    pageable)
+            return individualTemplateRepository.findAllByWorkspaceAndStatusOrderByTitleAsc(
+                            workspaceId,
+                            pageableRequest.getStatus(),
+                            pageable)
                     .map(IndividualTemplateResponse::toResponse);
         }
     }
+
 
     @Async
     @Transactional(readOnly = true)
