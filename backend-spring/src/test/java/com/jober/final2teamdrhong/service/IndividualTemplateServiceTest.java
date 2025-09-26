@@ -8,6 +8,7 @@ import com.jober.final2teamdrhong.entity.PublicTemplate;
 import com.jober.final2teamdrhong.entity.Workspace;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
+import com.jober.final2teamdrhong.repository.TemplateModifiedHistoryRepository;
 import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -19,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -45,6 +47,9 @@ class IndividualTemplateServiceTest {
 
     @Mock
     private PublicTemplateRepository publicTemplateRepo;
+
+    @Mock
+    private TemplateModifiedHistoryRepository templateModifiedHistoryRepo;
 
     @InjectMocks
     private IndividualTemplateService service;
@@ -510,6 +515,8 @@ class IndividualTemplateServiceTest {
 
             when(workspaceValidator.validateAndGetWorkspace(workspaceId, userId)).thenReturn(workspaceMock);
             when(workspaceValidator.validateTemplateOwnership(workspaceId, id)).thenReturn(templateMock);
+            when(templateModifiedHistoryRepo.findAllByIndividualTemplateOrderByCreatedAtDesc(any(IndividualTemplate.class)))
+                    .thenReturn(Collections.emptyList());
 
             // when
             assertDoesNotThrow(() -> service.deleteTemplate(id, workspaceId, userId));
