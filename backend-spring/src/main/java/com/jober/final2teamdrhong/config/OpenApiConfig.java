@@ -21,28 +21,23 @@ import java.util.List;
 )
 public class OpenApiConfig {
 
-    @Value("${app.environment.development:true}")
-    private boolean isDevelopment;
+    @Value("${app.swagger.server-url}")
+    private String serverUrl;
 
     @Bean
     public OpenAPI openAPI() {
         Info info = new Info()
                 .title("notimo API Documentation")
-                .description("로컬 회원가입 및 이메일 인증 시스템을 포함한 notimo 백엔드 API 문서입니다.")
+                .description("notimo 백엔드 API 문서입니다.")
                 .version("v1.0")
                 .contact(new Contact()
                         .name("notimo Development Team")
                         .email("dev@notimo.com"));
 
-        // 개발환경에 따른 서버 설정
-        Server server = new Server();
-        if (isDevelopment) {
-            server.url("http://localhost:8080/api/")
-                  .description("로컬 개발 서버");
-        } else {
-            server.url("https://api.notimo.com")
-                  .description("운영 서버");
-        }
+        // 환경별 서버 URL 설정
+        Server server = new Server()
+                .url(serverUrl)
+                .description("API 서버");
 
         return new OpenAPI()
                 .info(info)
