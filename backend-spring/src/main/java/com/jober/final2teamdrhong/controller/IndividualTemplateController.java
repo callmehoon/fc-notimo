@@ -1,9 +1,6 @@
 package com.jober.final2teamdrhong.controller;
 
-import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplatePageableRequest;
-import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateResponse;
-import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateStatusUpdateRequest;
-import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateUpdateRequest;
+import com.jober.final2teamdrhong.dto.individualtemplate.*;
 import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
 import com.jober.final2teamdrhong.service.IndividualTemplateService;
 import com.jober.final2teamdrhong.service.validator.WorkspaceValidator;
@@ -22,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 
 
 @RestController
@@ -264,7 +262,8 @@ public class IndividualTemplateController {
     @Operation(
             summary = "개인 템플릿 수정",
             description = "개인 템플릿의 제목, 내용, 버튼 제목을 수정합니다." +
-            "수정 시 상태는 항상 DRAFT로 설정"
+            "수정 시 상태는 항상 DRAFT로 설정",
+            security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "템플릿 수정 성공"),
@@ -291,7 +290,8 @@ public class IndividualTemplateController {
     @PutMapping("/{workspaceId}/templates/{individualTemplateId}/status")
     @Operation(
             summary = "개인 템플릿 상태 수정",
-            description = "템플릿의 상태(Status)를 변경합니다."
+            description = "템플릿의 상태(Status)를 변경합니다.",
+            security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "상태 변경 성공"),
@@ -311,6 +311,29 @@ public class IndividualTemplateController {
                 workspaceId, individualTemplateId, userId, request.getStatus()
         );
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "개인 템플릿 수정 이력 조회",
+            description = "특정 개인 템플릿의 모든 수정 이력을 최신순으로 조회합니다.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "403", description = "접근 권한 없음"),
+            @ApiResponse(responseCode = "404", description = "템플릿 또는 워크스페이스 없음")
+    })
+    @GetMapping("/{workspaceId}/templates/{individualTemplateId}/histories")
+    public ResponseEntity<List<HistoryResponse>> getTemplateHistories(
+            @Parameter(description = "워크스페이스 ID", example = "1")
+            @PathVariable Integer workspaceId,
+            @Parameter(description = "개인 템플릿 ID", example = "2")
+            @PathVariable Integer individualTemplateId,
+            @AuthenticationPrincipal JwtClaims claims
+    ) {
+        Integer userId = claims.getUserId();
+        List<HistoryResponse> histories = individualTemplateService.getTemplateModifiedHistories(workspaceId, individualTemplateId, userId);
+        return ResponseEntity.ok(histories);
     }
 
 }

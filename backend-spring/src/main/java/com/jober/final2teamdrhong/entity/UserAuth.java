@@ -67,7 +67,58 @@ public class UserAuth extends BaseEntity {
     private LocalDateTime lastUsedAt;
 
     public enum AuthType {
-        LOCAL, GOOGLE, KAKAO, NAVER
+        LOCAL("Local", null, null, null, false),
+        GOOGLE("Google", "/api/auth/social/login/google",
+               "https://developers.google.com/identity/images/g-logo.png",
+               "구글 계정으로 간편 로그인", true),
+        KAKAO("Kakao", "/api/auth/social/login/kakao",
+              "https://developers.kakao.com/assets/img/about/logos/kakaolink/kakaolink_btn_medium.png",
+              "카카오 계정으로 간편 로그인", false),  // 향후 지원 예정
+        NAVER("Naver", "/api/auth/social/login/naver",
+              "https://developers.naver.com/inc/devcenter/uploads/2017/1/2017_naver_logo_03.png",
+              "네이버 계정으로 간편 로그인", false);  // 향후 지원 예정
+
+        private final String displayName;
+        private final String loginUrl;
+        private final String iconUrl;
+        private final String description;
+        private final boolean enabled;
+
+        AuthType(String displayName, String loginUrl, String iconUrl, String description, boolean enabled) {
+            this.displayName = displayName;
+            this.loginUrl = loginUrl;
+            this.iconUrl = iconUrl;
+            this.description = description;
+            this.enabled = enabled;
+        }
+
+        public String getDisplayName() { return displayName; }
+        public String getLoginUrl() { return loginUrl; }
+        public String getIconUrl() { return iconUrl; }
+        public String getDescription() { return description; }
+        public boolean isEnabled() { return enabled; }
+        public boolean isSocial() { return this != LOCAL; }
+
+        /**
+         * 현재 지원하는 소셜 로그인 제공자 목록 반환
+         */
+        public static AuthType[] getSupportedSocialProviders() {
+            return java.util.Arrays.stream(values())
+                    .filter(type -> type.isSocial() && type.isEnabled())
+                    .toArray(AuthType[]::new);
+        }
+
+        /**
+         * 제공자 이름으로 AuthType 찾기 (대소문자 무시)
+         */
+        public static AuthType fromProvider(String provider) {
+            if (provider == null) return null;
+            try {
+                return AuthType.valueOf(provider.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                return null;
+            }
+        }
     }
 
     // 로컬 인증 생성을 위한 정적 팩토리 메소드 추가
