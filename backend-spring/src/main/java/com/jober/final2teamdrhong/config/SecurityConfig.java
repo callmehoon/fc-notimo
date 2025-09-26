@@ -43,7 +43,7 @@ public class SecurityConfig implements WebMvcConfigurer {
     private final com.jober.final2teamdrhong.service.OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
     private final com.jober.final2teamdrhong.service.OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
 
-    @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:8080}")
+    @Value("${app.cors.allowed-origins:http://localhost:3000,http://127.0.0.1:3000,http://localhost:8080,http://127.0.0.1:8080,http://localhost:8000,http://127.0.0.1:8000}")
     private String allowedOrigins;
 
     @Value("${app.environment.development:true}")
@@ -235,7 +235,7 @@ public class SecurityConfig implements WebMvcConfigurer {
             "connect-src 'self' ws: wss:", // WebSocket 허용 (개발 서버)
             "media-src 'self'",
             "object-src 'none'",
-            "frame-src 'none'",
+            "frame-src 'self'",
             "base-uri 'self'",
             "form-action 'self'"
         );
@@ -258,7 +258,7 @@ public class SecurityConfig implements WebMvcConfigurer {
             "connect-src 'self' " + allowedDomains, // API 호출 허용 도메인
             "media-src 'self'",
             "object-src 'none'",
-            "frame-src 'none'",
+            "frame-src 'self'",
             "base-uri 'self'",
             "form-action 'self'",
             "upgrade-insecure-requests", // HTTP를 HTTPS로 업그레이드
