@@ -583,7 +583,7 @@ class IndividualTemplateServiceTest {
             Integer userId = 100;
 
             IndividualTemplateUpdateRequest request =
-                    new IndividualTemplateUpdateRequest("제목", "내용", "버튼");
+                    new IndividualTemplateUpdateRequest("제목", "내용", "버튼", "AI채팅", "사용자채팅");
 
             IndividualTemplate templateMock = mock(IndividualTemplate.class);
 
@@ -610,7 +610,7 @@ class IndividualTemplateServiceTest {
             Integer userId = 100;
             Integer missingId = 999;
             IndividualTemplateUpdateRequest request =
-                    new IndividualTemplateUpdateRequest("제목", "내용", "버튼");
+                    new IndividualTemplateUpdateRequest("제목", "내용", "버튼", "AI채팅", "사용자채팅");
 
             when(workspaceValidator.validateAndGetWorkspace(workspaceId, userId))
                     .thenReturn(workspaceMock);
@@ -635,7 +635,7 @@ class IndividualTemplateServiceTest {
             Integer templateId = 5;
 
             IndividualTemplateUpdateRequest request =
-                    new IndividualTemplateUpdateRequest("제목", "내용", "버튼");
+                    new IndividualTemplateUpdateRequest("제목", "내용", "버튼", "AI채팅", "사용자채팅");
 
             when(workspaceValidator.validateAndGetWorkspace(wrongWorkspaceId, userId))
                     .thenThrow(new IllegalArgumentException("워크스페이스를 찾을 수 없거나 접근권한이 없습니다. ID: " + wrongWorkspaceId));
