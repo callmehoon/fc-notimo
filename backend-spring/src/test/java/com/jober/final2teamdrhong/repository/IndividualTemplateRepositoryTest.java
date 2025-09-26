@@ -11,6 +11,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
@@ -169,5 +170,120 @@ class IndividualTemplateRepositoryTest {
         // then
         assertThat(found).isPresent();
         assertThat(found.get().getIndividualTemplateTitle()).isEqualTo("템플릿C");
+    }
+
+    @Test
+    @DisplayName("제목순 조회시 NULL 은 뒤로 정렬된다")
+    void findAllByWorkspaceOrderByTitleAsc_nullsLast() {
+
+        // given
+        User dummyUser = User.builder()
+                .userEmail("dummy@test.com")
+                .userNumber("1234")
+                .userName("테스트유저")
+                .build();
+
+        userRepository.save(dummyUser);
+
+        Workspace workspace = workspaceRepository.save(
+                Workspace.builder()
+                        .workspaceName("test-workspace")
+                        .workspaceUrl("http://test.com")
+                        .representerName("홍길동")
+                        .representerPhoneNumber("01012345678")
+                        .companyName("테스트회사")
+                        .user(dummyUser)
+                        .build()
+        );
+
+        // 제목이 NULL
+        individualTemplateRepository.save(
+                IndividualTemplate.builder()
+                        .workspace(workspace)
+                        .individualTemplateTitle(null)
+                        .build()
+        );
+
+        // 가나다 순
+        individualTemplateRepository.save(
+                IndividualTemplate.builder()
+                        .workspace(workspace)
+                        .individualTemplateTitle("가나다")
+                        .build()
+        );
+
+        individualTemplateRepository.save(
+                IndividualTemplate.builder()
+                        .workspace(workspace)
+                        .individualTemplateTitle("다라마")
+                        .build()
+        );
+
+        // when
+        Page<IndividualTemplate> page = individualTemplateRepository
+                .findAllByWorkspaceOrderByTitleAsc(workspace.getWorkspaceId(), PageRequest.of(0, 10));
+
+        List<IndividualTemplate> result = page.getContent();
+
+        // then
+        assertThat(result).hasSize(3);
+        assertThat(result.get(0).getIndividualTemplateTitle()).isEqualTo("가나다");
+        assertThat(result.get(1).getIndividualTemplateTitle()).isEqualTo("다라마");
+        assertThat(result.get(2).getIndividualTemplateTitle()).isNull(); // NULL 값은 마지막
+    }
+
+    @Test
+    @DisplayName("제목순 + 상태 조회")
+    void findAllByWorkspaceAndStatusOrderByTitleAsc() {
+
+        // given
+        User dummyUser = User.builder()
+                .userEmail("dummy@test.com")
+                .userNumber("1234")
+                .userName("테스트유저")
+                .build();
+
+        userRepository.save(dummyUser);
+
+        Workspace workspace = workspaceRepository.save(
+                Workspace.builder()
+                        .workspaceName("test-workspace")
+                        .workspaceUrl("http://test.com")
+                        .representerName("홍길동")
+                        .representerPhoneNumber("01012345678")
+                        .companyName("테스트회사")
+                        .user(dummyUser)
+                        .build()
+        );
+
+        IndividualTemplate draft = individualTemplateRepository.save(
+                IndividualTemplate.builder()
+                        .workspace(workspace)
+                        .status(IndividualTemplate.Status.DRAFT)
+                        .individualTemplateTitle("가나다")
+                        .build()
+        );
+
+        IndividualTemplate approved = individualTemplateRepository.save(
+                IndividualTemplate.builder()
+                        .workspace(workspace)
+                        .status(IndividualTemplate.Status.APPROVED)
+                        .individualTemplateTitle("다라마")
+                        .build()
+        );
+
+        // when
+        Page<IndividualTemplate> page = individualTemplateRepository
+                .findAllByWorkspaceAndStatusOrderByTitleAsc(
+                        workspace.getWorkspaceId(),
+                        IndividualTemplate.Status.DRAFT,
+                        PageRequest.of(0, 10));
+
+        List<IndividualTemplate> result = page.getContent();
+
+        // then
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getStatus()).isEqualTo(IndividualTemplate.Status.DRAFT);
+        assertThat(result.get(0).getIndividualTemplateTitle()).isEqualTo("가나다");
     }
 }
