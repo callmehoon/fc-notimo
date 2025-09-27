@@ -6,28 +6,37 @@ import {
     Grid,
     FormControl,
     Select,
-    MenuItem
+    MenuItem,
+    useTheme,
+    useMediaQuery
 } from '@mui/material';
-import Sidebar from '../components/layout/Sidebar';
-import WorkspaceList from '../components/layout/WorkspaceList';
 import SearchInput from '../components/common/SearchInput';
 import Pagination from '../components/common/Pagination';
 import TemplateCard from '../components/template/TemplateCard';
-import CommonButton from '../components/button/CommonButton';
 import ErrorBoundary from '../components/common/ErrorBoundary';
 import { getPublicTemplates, createIndividualTemplateFromPublic, deletePublicTemplate } from '../services/publicTemplateService';
 import { addPublicTemplateToFavorites, removePublicTemplateFromFavorites, getFavoriteTemplates } from '../services/favoriteService';
+import MainLayout from "../components/layout/MainLayout";
 
-const ITEMS_PER_PAGE = 8;
+// 기본 카드 갯수 설정
+const BASE_ITEMS_PER_PAGE = 6;  // 사이드바 열린 상태
+const EXPANDED_ITEMS_PER_PAGE = 8;  // 사이드바 닫힌 상태
 
-export default function PublicTemplatePage() {
+// 실제 컨텐츠 컴포넌트 (MainLayout 내부에서 사용)
+function PublicTemplateContent() {
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const [sortOrder, setSortOrder] = useState('createdAt,desc'); // API-compatible sort order
+    const [sortOrder, setSortOrder] = useState('createdAt,desc');
     const [templates, setTemplates] = useState([]);
     const [totalPages, setTotalPages] = useState(0);
-    const [favoriteTemplates, setFavoriteTemplates] = useState(new Set()); // 즐겨찾기 템플릿 ID 저장
+    const [favoriteTemplates, setFavoriteTemplates] = useState(new Set());
     const navigate = useNavigate();
+
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+    // 기본 고정 설정 (사이드바 상태 무관하게)
+    const itemsPerPage = BASE_ITEMS_PER_PAGE;
 
     useEffect(() => {
         const fetchTemplates = async () => {
@@ -35,7 +44,7 @@ export default function PublicTemplatePage() {
                 const [sortField, sortDirection] = sortOrder.split(',');
                 const pageable = {
                     page: currentPage - 1,
-                    size: ITEMS_PER_PAGE,
+                    size: itemsPerPage,
                     sort: sortField,
                     direction: sortDirection.toUpperCase(),
                 };
@@ -155,65 +164,73 @@ export default function PublicTemplatePage() {
 
     return (
         <ErrorBoundary>
-            <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-                <CssBaseline />
-                <Sidebar />
+            <Box sx={{ display: 'flex', width: '100%', height: '100vh', overflow: 'hidden' }}>
 
-            <Box component="main" sx={{ flexGrow: 1, p: 3, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexShrink: 0 }}>
-                    
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <SearchInput onSearch={handleSearch} />
-                        <FormControl size="small" sx={{ minWidth: 120 }}>
-                            <Select value={sortOrder} onChange={handleSortChange}>
-                                <MenuItem value={'createdAt,desc'}>최신 순</MenuItem>
-                                <MenuItem value={'shareCount,desc'}>공유 순</MenuItem>
-                                <MenuItem value={'publicTemplateTitle,asc'}>가나다 순</MenuItem>
-                            </Select>
-                        </FormControl>
+                    <Box component="main" sx={{ flexGrow: 1, p: 3, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexShrink: 0 }}>
+
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <SearchInput onSearch={handleSearch} />
+                                <FormControl size="small" sx={{ minWidth: 120 }}>
+                                    <Select value={sortOrder} onChange={handleSortChange}>
+                                        <MenuItem value={'createdAt,desc'}>최신 순</MenuItem>
+                                        <MenuItem value={'shareCount,desc'}>공유 순</MenuItem>
+                                        <MenuItem value={'publicTemplateTitle,asc'}>가나다 순</MenuItem>
+                                    </Select>
+                                </FormControl>
+                            </Box>
+                        </Box>
+
+                        <Box sx={{ width: '100%', flexGrow: 1, overflow: 'auto', p: 1 }}>
+                            <Box
+                                sx={{
+                                    display: 'grid',
+                                    gap: 2,
+                                    transition: 'all 0.3s ease-in-out',
+                                    gridTemplateColumns: 'repeat(4, 1fr)',
+                                    '@media (max-width: 1200px)': {
+                                        gridTemplateColumns: 'repeat(3, 1fr)',
+                                    },
+                                    '@media (max-width: 900px)': {
+                                        gridTemplateColumns: 'repeat(2, 1fr)',
+                                    },
+                                    '@media (max-width: 600px)': {
+                                        gridTemplateColumns: '1fr',
+                                    },
+                                }}
+                            >
+                                {templates && templates.length > 0 ? templates.map(template => (
+                                    <TemplateCard
+                                        key={template.publicTemplateId}
+                                        template={template}
+                                        onUse={() => handleUseTemplate(template.publicTemplateId)}
+                                        onDelete={() => handleDeleteTemplate(template.publicTemplateId)}
+                                        onFavorite={() => handleFavoriteToggle(template.publicTemplateId)}
+                                        isFavorite={favoriteTemplates.has(template.publicTemplateId)}
+                                        isPublicTemplate={true}
+                                    />
+                                )) : (
+                                    <div>템플릿이 없습니다.</div>
+                                )}
+                            </Box>
+                        </Box>
+
+                        <Pagination
+                            count={totalPages}
+                            page={currentPage}
+                            onChange={handlePageChange}
+                        />
                     </Box>
                 </Box>
-
-                <Box sx={{ width: '100%', flexGrow: 1, overflow: 'auto', p: 1 }}>
-                    <Box
-                        sx={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(4, 1fr)',
-                            gap: 2,
-                            '@media (max-width: 1200px)': {
-                                gridTemplateColumns: 'repeat(3, 1fr)',
-                            },
-                            '@media (max-width: 900px)': {
-                                gridTemplateColumns: 'repeat(2, 1fr)',
-                            },
-                            '@media (max-width: 600px)': {
-                                gridTemplateColumns: '1fr',
-                            },
-                        }}
-                    >
-                        {templates && templates.length > 0 ? templates.map(template => (
-                            <TemplateCard
-                                key={template.publicTemplateId}
-                                template={template}
-                                onUse={() => handleUseTemplate(template.publicTemplateId)}
-                                onDelete={() => handleDeleteTemplate(template.publicTemplateId)}
-                                onFavorite={() => handleFavoriteToggle(template.publicTemplateId)}
-                                isFavorite={favoriteTemplates.has(template.publicTemplateId)}
-                                isPublicTemplate={true}
-                            />
-                        )) : (
-                            <div>템플릿이 없습니다.</div>
-                        )}
-                    </Box>
-                </Box>
-
-                <Pagination
-                    count={totalPages}
-                    page={currentPage}
-                    onChange={handlePageChange}
-                />
-            </Box>
-        </Box>
         </ErrorBoundary>
+    );
+}
+
+// MainLayout으로 감싼 메인 컴포넌트
+export default function PublicTemplatePage() {
+    return (
+        <MainLayout>
+            <PublicTemplateContent />
+        </MainLayout>
     );
 }

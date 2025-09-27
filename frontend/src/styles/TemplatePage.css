@@ -9,7 +9,6 @@
 
 .main-content {
     flex-grow: 1;
-    padding: 24px;
 }
 
 .page-title {
@@ -20,7 +19,6 @@
 
 /* 사이드바 */
 .sidebar {
-    width: 240px;
     background-color: #ffffff;
     padding: 20px;
     display: flex;

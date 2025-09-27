@@ -8,6 +8,7 @@ import Pagination from "../components/common/Pagination";
 import TemplateCard from "../components/template/TemplateCard";
 import { listMyTemplates, deleteMyTemplate, shareMyTemplate, getMyTemplate, getTemplateHistories } from '../services/individualTemplateService';
 import { addIndividualTemplateToFavorites, removeIndividualTemplateFromFavorites, getFavoriteTemplates } from '../services/favoriteService';
+import MainLayout from "../components/layout/MainLayout";
 
 const ITEMS_PER_PAGE = 8;
 const tabLabels = ['전체', '심사중', '심사완료', '반려'];
@@ -205,77 +206,76 @@ export default function TemplatePage() {
     const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
 
     return (
-        <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-            <CssBaseline />
-            <Sidebar />
-            <Box component="main" sx={{ flexGrow: 1, p: 3, display: 'flex', flexDirection: 'column', height: '100vh', overflowY: 'auto' }}>
-                {/* 상단 바 */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexShrink: 0 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Tabs value={tabValue} onChange={handleTabChange}>
-                            {tabLabels.map(label => <Tab key={label} label={label} />)}
-                        </Tabs>
-                        <Button
-                            variant="contained"
-                            sx={{ bgcolor: '#343a40', color: 'white', boxShadow: 'none', '&:hover': { bgcolor: '#495057' } }}
-                            onClick={() => navigate(`/workspace/${workspaceId}/templategenerator/new`)}
-                        >
-                            템플릿 제작
-                        </Button>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <SearchInput onSearch={handleSearch} />
-                        <FormControl size="small">
-                            <Select value={sortOrder} onChange={handleSortChange}>
-                                <MenuItem value={'최신 순'}>최신 순</MenuItem>
-                                <MenuItem value={'가나다 순'}>가나다 순</MenuItem>
-                            </Select>
-                        </FormControl>
-                    </Box>
-                </Box>
-
-                {/* 리스트 */}
-                <Box sx={{ width: '100%', flexGrow: 1, overflow: 'auto', p: 1 }}>
-                    {loading ? (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}><CircularProgress /></Box>
-                    ) : err ? (
-                        <Box sx={{ color: 'error.main' }}>{err}</Box>
-                    ) : (
-                        <Box 
-                            sx={{ 
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(4, 1fr)',
-                                gap: 2,
-                                '@media (max-width: 1200px)': {
-                                    gridTemplateColumns: 'repeat(3, 1fr)',
-                                },
-                                '@media (max-width: 900px)': {
-                                    gridTemplateColumns: 'repeat(2, 1fr)',
-                                },
-                                '@media (max-width: 600px)': {
-                                    gridTemplateColumns: '1fr',
-                                },
-                            }}
-                        >
-                            {rows.map(t => (
-                                <TemplateCard
-                                    key={t.individualTemplateId}
-                                    template={t}
-                                    onDelete={() => handleDelete(t.individualTemplateId)}
-                                    onShare={() => handleShare(t.individualTemplateId)}
-                                    onEdit={() => handleEdit(t.individualTemplateId)}
-                                    onFavorite={() => handleFavoriteToggle(t.individualTemplateId)}
-                                    isFavorite={favoriteTemplates.has(t.individualTemplateId)}
-                                    showActions
-                                    isPublicTemplate={false}
-                                />
-                            ))}
+        <MainLayout>
+            <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+                <Box component="main" sx={{ flexGrow: 1, p: 3, display: 'flex', flexDirection: 'column', height: '100vh', overflowY: 'auto' }}>
+                    {/* 상단 바 */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexShrink: 0 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Tabs value={tabValue} onChange={handleTabChange}>
+                                {tabLabels.map(label => <Tab key={label} label={label} />)}
+                            </Tabs>
+                            <Button
+                                variant="contained"
+                                sx={{ bgcolor: '#343a40', color: 'white', boxShadow: 'none', '&:hover': { bgcolor: '#495057' } }}
+                                onClick={() => navigate(`/workspace/${workspaceId}/templategenerator/new`)}
+                            >
+                                템플릿 제작
+                            </Button>
                         </Box>
-                    )}
-                </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <SearchInput onSearch={handleSearch} />
+                            <FormControl size="small">
+                                <Select value={sortOrder} onChange={handleSortChange}>
+                                    <MenuItem value={'최신 순'}>최신 순</MenuItem>
+                                    <MenuItem value={'가나다 순'}>가나다 순</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </Box>
+                    </Box>
 
-                <Pagination count={totalPages} page={currentPage} onChange={handlePageChange} />
+                    {/* 리스트 */}
+                    <Box sx={{ width: '100%', flexGrow: 1, overflow: 'auto', p: 1 }}>
+                        {loading ? (
+                            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}><CircularProgress /></Box>
+                        ) : err ? (
+                            <Box sx={{ color: 'error.main' }}>{err}</Box>
+                        ) : (
+                            <Box
+                                sx={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(4, 1fr)',
+                                    gap: 2,
+                                    '@media (max-width: 1200px)': {
+                                        gridTemplateColumns: 'repeat(3, 1fr)',
+                                    },
+                                    '@media (max-width: 900px)': {
+                                        gridTemplateColumns: 'repeat(2, 1fr)',
+                                    },
+                                    '@media (max-width: 600px)': {
+                                        gridTemplateColumns: '1fr',
+                                    },
+                                }}
+                            >
+                                {rows.map(t => (
+                                    <TemplateCard
+                                        key={t.individualTemplateId}
+                                        template={t}
+                                        onDelete={() => handleDelete(t.individualTemplateId)}
+                                        onShare={() => handleShare(t.individualTemplateId)}
+                                        onEdit={() => handleEdit(t.individualTemplateId)}
+                                        onFavorite={() => handleFavoriteToggle(t.individualTemplateId)}
+                                        isFavorite={favoriteTemplates.has(t.individualTemplateId)}
+                                        showActions
+                                        isPublicTemplate={false}
+                                    />
+                                ))}
+                            </Box>
+                        )}
+                    </Box>
+                    <Pagination count={totalPages} page={currentPage} onChange={handlePageChange} />
+                </Box>
             </Box>
-        </Box>
+        </MainLayout>
     );
 }

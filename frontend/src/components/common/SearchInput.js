@@ -22,7 +22,7 @@ export default function SearchInput({ onSearch }) {
         <Paper
             component="form"
             onSubmit={(e) => { e.preventDefault(); handleSearch(); }} // form 제출 시 검색 실행
-            sx={{ p: '2px 4px', display: 'flex', alignItems: 'center', width: 400 }}
+            sx={{ p: '2px 4px', display: 'flex', alignItems: 'center', width: 300 }}
         >
             <InputBase
                 sx={{ ml: 1, flex: 1 }}

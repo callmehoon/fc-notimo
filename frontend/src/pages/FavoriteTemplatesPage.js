@@ -11,6 +11,7 @@ import SearchInput from '../components/common/SearchInput';
 import Pagination from '../components/common/Pagination';
 import TemplateCard from '../components/template/TemplateCard';
 import { getFavoriteTemplates, removeFavorite } from '../services/favoriteService';
+import MainLayout from "../components/layout/MainLayout";
 
 const ITEMS_PER_PAGE = 12;
 
@@ -116,85 +117,82 @@ export default function FavoriteTemplatesPage() {
     );
 
     return (
-        <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-            <CssBaseline />
-            <Sidebar>
-                <WorkspaceList />
-            </Sidebar>
+        <MainLayout>
+            <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+                <Box component="main" sx={{ flexGrow: 1, p: 3, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexShrink: 0 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Tabs value={tabValue} onChange={handleTabChange}>
+                                {tabLabels.map((label, index) => (
+                                    <Tab key={index} label={label} />
+                                ))}
+                            </Tabs>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <SearchInput onSearch={handleSearch} />
+                            <FormControl size="small" sx={{ minWidth: 120 }}>
+                                <Select value={sortOrder} onChange={handleSortChange}>
+                                    <MenuItem value={'최신 순'}>최신 순</MenuItem>
+                                    <MenuItem value={'가나다 순'}>가나다 순</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </Box>
+                    </Box>
 
-            <Box component="main" sx={{ flexGrow: 1, p: 3, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexShrink: 0 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Tabs value={tabValue} onChange={handleTabChange}>
-                            {tabLabels.map((label, index) => (
-                                <Tab key={index} label={label} />
-                            ))}
-                        </Tabs>
+                    <Box sx={{ width: '100%', flexGrow: 1, overflow: 'auto', p: 1 }}>
+                        <Box
+                            sx={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(4, 1fr)',
+                                gap: 2,
+                                '@media (max-width: 1200px)': {
+                                    gridTemplateColumns: 'repeat(3, 1fr)',
+                                },
+                                '@media (max-width: 900px)': {
+                                    gridTemplateColumns: 'repeat(2, 1fr)',
+                                },
+                                '@media (max-width: 600px)': {
+                                    gridTemplateColumns: '1fr',
+                                },
+                            }}
+                        >
+                            {filteredTemplates.length > 0 ? (
+                                filteredTemplates.map(template => (
+                                    <TemplateCard
+                                        key={template.favoriteId ?? `${template.templateId}-fav`}
+                                        template={{
+                                            id: template.templateId,
+                                            title: template.templateTitle,
+                                            content: template.templateContent,
+                                            // 개인/공용 템플릿 구분을 위한 필드 추가
+                                            individualTemplateTitle: template.templateType === 'INDIVIDUAL' ? template.templateTitle : null,
+                                            individualTemplateContent: template.templateType === 'INDIVIDUAL' ? template.templateContent : null,
+                                            publicTemplateTitle: template.templateType === 'PUBLIC' ? template.templateTitle : null,
+                                            publicTemplateContent: template.templateType === 'PUBLIC' ? template.templateContent : null,
+                                        }}
+                                        onDelete={() => handleRemoveFavorite(template.favoriteId)}
+                                        showActions={false}
+                                        isPublicTemplate={false}
+                                        isFavorite={true}
+                                        onFavorite={() => handleRemoveFavorite(template.favoriteId)}
+                                    />
+                                ))
+                            ) : (
+                                <Box sx={{
+                                    gridColumn: '1 / -1',
+                                    textAlign: 'center',
+                                    py: 8,
+                                    color: 'text.secondary'
+                                }}>
+                                    즐겨찾기한 템플릿이 없습니다.
+                                </Box>
+                            )}
+                        </Box>
                     </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <SearchInput onSearch={handleSearch} />
-                        <FormControl size="small" sx={{ minWidth: 120 }}>
-                            <Select value={sortOrder} onChange={handleSortChange}>
-                                <MenuItem value={'최신 순'}>최신 순</MenuItem>
-                                <MenuItem value={'가나다 순'}>가나다 순</MenuItem>
-                            </Select>
-                        </FormControl>
-                    </Box>
+
+                    <Pagination count={totalPages} page={currentPage} onChange={handlePageChange} />
                 </Box>
-
-                <Box sx={{ width: '100%', flexGrow: 1, overflow: 'auto', p: 1 }}>
-                    <Box 
-                        sx={{ 
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(4, 1fr)',
-                            gap: 2,
-                            '@media (max-width: 1200px)': {
-                                gridTemplateColumns: 'repeat(3, 1fr)',
-                            },
-                            '@media (max-width: 900px)': {
-                                gridTemplateColumns: 'repeat(2, 1fr)',
-                            },
-                            '@media (max-width: 600px)': {
-                                gridTemplateColumns: '1fr',
-                            },
-                        }}
-                    >
-                        {filteredTemplates.length > 0 ? (
-                            filteredTemplates.map(template => (
-                                <TemplateCard
-                                    key={template.favoriteId ?? `${template.templateId}-fav`}
-                                    template={{
-                                        id: template.templateId,
-                                        title: template.templateTitle,
-                                        content: template.templateContent,
-                                        // 개인/공용 템플릿 구분을 위한 필드 추가
-                                        individualTemplateTitle: template.templateType === 'INDIVIDUAL' ? template.templateTitle : null,
-                                        individualTemplateContent: template.templateType === 'INDIVIDUAL' ? template.templateContent : null,
-                                        publicTemplateTitle: template.templateType === 'PUBLIC' ? template.templateTitle : null,
-                                        publicTemplateContent: template.templateType === 'PUBLIC' ? template.templateContent : null,
-                                    }}
-                                    onDelete={() => handleRemoveFavorite(template.favoriteId)}
-                                    showActions={false}
-                                    isPublicTemplate={false}
-                                    isFavorite={true}
-                                    onFavorite={() => handleRemoveFavorite(template.favoriteId)}
-                                />
-                            ))
-                        ) : (
-                            <Box sx={{
-                                gridColumn: '1 / -1',
-                                textAlign: 'center',
-                                py: 8,
-                                color: 'text.secondary'
-                            }}>
-                                즐겨찾기한 템플릿이 없습니다.
-                            </Box>
-                        )}
-                    </Box>
-                </Box>
-
-                <Pagination count={totalPages} page={currentPage} onChange={handlePageChange} />
             </Box>
-        </Box>
+        </MainLayout>
     );
 }
