@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import CommonButton from '../components/button/CommonButton';
 import WorkspaceList from '../components/layout/WorkspaceList';
 import workspaceService from '../services/workspaceService';
+import logo from "../assets/logo.png";
 
 const WorkspaceSelection = () => {
     const navigate = useNavigate();
@@ -61,16 +62,12 @@ const WorkspaceSelection = () => {
             >
                 <Box
                     sx={{
-                        width: 80,
-                        height: 80,
-                        backgroundColor: '#e0e0e0',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        mb: 1,
+                        width: '150px',
+                        height: '80px',
+
                     }}
                 >
-                    <Typography variant="body2" color="text.secondary">로고</Typography>
+                    <img src={logo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </Box>
 
                 <Typography component="h1" variant="h5">
@@ -107,6 +104,7 @@ const WorkspaceSelection = () => {
 
                 <CommonButton
                     fullWidth
+                    variant="contained"
                     onClick={handleConfirmSelection}
                     sx={{ mt: 2 }}
                     disabled={!selectedWorkspace}
