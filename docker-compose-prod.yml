@@ -52,6 +52,8 @@ services:
         condition: service_started
     environment:
       - TZ=Asia/Seoul
+    env_file:
+      - ./frontend/.env.prod
 
 volumes:
   redis-data:
