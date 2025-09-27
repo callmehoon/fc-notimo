@@ -2,7 +2,7 @@
 import axios from 'axios';
 import authService from './authService';
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = 'http://dev.notimo.kro.kr/api';
 
 const api = axios.create({
     baseURL: API_BASE_URL,
