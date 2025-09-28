@@ -83,6 +83,8 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          timeout: 900s  # 15분으로 설정 (기본 10분에서 증가)
+          command_timeout: 900s  # SSH 명령어 타임아웃도 설정
           script: |
             echo "🚀 개발 환경 배포 시작..."
 
@@ -149,6 +151,8 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          timeout: 900s  # 15분으로 설정 (기본 10분에서 증가)
+          command_timeout: 900s  # SSH 명령어 타임아웃도 설정
           script: |
             echo "🚀 운영 환경 배포 시작..."
 
