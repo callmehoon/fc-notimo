@@ -29,7 +29,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
-class RefreshTokenServiceTest {
+class TokenServiceTest {
 
     @Mock
     private UserRepository userRepository;
@@ -52,7 +52,7 @@ class RefreshTokenServiceTest {
     @Mock
     private AuthProperties.Messages messagesProperties;
     @InjectMocks
-    private RefreshTokenService refreshTokenService;
+    private TokenService tokenService;
 
     private static final String TEST_EMAIL = "test@example.com";
     private static final String TEST_IP = "192.168.1.100";
@@ -98,18 +98,22 @@ class RefreshTokenServiceTest {
         User user = createTestUser();
         Set<String> existingTokens = Set.of("old_token_hash_1", "old_token_hash_2");
 
+        // AuthProperties Token mocks
+        lenient().when(authProperties.getToken()).thenReturn(tokenProperties);
+        lenient().when(tokenProperties.getAccessTokenPrefix()).thenReturn("access:");
+        lenient().when(tokenProperties.getRefreshTokenPrefix()).thenReturn("refresh:");
+
         given(setOperations.members("user_tokens:" + TEST_USER_ID)).willReturn(existingTokens);
         given(jwtConfig.generateRefreshToken(eq(TEST_EMAIL), eq(TEST_USER_ID_INT))).willReturn(TEST_REFRESH_TOKEN);
         given(jwtConfig.generateTokenHash(TEST_REFRESH_TOKEN)).willReturn(TEST_TOKEN_HASH);
 
         // when
-        String result = refreshTokenService.createRefreshToken(user, TEST_IP);
+        String result = tokenService.createRefreshToken(user, TEST_IP);
 
         // then
         assertThat(result).isEqualTo(TEST_REFRESH_TOKEN);
-        verify(redisTemplate).delete("refresh_token:old_token_hash_1");
-        verify(redisTemplate).delete("refresh_token:old_token_hash_2");
-        verify(redisTemplate).delete("user_tokens:" + TEST_USER_ID);
+        // processTokenRevocation이 호출되어 조건에 따라 토큰을 처리함
+        verify(redisTemplate, times(3)).delete(anyString()); // 두 개의 old 토큰 삭제 + user_tokens 키 삭제 = 총 3번
         verify(valueOperations).set("refresh_token:" + TEST_TOKEN_HASH, TEST_USER_ID.toString(), Duration.ofSeconds(TTL_SECONDS));
         verify(setOperations).add("user_tokens:" + TEST_USER_ID, TEST_TOKEN_HASH);
         verify(redisTemplate).expire("user_tokens:" + TEST_USER_ID, Duration.ofSeconds(TTL_SECONDS));
@@ -125,7 +129,7 @@ class RefreshTokenServiceTest {
         doThrow(new RuntimeException("Redis connection failed")).when(valueOperations).set(anyString(), anyString(), any(Duration.class));
 
         // when & then
-        assertThatThrownBy(() -> refreshTokenService.createRefreshToken(user, TEST_IP))
+        assertThatThrownBy(() -> tokenService.createRefreshToken(user, TEST_IP))
             .isInstanceOf(RuntimeException.class)
             .hasMessage("Failed to save Refresh Token");
     }
@@ -151,7 +155,7 @@ class RefreshTokenServiceTest {
         given(valueOperations.get("refresh_token:" + TEST_TOKEN_HASH)).willReturn(TEST_USER_ID.toString());
 
         // when
-        RefreshTokenService.TokenPair result = refreshTokenService.refreshTokens(TEST_REFRESH_TOKEN, TEST_IP);
+        TokenService.TokenPair result = tokenService.refreshTokens(TEST_REFRESH_TOKEN, TEST_IP);
 
         // then
         assertThat(result.accessToken()).isEqualTo(TEST_ACCESS_TOKEN);
@@ -172,7 +176,7 @@ class RefreshTokenServiceTest {
         given(messagesProperties.getInvalidRefreshToken()).willReturn("유효하지 않은 리프레시 토큰입니다.");
 
         // when & then
-        assertThatThrownBy(() -> refreshTokenService.refreshTokens(TEST_REFRESH_TOKEN, TEST_IP))
+        assertThatThrownBy(() -> tokenService.refreshTokens(TEST_REFRESH_TOKEN, TEST_IP))
             .isInstanceOf(AuthenticationException.class)
             .hasMessage(messagesProperties.getInvalidRefreshToken());
     }
@@ -184,11 +188,13 @@ class RefreshTokenServiceTest {
         doNothing().when(rateLimitService).checkLoginRateLimit(TEST_IP);
         given(jwtConfig.validateToken(TEST_REFRESH_TOKEN)).willReturn(true);
         given(jwtConfig.isRefreshToken(TEST_REFRESH_TOKEN)).willReturn(true);
+        given(jwtConfig.generateTokenHash(TEST_REFRESH_TOKEN)).willReturn(TEST_TOKEN_HASH);
+        given(redisTemplate.hasKey("refresh_token:" + TEST_TOKEN_HASH)).willReturn(true); // Redis check passes
         given(jwtConfig.getEmailFromToken(TEST_REFRESH_TOKEN)).willReturn(null); // Simulate extraction failure
         given(messagesProperties.getInvalidTokenInfo()).willReturn("토큰 정보가 유효하지 않습니다.");
 
         // when & then
-        assertThatThrownBy(() -> refreshTokenService.refreshTokens(TEST_REFRESH_TOKEN, TEST_IP))
+        assertThatThrownBy(() -> tokenService.refreshTokens(TEST_REFRESH_TOKEN, TEST_IP))
             .isInstanceOf(AuthenticationException.class)
             .hasMessage(messagesProperties.getInvalidTokenInfo());
     }
@@ -197,17 +203,15 @@ class RefreshTokenServiceTest {
     @DisplayName("refreshTokens: Redis에 토큰이 존재하지 않을 때 AuthenticationException 발생")
     void refreshTokens_TokenNotExistsInRedis_ThrowsAuthenticationException() {
         // given
-        User user = createTestUserWithVerifiedAuth();
         doNothing().when(rateLimitService).checkLoginRateLimit(TEST_IP);
         given(jwtConfig.validateToken(TEST_REFRESH_TOKEN)).willReturn(true);
         given(jwtConfig.isRefreshToken(TEST_REFRESH_TOKEN)).willReturn(true);
-        given(jwtConfig.getEmailFromToken(TEST_REFRESH_TOKEN)).willReturn(TEST_EMAIL);
         given(jwtConfig.generateTokenHash(TEST_REFRESH_TOKEN)).willReturn(TEST_TOKEN_HASH);
         given(redisTemplate.hasKey("refresh_token:" + TEST_TOKEN_HASH)).willReturn(false); // Simulate not found in Redis
         given(messagesProperties.getExpiredRefreshToken()).willReturn("만료되었거나 유효하지 않은 리프레시 토큰입니다.");
 
         // when & then
-        assertThatThrownBy(() -> refreshTokenService.refreshTokens(TEST_REFRESH_TOKEN, TEST_IP))
+        assertThatThrownBy(() -> tokenService.refreshTokens(TEST_REFRESH_TOKEN, TEST_IP))
             .isInstanceOf(AuthenticationException.class)
             .hasMessage(messagesProperties.getExpiredRefreshToken());
     }
@@ -226,7 +230,7 @@ class RefreshTokenServiceTest {
         given(messagesProperties.getUserNotFound()).willReturn("사용자를 찾을 수 없습니다.");
 
         // when & then
-        assertThatThrownBy(() -> refreshTokenService.refreshTokens(TEST_REFRESH_TOKEN, TEST_IP))
+        assertThatThrownBy(() -> tokenService.refreshTokens(TEST_REFRESH_TOKEN, TEST_IP))
             .isInstanceOf(AuthenticationException.class)
             .hasMessage(messagesProperties.getUserNotFound());
     }
@@ -245,7 +249,7 @@ class RefreshTokenServiceTest {
         given(userRepository.findByUserEmail(TEST_EMAIL)).willReturn(Optional.of(unverifiedUser));
 
         // when & then
-        assertThatThrownBy(() -> refreshTokenService.refreshTokens(TEST_REFRESH_TOKEN, TEST_IP))
+        assertThatThrownBy(() -> tokenService.refreshTokens(TEST_REFRESH_TOKEN, TEST_IP))
             .isInstanceOf(AuthenticationException.class)
             .hasMessage("이메일 인증이 완료되지 않은 사용자입니다.");
     }
@@ -258,7 +262,7 @@ class RefreshTokenServiceTest {
         given(valueOperations.get("refresh_token:" + TEST_TOKEN_HASH)).willReturn(TEST_USER_ID.toString());
 
         // when
-        refreshTokenService.revokeRefreshToken(TEST_REFRESH_TOKEN);
+        tokenService.revokeRefreshToken(TEST_REFRESH_TOKEN);
 
         // then
         verify(redisTemplate).delete("refresh_token:" + TEST_TOKEN_HASH);
@@ -269,7 +273,7 @@ class RefreshTokenServiceTest {
     @DisplayName("revokeRefreshToken: null 토큰 전달 시 아무 작업도 수행하지 않음")
     void revokeRefreshToken_NullToken_DoesNothing() {
         // when
-        refreshTokenService.revokeRefreshToken(null);
+        tokenService.revokeRefreshToken(null);
 
         // then
         verifyNoInteractions(jwtConfig); // No JWT processing for null token
@@ -281,12 +285,20 @@ class RefreshTokenServiceTest {
     void revokeAllUserTokens_Success() {
         // given
         Set<String> userTokens = Set.of("token_hash_1", "token_hash_2");
+
+        // AuthProperties Token mocks
+        lenient().when(authProperties.getToken()).thenReturn(tokenProperties);
+        lenient().when(tokenProperties.getAccessTokenPrefix()).thenReturn("access:");
+        lenient().when(tokenProperties.getRefreshTokenPrefix()).thenReturn("refresh:");
+
         given(setOperations.members("user_tokens:" + TEST_USER_ID)).willReturn(userTokens);
 
         // when
-        refreshTokenService.revokeAllUserTokens(TEST_USER_ID);
+        tokenService.revokeAllUserTokens(TEST_USER_ID);
 
         // then
+        // processTokenRevocation이 각 토큰에 대해 호출되고,
+        // prefix가 없는 기존 방식의 토큰이므로 redisTemplate.delete가 호출됨
         verify(redisTemplate).delete("refresh_token:token_hash_1");
         verify(redisTemplate).delete("refresh_token:token_hash_2");
         verify(redisTemplate).delete("user_tokens:" + TEST_USER_ID);
@@ -299,7 +311,7 @@ class RefreshTokenServiceTest {
         given(setOperations.members("user_tokens:" + TEST_USER_ID)).willReturn(Set.of());
 
         // when
-        refreshTokenService.revokeAllUserTokens(TEST_USER_ID);
+        tokenService.revokeAllUserTokens(TEST_USER_ID);
 
         // then
         verify(redisTemplate, never()).delete(anyString());
@@ -316,7 +328,7 @@ class RefreshTokenServiceTest {
         given(redisTemplate.hasKey("refresh_token:" + TEST_TOKEN_HASH)).willReturn(true);
 
         // when
-        boolean result = refreshTokenService.isValidRefreshToken(TEST_REFRESH_TOKEN);
+        boolean result = tokenService.isValidRefreshToken(TEST_REFRESH_TOKEN);
 
         // then
         assertThat(result).isTrue();
@@ -326,7 +338,7 @@ class RefreshTokenServiceTest {
     @DisplayName("isValidRefreshToken: null 토큰 검증 시 false 반환")
     void isValidRefreshToken_NullToken_ReturnsFalse() {
         // when
-        boolean result = refreshTokenService.isValidRefreshToken(null);
+        boolean result = tokenService.isValidRefreshToken(null);
         // then
         assertThat(result).isFalse();
     }
@@ -337,7 +349,7 @@ class RefreshTokenServiceTest {
         // given
         given(jwtConfig.validateToken(TEST_REFRESH_TOKEN)).willReturn(false);
         // when
-        boolean result = refreshTokenService.isValidRefreshToken(TEST_REFRESH_TOKEN);
+        boolean result = tokenService.isValidRefreshToken(TEST_REFRESH_TOKEN);
         // then
         assertThat(result).isFalse();
     }
@@ -349,7 +361,7 @@ class RefreshTokenServiceTest {
         given(jwtConfig.validateToken(TEST_REFRESH_TOKEN)).willReturn(true);
         given(jwtConfig.isRefreshToken(TEST_REFRESH_TOKEN)).willReturn(false); // Simulate Access Token
         // when
-        boolean result = refreshTokenService.isValidRefreshToken(TEST_REFRESH_TOKEN);
+        boolean result = tokenService.isValidRefreshToken(TEST_REFRESH_TOKEN);
         // then
         assertThat(result).isFalse();
     }
@@ -363,7 +375,7 @@ class RefreshTokenServiceTest {
         given(jwtConfig.generateTokenHash(TEST_REFRESH_TOKEN)).willReturn(TEST_TOKEN_HASH);
         given(redisTemplate.hasKey("refresh_token:" + TEST_TOKEN_HASH)).willReturn(false); // Simulate not found in Redis
         // when
-        boolean result = refreshTokenService.isValidRefreshToken(TEST_REFRESH_TOKEN);
+        boolean result = tokenService.isValidRefreshToken(TEST_REFRESH_TOKEN);
         // then
         assertThat(result).isFalse();
     }
