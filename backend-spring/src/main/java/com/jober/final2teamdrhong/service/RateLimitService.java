@@ -368,9 +368,59 @@ public class RateLimitService {
             long waitTime = getRefreshTokenWaitTime(clientIp);
             log.warn("토큰 갱신 속도 제한 초과: ip={}, waitTime={}초", clientIp, waitTime);
             throw new RateLimitExceededException(
-                "토큰 갱신 속도 제한을 초과했습니다. " + waitTime + "초 후 다시 시도해주세요.", 
+                "토큰 갱신 속도 제한을 초과했습니다. " + waitTime + "초 후 다시 시도해주세요.",
                 waitTime
             );
+        }
+    }
+
+    // =========================================
+    // Rate Limit 리셋 메서드들 (Reset Methods)
+    // =========================================
+
+    /**
+     * 로그인 Rate Limit 리셋 (비밀번호 변경 시 사용)
+     * 이메일과 IP 기반 로그인 제한을 모두 초기화합니다.
+     *
+     * @param email 사용자 이메일
+     * @param clientIp 클라이언트 IP
+     */
+    public void resetLoginRateLimit(String email, String clientIp) {
+        try {
+            // 1. 이메일 기반 로그인 제한 리셋
+            resetRateLimitBucket("login_email:" + email);
+
+            // 2. IP 기반 로그인 제한 리셋
+            resetRateLimitBucket("login:" + clientIp);
+
+            log.info("로그인 Rate Limit 리셋 완료: email={}, ip={}", email, clientIp);
+
+        } catch (Exception e) {
+            log.warn("로그인 Rate Limit 리셋 중 일부 오류 발생: email={}, ip={}, error={}",
+                    email, clientIp, e.getMessage());
+            // 비밀번호 변경 성공 후 리셋 실패는 치명적이지 않으므로 예외를 던지지 않음
+        }
+    }
+
+    /**
+     * 특정 키의 Rate Limit 버킷을 리셋합니다.
+     *
+     * @param key Rate Limit 버킷 키
+     */
+    private void resetRateLimitBucket(String key) {
+        try {
+            if (proxyManager != null) {
+                // Redis 사용 시: 해당 키를 삭제하여 리셋
+                proxyManager.removeProxy(key.getBytes());
+                log.debug("Redis Rate Limit 버킷 삭제: key={}", key);
+            } else {
+                // 인메모리 사용 시: 해당 키의 버킷을 제거
+                inMemoryBuckets.remove(key);
+                bucketLocks.remove(key); // 락도 정리
+                log.debug("인메모리 Rate Limit 버킷 삭제: key={}", key);
+            }
+        } catch (Exception e) {
+            log.warn("Rate Limit 버킷 리셋 실패: key={}, error={}", key, e.getMessage());
         }
     }
 
