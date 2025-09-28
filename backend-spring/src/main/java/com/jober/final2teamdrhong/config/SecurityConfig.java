@@ -34,6 +34,32 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig implements WebMvcConfigurer {
 
+    /**
+     * 인증 없이 접근 가능한 URL 패턴들
+     * 인증이 필요하지 않은 공개 엔드포인트들을 정의
+     */
+    private static final String[] PERMIT_ALL_URLS = {
+        // 인증 관련 API
+        "/auth/signup",
+        "/auth/send-verification-code",
+        "/auth/login",
+        "/auth/refresh",
+        "/auth/logout",
+        "/auth/reset-password",
+
+        // OAuth2 소셜 로그인 관련 API
+        "/auth/social/**",
+        "/login/oauth2/**",
+        "/oauth2/**",
+
+        // API 문서 및 개발 도구
+        "/swagger-ui/**",
+        "/v3/api-docs/**",
+        "/swagger-ui.html",
+        "/swagger-resources/**",
+        "/webjars/**"
+    };
+
     // JWT 필터 주입
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final ObjectMapper objectMapper;
@@ -119,10 +145,8 @@ public class SecurityConfig implements WebMvcConfigurer {
                     });
                 })
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/signup", "/auth/send-verification-code", "/auth/login", "/auth/refresh", "/auth/logout").permitAll() // 회원가입 및 로그인 관련 API는 누구나 접근 가능
-                        .requestMatchers("/auth/social/**", "/login/oauth2/**", "/oauth2/**").permitAll() // OAuth2 소셜 로그인 관련 API는 누구나 접근 가능
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-resources/**", "/webjars/**").permitAll() // Swagger UI는 누구나 접근 가능
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers(PERMIT_ALL_URLS).permitAll() // 인증 없이 접근 가능한 공개 엔드포인트들
+                        .requestMatchers("/admin/**").hasRole("ADMIN") // 관리자 권한 필요
                         .anyRequest().authenticated() // 나머지 API는 인증된 사용자만 접근 가능
                 )
                 // OAuth2 로그인 설정
