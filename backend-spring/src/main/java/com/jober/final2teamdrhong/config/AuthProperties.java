@@ -49,21 +49,31 @@ public class AuthProperties {
          * 최소 응답 시간 (밀리초) - 타이밍 공격 방지
          */
         private int minResponseTimeMs = 200;
-        
+
         /**
          * 더미 해시 - 사용자 열거 공격 방지
          */
         private String dummyHash = "$2a$10$dummy.hash.to.prevent.timing.attacks.for.security.purposes";
-        
+
         /**
          * 최대 로그인 시도 횟수
          */
         private int maxLoginAttempts = 5;
-        
+
         /**
          * 계정 잠금 시간 (분)
          */
         private int accountLockDurationMinutes = 30;
+
+        /**
+         * 회원 탈퇴 시 익명 이메일 형식
+         */
+        private String anonymizedEmailFormat = "deleted_user_%d_%d@deleted.com";
+
+        /**
+         * 비밀번호 검증 시 최소 지연 시간 (밀리초) - 타이밍 공격 방지
+         */
+        private long timingAttackDelayMs = 300;
     }
 
     @Getter
@@ -73,16 +83,26 @@ public class AuthProperties {
          * Access Token 유효 시간 (초)
          */
         private long accessTokenValiditySeconds;
-        
+
         /**
          * Refresh Token 유효 시간 (초)
          */
         private long refreshTokenValiditySeconds;
-        
+
         /**
          * Token 갱신 가능 시간 (초) - 만료 전 이 시간 내에서만 갱신 가능
          */
         private long refreshThresholdSeconds;
+
+        /**
+         * Access Token 식별자 접두사
+         */
+        private String accessTokenPrefix = "access:";
+
+        /**
+         * Refresh Token 식별자 접두사
+         */
+        private String refreshTokenPrefix = "refresh:";
     }
 
     @Getter
