@@ -32,7 +32,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -322,15 +321,15 @@ public class AuthController {
             @Valid @RequestBody AddLocalAuthRequest request,
 
             @Parameter(hidden = true)
-            @AuthenticationPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims jwtClaims,
 
             @Parameter(hidden = true)
             HttpServletRequest httpRequest) {
 
-        log.info("계정 통합 요청 - 소셜→로컬: user={}", userDetails.getUsername());
+        log.info("계정 통합 요청 - 소셜→로컬: user={}", jwtClaims.getEmail());
 
-        // 1. 사용자 ID 추출 (UserDetails에서 username이 userId로 설정됨)
-        Integer userId = Integer.valueOf(userDetails.getUsername());
+        // 1. 사용자 ID 추출 (JwtClaims에서 userId 직접 추출)
+        Integer userId = jwtClaims.getUserId();
 
         // 2. 클라이언트 IP 추출
         String clientIp = ClientIpUtil.getClientIpAddress(httpRequest, isDevelopment);
@@ -390,12 +389,12 @@ public class AuthController {
     @GetMapping("/connected-methods")
     public ResponseEntity<AuthMethodsResponse> getConnectedAuthMethods(
             @Parameter(hidden = true)
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims jwtClaims) {
 
-        log.info("연결된 인증 방법 조회: user={}", userDetails.getUsername());
+        log.info("연결된 인증 방법 조회: user={}", jwtClaims.getEmail());
 
         // 1. 사용자 ID 추출
-        Integer userId = Integer.valueOf(userDetails.getUsername());
+        Integer userId = jwtClaims.getUserId();
 
         // 2. AuthService에 조회 처리 위임 - 기존에 추상화된 응답 객체 활용
         AuthMethodsResponse response = authService.getConnectedAuthMethods(userId);

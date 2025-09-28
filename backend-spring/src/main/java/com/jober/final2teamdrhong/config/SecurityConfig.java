@@ -57,7 +57,10 @@ public class SecurityConfig implements WebMvcConfigurer {
         "/v3/api-docs/**",
         "/swagger-ui.html",
         "/swagger-resources/**",
-        "/webjars/**"
+        "/webjars/**",
+
+        // H2 콘솔 (개발환경에서만 사용)
+        "/h2-console/**"
     };
 
     // JWT 필터 주입
@@ -93,8 +96,12 @@ public class SecurityConfig implements WebMvcConfigurer {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .headers(headers -> {
-                    // 클릭재킹 공격 방지 (X-Frame-Options)
-                    headers.frameOptions(frameOptions -> frameOptions.deny());
+                    // 클릭재킹 공격 방지 (X-Frame-Options) - 개발환경에서는 H2 콘솔을 위해 완화
+                    if (isDevelopment) {
+                        headers.frameOptions(frameOptions -> frameOptions.sameOrigin());
+                    } else {
+                        headers.frameOptions(frameOptions -> frameOptions.deny());
+                    }
                     // MIME 타입 스니핑 방지 (X-Content-Type-Options)
                     headers.contentTypeOptions(contentType -> {});
 
@@ -254,7 +261,7 @@ public class SecurityConfig implements WebMvcConfigurer {
             "connect-src 'self' ws: wss:", // WebSocket 허용 (개발 서버)
             "media-src 'self'",
             "object-src 'none'",
-            "frame-src 'none'",
+            "frame-src 'self'", // H2 콘솔을 위해 frame 허용
             "base-uri 'self'",
             "form-action 'self'"
         );
