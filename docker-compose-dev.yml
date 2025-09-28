@@ -42,6 +42,8 @@ services:
       dockerfile: frontend/Dockerfile
       args:
         - NGINX_CONFIG=nginx-dev.conf
+        - REACT_APP_API_BASE_URL=http://dev.notimo.kro.kr/api
+        - REACT_APP_AI_API_BASE_URL=http://dev.notimo.kro.kr/ai
     container_name: frontend-dev
     ports:
       - "3001:80"
@@ -52,8 +54,6 @@ services:
         condition: service_started
     environment:
       - TZ=Asia/Seoul
-    env_file:
-      - ./frontend/.env.dev
 
 volumes:
   redis-data:
