@@ -143,5 +143,37 @@ public class BlacklistService {
         }
     }
 
+    /**
+     * JTI를 블랙리스트에 추가 (외부 호출용)
+     * RefreshTokenService에서 사용
+     *
+     * @param jti JWT ID
+     * @param ttlSeconds TTL (초)
+     */
+    public void addJtiToBlacklistExternal(String jti, long ttlSeconds) {
+        addJtiToBlacklist(jti, ttlSeconds);
+    }
+
+    /**
+     * 사용자의 모든 토큰을 블랙리스트에 추가 (무효화)
+     * 비밀번호 변경, 계정 보안 이슈 등의 경우 사용
+     *
+     * 실제 구현은 RefreshTokenService에서 담당 (단일 책임 원칙)
+     *
+     * @param userId 사용자 ID
+     */
+    public void blacklistAllUserTokens(Integer userId) {
+        if (userId == null) {
+            log.warn("토큰 블랙리스트 추가 실패 - userId가 null");
+            return;
+        }
+
+        // 보안 이벤트 로깅
+        log.info("[SECURITY] 사용자 {} - 전체 세션 종료 요청 (비밀번호 변경 등)", userId);
+
+        // 실제 구현은 RefreshTokenService.addAllUserTokensToBlacklist()에서 수행
+        // UserService에서 직접 호출하여 순환 의존성 방지
+    }
+
     // 추후 구현? 블랙리스트 통계 조회? 과연 필요할까?
 }
