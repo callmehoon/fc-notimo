@@ -2,6 +2,7 @@ package com.jober.final2teamdrhong.service;
 
 import com.jober.final2teamdrhong.config.AuthProperties;
 import com.jober.final2teamdrhong.config.JwtConfig;
+import com.jober.final2teamdrhong.dto.auth.AddLocalAuthRequest;
 import com.jober.final2teamdrhong.dto.auth.SocialSignupRequest;
 import com.jober.final2teamdrhong.dto.auth.SocialSignupResponse;
 import com.jober.final2teamdrhong.dto.userLogin.TokenRefreshResponse;
@@ -36,7 +37,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final RateLimitService rateLimitService;
     private final JwtConfig jwtConfig;
-    private final RefreshTokenService refreshTokenService;
+    private final TokenService tokenService;
     private final BlacklistService blacklistService;
     private final AuthProperties authProperties;
     private final TimingAttackProtection timingAttackProtection;
@@ -127,7 +128,10 @@ public class AuthService {
 
             // 3. JWT 토큰 발급
             String accessToken = jwtConfig.generateAccessToken(newUser.getUserEmail(), newUser.getUserId());
-            String refreshToken = refreshTokenService.createRefreshToken(newUser, "social-signup");
+            String refreshToken = tokenService.createRefreshToken(newUser, "social-signup");
+
+            // Access Token을 사용자별 토큰 목록에 저장 (비밀번호 변경 시 무효화용)
+            tokenService.saveAccessToken(accessToken, newUser.getUserId());
 
             log.info("소셜 회원가입 완료 성공 - 사용자 ID: {}, 이메일: {}, 제공자: {}",
                     newUser.getUserId(), LogMaskingUtil.maskEmail(newUser.getUserEmail()), request.provider());
@@ -273,7 +277,10 @@ public class AuthService {
         userRepository.save(user);
 
         String accessToken = jwtConfig.generateAccessToken(user.getUserEmail(), user.getUserId());
-        String refreshToken = refreshTokenService.createRefreshToken(user, clientIp);
+        String refreshToken = tokenService.createRefreshToken(user, clientIp);
+
+        // Access Token을 사용자별 토큰 목록에 저장 (비밀번호 변경 시 무효화용)
+        tokenService.saveAccessToken(accessToken, user.getUserId());
 
         log.info("로그인 성공: userId={}, email={}, role={}",
                 LogMaskingUtil.maskUserId(user.getUserId().longValue()),
@@ -296,7 +303,11 @@ public class AuthService {
         }
 
         // 2. 토큰 갱신 처리
-        RefreshTokenService.TokenPair tokenPair = refreshTokenService.refreshTokens(refreshToken, clientIp);
+        TokenService.TokenPair tokenPair = tokenService.refreshTokens(refreshToken, clientIp);
+
+        // 2-1. 새로운 Access Token을 사용자별 토큰 목록에 저장
+        Integer userId = jwtConfig.getUserIdFromToken(tokenPair.accessToken()).intValue();
+        tokenService.saveAccessToken(tokenPair.accessToken(), userId);
 
         // 3. 보안 강화: 민감한 정보 마스킹 후 로깅
         log.info("토큰 갱신 API 완료: ip={}", LogMaskingUtil.maskIpAddress(clientIp));
@@ -322,7 +333,7 @@ public class AuthService {
 
             // 2. Refresh Token 무효화
             if (refreshToken != null && jwtConfig.validateToken(refreshToken) && jwtConfig.isRefreshToken(refreshToken)) {
-                refreshTokenService.revokeRefreshToken(refreshToken);
+                tokenService.revokeRefreshToken(refreshToken);
                 log.info("Refresh Token이 무효화되었습니다: ip={}", LogMaskingUtil.maskIpAddress(clientIp));
             } else if (refreshToken != null) {
                 log.warn("유효하지 않은 Refresh Token 형식: ip={}", LogMaskingUtil.maskIpAddress(clientIp));
@@ -336,6 +347,127 @@ public class AuthService {
             // 로그아웃은 부분적 실패라도 성공으로 처리 (클라이언트에서 토큰 삭제가 중요)
         }
     }
+
+    /**
+     * 소셜 로그인 사용자가 로컬 인증을 추가하는 계정 통합
+     * 마이페이지에서 비밀번호를 설정하여 로컬 로그인도 가능하게 함
+     *
+     * @param userId 현재 로그인한 사용자 ID
+     * @param request 계정 통합 요청 정보
+     * @param clientIp 클라이언트 IP
+     */
+    public void addLocalAuth(Integer userId, AddLocalAuthRequest request, String clientIp) {
+        log.info("[ACCOUNT_INTEGRATION] 소셜→로컬 계정 통합 시작: userId={}, email={}",
+                userId, LogMaskingUtil.maskEmail(request.email()));
+
+        // 1. 사용자 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("사용자를 찾을 수 없습니다."));
+
+        // 2. 이메일이 현재 사용자와 일치하는지 확인
+        if (!user.getUserEmail().equals(request.email())) {
+            log.warn("[ACCOUNT_INTEGRATION] 이메일 불일치: userId={}, requestEmail={}, userEmail={}",
+                    userId, LogMaskingUtil.maskEmail(request.email()), LogMaskingUtil.maskEmail(user.getUserEmail()));
+            throw new BusinessException("현재 계정의 이메일과 일치하지 않습니다.");
+        }
+
+        // 3. 이미 로컬 인증이 있는지 확인
+        boolean hasLocalAuth = user.getUserAuths().stream()
+                .anyMatch(auth -> auth.getAuthType() == UserAuth.AuthType.LOCAL);
+
+        if (hasLocalAuth) {
+            log.warn("[ACCOUNT_INTEGRATION] 이미 로컬 인증이 설정된 계정: userId={}", userId);
+            throw new BusinessException("이미 로컬 로그인이 설정된 계정입니다.");
+        }
+
+        // 4. 이메일 인증 코드 검증
+        rateLimitService.checkEmailVerifyRateLimit(request.email());
+        if (!verificationStorage.validateAndDelete(request.email(), request.verificationCode())) {
+            log.warn("[ACCOUNT_INTEGRATION] 인증 코드 불일치: userId={}, email={}",
+                    userId, LogMaskingUtil.maskEmail(request.email()));
+            throw new BusinessException("인증 코드가 일치하지 않거나 만료되었습니다.");
+        }
+
+        // 5. 로컬 인증 정보 생성 및 추가
+        String encodedPassword = passwordEncoder.encode(request.password());
+        UserAuth localAuth = UserAuth.createLocalAuth(user, encodedPassword);
+        localAuth.markAsVerified(); // 이메일 인증 완료
+
+        // 6. 계정에 로컬 인증 추가
+        user.addUserAuth(localAuth);
+        userRepository.save(user);
+
+        // 7. 보안 처리 - 모든 토큰 무효화 (중요한 계정 변경이므로)
+        tokenService.addAllUserTokensToBlacklist(userId);
+
+        log.info("[ACCOUNT_INTEGRATION] 소셜→로컬 계정 통합 완료: userId={}", userId);
+    }
+
+    /**
+     * 로컬 계정에 소셜 인증을 자동으로 통합
+     * OAuth2 로그인 시 이메일이 기존 로컬 계정과 동일할 때 호출
+     *
+     * @param existingUser 기존 로컬 사용자
+     * @param authType 소셜 인증 타입
+     * @param socialId 소셜 ID
+     * @return 통합된 사용자 정보
+     */
+    public User integrateSocialAuth(User existingUser, UserAuth.AuthType authType, String socialId) {
+        log.info("[AUTO_INTEGRATION] 로컬→소셜 자동 통합 시작: userId={}, authType={}",
+                existingUser.getUserId(), authType);
+
+        // 1. 이미 해당 소셜 인증이 있는지 확인
+        boolean hasSocialAuth = existingUser.getUserAuths().stream()
+                .anyMatch(auth -> auth.getAuthType() == authType);
+
+        if (hasSocialAuth) {
+            log.info("[AUTO_INTEGRATION] 이미 연결된 소셜 계정: userId={}, authType={}",
+                    existingUser.getUserId(), authType);
+            return existingUser; // 이미 연결되어 있으면 그대로 반환
+        }
+
+        // 2. 새로운 소셜 인증 정보 생성
+        UserAuth socialAuth = UserAuth.createSocialAuth(existingUser, authType, socialId);
+        socialAuth.markAsVerified(); // 소셜 인증은 이미 완료된 상태
+
+        // 3. 계정에 소셜 인증 추가
+        existingUser.addUserAuth(socialAuth);
+        User savedUser = userRepository.save(existingUser);
+
+        log.info("[AUTO_INTEGRATION] 로컬→소셜 자동 통합 완료: userId={}, authType={}",
+                existingUser.getUserId(), authType);
+
+        return savedUser;
+    }
+
+    /**
+     * 사용자의 연결된 인증 방법 목록 조회
+     *
+     * @param userId 사용자 ID
+     * @return 연결된 인증 방법 목록
+     */
+    public AuthMethodsResponse getConnectedAuthMethods(Integer userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("사용자를 찾을 수 없습니다."));
+
+        boolean hasLocal = user.getUserAuths().stream()
+                .anyMatch(auth -> auth.getAuthType() == UserAuth.AuthType.LOCAL);
+
+        java.util.List<String> socialMethods = user.getUserAuths().stream()
+                .filter(auth -> auth.getAuthType() != UserAuth.AuthType.LOCAL)
+                .map(auth -> auth.getAuthType().name())
+                .toList();
+
+        return new AuthMethodsResponse(hasLocal, socialMethods);
+    }
+
+    /**
+     * 연결된 인증 방법 응답 DTO
+     */
+    public record AuthMethodsResponse(
+        boolean hasLocalAuth,
+        java.util.List<String> socialMethods
+    ) {}
 
     /**
      * 인증 결과를 담는 내부 record 클래스
