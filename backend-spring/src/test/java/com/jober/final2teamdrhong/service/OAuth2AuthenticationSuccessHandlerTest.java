@@ -58,7 +58,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
     private JwtConfig jwtConfig;
 
     @Mock
-    private RefreshTokenService refreshTokenService;
+    private TokenService tokenService;
 
     @Mock
     private ObjectMapper objectMapper;
@@ -136,7 +136,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
 
             // 4. JWT 토큰 생성이 성공하도록 설정합니다.
             given(jwtConfig.generateAccessToken(TEST_EMAIL, TEST_USER_ID)).willReturn(TEST_ACCESS_TOKEN);
-            given(refreshTokenService.createRefreshToken(existingUser, TEST_CLIENT_IP)).willReturn(TEST_REFRESH_TOKEN);
+            given(tokenService.createRefreshToken(existingUser, TEST_CLIENT_IP)).willReturn(TEST_REFRESH_TOKEN);
 
             // when
             // 1. OAuth2 로그인 성공 처리를 실행합니다.
@@ -148,7 +148,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
 
             // 2. JWT 토큰 생성이 수행되었는지 확인합니다.
             then(jwtConfig).should(times(1)).generateAccessToken(TEST_EMAIL, TEST_USER_ID);
-            then(refreshTokenService).should(times(1)).createRefreshToken(existingUser, TEST_CLIENT_IP);
+            then(tokenService).should(times(1)).createRefreshToken(existingUser, TEST_CLIENT_IP);
 
             // 3. 올바른 URL로 리다이렉트되는지 확인합니다.
             String expectedUrl = TEST_REDIRECT_URL +
@@ -310,7 +310,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
             ReflectionTestUtils.setField(existingUser, "userId", TEST_USER_ID);
             given(userRepository.findById(TEST_USER_ID)).willReturn(Optional.of(existingUser));
             given(jwtConfig.generateAccessToken(TEST_EMAIL, TEST_USER_ID)).willReturn(TEST_ACCESS_TOKEN);
-            given(refreshTokenService.createRefreshToken(existingUser, forwardedIp)).willReturn(TEST_REFRESH_TOKEN);
+            given(tokenService.createRefreshToken(existingUser, forwardedIp)).willReturn(TEST_REFRESH_TOKEN);
 
             // when
             // 1. OAuth2 로그인 성공 처리를 실행합니다.
@@ -318,7 +318,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
 
             // then
             // 1. X-Forwarded-For 헤더의 첫 번째 IP가 사용되었는지 확인합니다.
-            then(refreshTokenService).should(times(1)).createRefreshToken(existingUser, forwardedIp);
+            then(tokenService).should(times(1)).createRefreshToken(existingUser, forwardedIp);
         }
 
         @Test
@@ -343,7 +343,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
             ReflectionTestUtils.setField(existingUser, "userId", TEST_USER_ID);
             given(userRepository.findById(TEST_USER_ID)).willReturn(Optional.of(existingUser));
             given(jwtConfig.generateAccessToken(TEST_EMAIL, TEST_USER_ID)).willReturn(TEST_ACCESS_TOKEN);
-            given(refreshTokenService.createRefreshToken(existingUser, realIp)).willReturn(TEST_REFRESH_TOKEN);
+            given(tokenService.createRefreshToken(existingUser, realIp)).willReturn(TEST_REFRESH_TOKEN);
 
             // when
             // 1. OAuth2 로그인 성공 처리를 실행합니다.
@@ -351,7 +351,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
 
             // then
             // 1. X-Real-IP 헤더의 IP가 사용되었는지 확인합니다.
-            then(refreshTokenService).should(times(1)).createRefreshToken(existingUser, realIp);
+            then(tokenService).should(times(1)).createRefreshToken(existingUser, realIp);
         }
 
         @Test
@@ -376,7 +376,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
             ReflectionTestUtils.setField(existingUser, "userId", TEST_USER_ID);
             given(userRepository.findById(TEST_USER_ID)).willReturn(Optional.of(existingUser));
             given(jwtConfig.generateAccessToken(TEST_EMAIL, TEST_USER_ID)).willReturn(TEST_ACCESS_TOKEN);
-            given(refreshTokenService.createRefreshToken(existingUser, TEST_CLIENT_IP)).willReturn(TEST_REFRESH_TOKEN);
+            given(tokenService.createRefreshToken(existingUser, TEST_CLIENT_IP)).willReturn(TEST_REFRESH_TOKEN);
 
             // when
             // 1. OAuth2 로그인 성공 처리를 실행합니다.
@@ -384,7 +384,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
 
             // then
             // 1. RemoteAddr의 IP가 사용되었는지 확인합니다.
-            then(refreshTokenService).should(times(1)).createRefreshToken(existingUser, TEST_CLIENT_IP);
+            then(tokenService).should(times(1)).createRefreshToken(existingUser, TEST_CLIENT_IP);
         }
     }
 }
