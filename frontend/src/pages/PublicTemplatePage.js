@@ -67,7 +67,7 @@ function PublicTemplateContent() {
             try {
                 const workspaceId = localStorage.getItem('selectedWorkspaceId');
                 if (workspaceId) {
-                    const favoriteResponse = await getFavoriteTemplates(workspaceId, 'PUBLIC', { page: 0, size: 1000 });
+                    const favoriteResponse = await getFavoriteTemplates(workspaceId, 'PUBLIC', { page: 0, size: 100 });
                     const favoriteIds = new Set(
                         favoriteResponse.data.content?.map(fav => fav.publicTemplateId).filter(Boolean) || []
                     );
