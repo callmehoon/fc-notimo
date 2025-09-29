@@ -107,14 +107,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     /**
      * JWT 인증 실패 시 401 에러 응답 처리 헬퍼 메서드
      */
-    private void handleAuthenticationError(HttpServletRequest request, HttpServletResponse response, String errorMessage) 
+    private void handleAuthenticationError(HttpServletRequest request, HttpServletResponse response, String errorMessage)
             throws IOException {
-        log.warn("JWT 인증 실패 - 401 Unauthorized: URI={}, 원인={}", 
+        log.warn("JWT 인증 실패 - 401 Unauthorized: URI={}, 원인={}",
                 request.getRequestURI(), errorMessage);
 
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.setCharacterEncoding("UTF-8");
+        // CharacterEncodingFilter가 UTF-8 인코딩 처리하므로 제거
 
         ErrorResponse errorResponse = new ErrorResponse(errorMessage);
         response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
@@ -123,14 +123,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     /**
      * 권한 부족 시 403 에러 응답 처리 헬퍼 메서드
      */
-    private void handleAccessDeniedError(HttpServletRequest request, HttpServletResponse response, String errorMessage) 
+    private void handleAccessDeniedError(HttpServletRequest request, HttpServletResponse response, String errorMessage)
             throws IOException {
-        log.warn("권한 부족 - 403 Forbidden: URI={}, 원인={}", 
+        log.warn("권한 부족 - 403 Forbidden: URI={}, 원인={}",
                 request.getRequestURI(), errorMessage);
 
         response.setStatus(HttpStatus.FORBIDDEN.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.setCharacterEncoding("UTF-8");
+        // CharacterEncodingFilter가 UTF-8 인코딩 처리하므로 제거
 
         ErrorResponse errorResponse = new ErrorResponse(errorMessage);
         response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
