@@ -129,7 +129,7 @@ jobs:
 
             # 기존 개발 환경 컨테이너 정리 (포트 3001)
             echo "🧹 기존 개발 환경 컨테이너 정리 중..."
-            docker compose --file docker-compose-dev.yml down --remove-orphans --volumes || true
+            docker-compose -f docker-compose-dev.yml down --remove-orphans --volumes || true
 
             # 남은 컨테이너들 강제 제거
             echo "🧹 남은 컨테이너들 강제 제거 중..."
@@ -137,13 +137,13 @@ jobs:
 
             # 개발 환경 배포 (H2 DB, 포트 3001)
             echo "🔨 개발 환경 빌드 및 배포 중... (H2 DB, dev.notimo.kro.kr)"
-            docker compose --file docker-compose-dev.yml up --build -d
+            docker-compose -f docker-compose-dev.yml up --build -d
 
             # 배포 결과 확인
             echo "✅ 개발 환경 배포 완료!"
             echo "🌐 접속 URL: http://dev.notimo.kro.kr"
             echo "📊 컨테이너 상태:"
-            docker compose --file docker-compose-dev.yml ps
+            docker-compose -f docker-compose-dev.yml ps
 
   # -------------------------------------------
   # 운영 환경 배포 Job (main 브랜치만)
