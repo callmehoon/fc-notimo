@@ -13,8 +13,8 @@ class ModelLoader:
     CLS_MODEL_ID = "klue/bert-base"
     GEN_MODEL_PATH = GEN_MODEL_ID.replace("/", "--")
     CLS_MODEL_PATH = CLS_MODEL_ID.replace("/", "--")
-    DOWNLOADED_PATH = "../models/downloaded_model/"
-    FINETUNED_PATH = "../models/finetuned_model/"
+    DOWNLOADED_PATH = "/app/models/downloaded_model/"
+    FINETUNED_PATH = "/app/models/finetuned_model/"
 
     models = {}
 
