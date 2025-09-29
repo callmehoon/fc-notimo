@@ -115,7 +115,7 @@ const completeSocialSignup = async (socialSignupData) => {
 
 /** 비밀번호 찾기: 인증 코드 발송 */
 const sendPasswordResetCode = async (email) => {
-    const res = await api.post('/auth/send-verification-code', { email });
+    const res = await api.post('/auth/send-password-reset-code', { email });
     return res.data;
 };
 

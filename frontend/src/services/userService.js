@@ -77,10 +77,10 @@ const deleteUserAccount = async (password, confirmText = '회원탈퇴') => {
     }
 };
 
-// 계정 통합 관련 함수들 (기존 구현된 API 사용)
+// 계정 통합 관련 함수들 (새로운 전용 엔드포인트 사용)
 const sendAccountIntegrationCode = async (email) => {
     try {
-        const res = await api.post('/auth/send-verification-code', { email });
+        const res = await api.post('/auth/send-account-merge-code', { email });
         return res.data;
     } catch (error) {
         console.error('계정 통합 인증 코드 발송 실패:', error);
