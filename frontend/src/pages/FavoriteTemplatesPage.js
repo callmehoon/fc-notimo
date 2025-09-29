@@ -157,26 +157,38 @@ export default function FavoriteTemplatesPage() {
                             }}
                         >
                             {filteredTemplates.length > 0 ? (
-                                filteredTemplates.map(template => (
-                                    <TemplateCard
-                                        key={template.favoriteId ?? `${template.templateId}-fav`}
-                                        template={{
-                                            id: template.templateId,
-                                            title: template.templateTitle,
-                                            content: template.templateContent,
-                                            // 개인/공용 템플릿 구분을 위한 필드 추가
-                                            individualTemplateTitle: template.templateType === 'INDIVIDUAL' ? template.templateTitle : null,
-                                            individualTemplateContent: template.templateType === 'INDIVIDUAL' ? template.templateContent : null,
-                                            publicTemplateTitle: template.templateType === 'PUBLIC' ? template.templateTitle : null,
-                                            publicTemplateContent: template.templateType === 'PUBLIC' ? template.templateContent : null,
-                                        }}
-                                        onDelete={() => handleRemoveFavorite(template.favoriteId)}
-                                        showActions={false}
-                                        isPublicTemplate={false}
-                                        isFavorite={true}
-                                        onFavorite={() => handleRemoveFavorite(template.favoriteId)}
-                                    />
-                                ))
+                                filteredTemplates.map(favoriteItem => {
+                                    // TemplateCard가 기대하는 데이터 구조로 변환합니다.
+                                    const cardTemplateProps = {
+                                        // 공용/개인 템플릿의 원래 ID와 제목, 내용을 전달합니다.
+                                        // TemplateCard는 individualTemplateTitle, publicTemplateTitle 등을 우선적으로 사용합니다.
+                                        ...(favoriteItem.templateType === 'INDIVIDUAL' && {
+                                            individualTemplateId: favoriteItem.templateId,
+                                            individualTemplateTitle: favoriteItem.templateTitle,
+                                            individualTemplateContent: favoriteItem.templateContent,
+                                        }),
+                                        ...(favoriteItem.templateType === 'PUBLIC' && {
+                                            publicTemplateId: favoriteItem.templateId,
+                                            publicTemplateTitle: favoriteItem.templateTitle,
+                                            publicTemplateContent: favoriteItem.templateContent,
+                                            buttonTitle: favoriteItem.buttonTitle,
+                                        }),
+                                    };
+
+                                    return (
+                                        <TemplateCard
+                                            key={favoriteItem.favoriteId}
+                                            template={cardTemplateProps}
+                                            // 즐겨찾기 해제는 onFavorite 핸들러를 사용합니다.
+                                            onFavorite={() => handleRemoveFavorite(favoriteItem.favoriteId)}
+                                            isFavorite={true}
+                                            // 템플릿 타입에 따라 isPublicTemplate 값을 동적으로 설정합니다.
+                                            isPublicTemplate={favoriteItem.templateType === 'PUBLIC'}
+                                            // 즐겨찾기 페이지에서는 수정/공유/삭제 액션을 보여주지 않습니다.
+                                            showActions={false}
+                                        />
+                                    );
+                                })
                             ) : (
                                 <Box sx={{
                                     gridColumn: '1 / -1',

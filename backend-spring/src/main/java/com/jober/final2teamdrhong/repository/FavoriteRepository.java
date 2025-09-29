@@ -10,8 +10,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -79,4 +83,8 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Integer>, Jp
         return findByFavoriteIdAndWorkspace_User_UserId(favoriteId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 즐겨찾기를 찾을 수 없거나, 권한이 없습니다."));
     }
+
+    List<Favorite> findAllByIndividualTemplate_individualTemplateId(Integer individualTemplateId);
+
+    List<Favorite> findAllByPublicTemplate_publicTemplateId(Integer publicTemplateId);
 }

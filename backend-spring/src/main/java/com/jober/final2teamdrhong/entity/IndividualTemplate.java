@@ -5,6 +5,7 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.SQLRestriction;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -45,6 +46,9 @@ public class IndividualTemplate extends BaseEntity {
     @OneToMany(mappedBy = "individualTemplate")
     private List<TemplateModifiedHistory> histories;
 
+    @OneToMany(mappedBy = "individualTemplate", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Favorite> favorites;
+
     // 엔티티의 상태 변화 즉, DB 값의 변화이기 때문에 엔티티에서 작성
     public void update(String individualTemplateTitle,
                        String individualTemplateContent,
@@ -61,5 +65,9 @@ public class IndividualTemplate extends BaseEntity {
             throw new IllegalArgumentException("Status cannot be null");
         }
         this.status = newStatus;
+    }
+
+    public void deleteFavorites() {
+        this.favorites = new ArrayList<>();
     }
 }
