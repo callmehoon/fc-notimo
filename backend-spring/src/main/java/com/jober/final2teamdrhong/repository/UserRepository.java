@@ -23,6 +23,13 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     @Query("SELECT u FROM User u LEFT JOIN FETCH u.userAuths WHERE u.userEmail = :email")
     Optional<User> findByUserEmailWithAuth(@Param("email") String email);
 
+    /**
+     * ID로 사용자와 인증 정보를 함께 조회
+     * OAuth2 로그인 성공 처리 시 사용
+     */
+    @Query("SELECT u FROM User u LEFT JOIN FETCH u.userAuths WHERE u.userId = :userId")
+    Optional<User> findByIdWithAuth(@Param("userId") Integer userId);
+
     // TODO: 계정 통합 로직 구현 시 추가 예정
     // 핸드폰 번호로 사용자 조회 (소셜 회원가입 시 중복 체크, 계정 통합용)
     // Optional<User> findByUserNumber(String userNumber);

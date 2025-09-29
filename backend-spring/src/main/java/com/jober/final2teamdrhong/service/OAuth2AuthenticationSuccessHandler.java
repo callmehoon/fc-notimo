@@ -34,8 +34,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
     private final UserRepository userRepository;
     private final JwtConfig jwtConfig;
-    private final RefreshTokenService refreshTokenService;
-    private final ObjectMapper objectMapper;
+    private final TokenService tokenService;
 
     @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:8080}")
     private String allowedOrigins;
@@ -80,23 +79,41 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 throw new IllegalStateException("사용자 정보가 불완전합니다.");
             }
 
-            // 사용자 정보 조회 (이메일을 위해)
-            User user = userRepository.findById(userId)
+            // 사용자 정보 조회 (UserAuth와 함께 조회하여 LazyInitializationException 방지)
+            User user = userRepository.findByIdWithAuth(userId)
                     .orElseThrow(() -> new IllegalStateException("사용자를 찾을 수 없습니다."));
+
+            // 자동 통합 여부 확인 및 로깅
+            String provider = (String) oauth2User.getAttributes().get("provider");
+            boolean hasLocalAuth = user.getUserAuths().stream()
+                    .anyMatch(auth -> auth.getAuthType() == com.jober.final2teamdrhong.entity.UserAuth.AuthType.LOCAL);
+            boolean hasMultipleAuths = user.getUserAuths().size() > 1;
+
+            if (hasMultipleAuths) {
+                log.info("[AUTO_INTEGRATION] 계정 자동 통합 완료 - userId: {}, provider: {}, 연결된 인증: {}개",
+                        userId, provider, user.getUserAuths().size());
+            }
 
             // JWT 토큰 발급
             String accessToken = jwtConfig.generateAccessToken(user.getUserEmail(), userId);
-            String refreshToken = refreshTokenService.createRefreshToken(user, getClientIp(request));
+            String refreshToken = tokenService.createRefreshToken(user, getClientIp(request));
 
-            log.info("기존 사용자 JWT 토큰 발급 완료 - 사용자 ID: {}", userId);
+            log.info("OAuth2 로그인 성공 - 사용자 ID: {}, 자동통합: {}", userId, hasMultipleAuths);
 
             // 프론트엔드로 리다이렉트 (토큰을 쿼리 파라미터로 전달)
-            String targetUrl = UriComponentsBuilder.fromUriString(getRedirectUrl())
+            UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(getRedirectUrl())
                     .queryParam("success", "true")
                     .queryParam("accessToken", accessToken)
                     .queryParam("refreshToken", refreshToken)
-                    .queryParam("isNewUser", "false")
-                    .build().toUriString();
+                    .queryParam("isNewUser", "false");
+
+            // 자동 통합이 발생한 경우 프론트엔드에 알림
+            if (hasMultipleAuths) {
+                uriBuilder.queryParam("accountIntegrated", "true")
+                         .queryParam("provider", provider);
+            }
+
+            String targetUrl = uriBuilder.build().toUriString();
 
             getRedirectStrategy().sendRedirect(request, response, targetUrl);
 

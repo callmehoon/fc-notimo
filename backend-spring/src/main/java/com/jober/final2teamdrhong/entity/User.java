@@ -56,9 +56,6 @@ public class User extends BaseEntity {
         userAuth.setUser(this); // UserAuth에도 User를 설정 (양방향)
     }
 
-    public boolean isAdmin() {
-        return this.userRole == UserRole.ADMIN;
-    }
 
     // 정적 팩토리 메서드
     public static User create(String userName, String userEmail, String userNumber) {
@@ -70,14 +67,26 @@ public class User extends BaseEntity {
                 .build();
     }
 
-    // 비즈니스 메서드: 정보 업데이트
-    public void updateInfo(String userName, String userNumber) {
-        if (userName != null && !userName.isEmpty()) {
-            this.userName = userName;
-        }
 
-        if (userNumber != null && !userNumber.isEmpty()) {
-            this.userNumber = userNumber;
-        }
+
+    /**
+     * 회원 탈퇴 처리
+     * Soft Delete 방식으로 처리하며, 개인정보를 익명화합니다.
+     *
+     * @param anonymizedEmail 익명화된 이메일 (예: deleted_user_12345@deleted.com)
+     */
+    public void deleteAccount(String anonymizedEmail) {
+        // 1. 개인정보 익명화 처리
+        this.userName = "탈퇴한 사용자";
+        this.userEmail = anonymizedEmail;
+        this.userNumber = "000-0000-0000";
+
+        // 2. Soft Delete 처리 (BaseEntity의 메서드 활용)
+        this.softDelete();
+
+        // 3. 인증 정보도 모두 무효화
+        this.userAuths.forEach(auth -> {
+            auth.markAsDeleted();
+        });
     }
 }

@@ -34,6 +34,35 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig implements WebMvcConfigurer {
 
+    /**
+     * 인증 없이 접근 가능한 URL 패턴들
+     * 인증이 필요하지 않은 공개 엔드포인트들을 정의
+     */
+    private static final String[] PERMIT_ALL_URLS = {
+        // 인증 관련 API
+        "/auth/signup",
+        "/auth/send-verification-code",
+        "/auth/login",
+        "/auth/refresh",
+        "/auth/logout",
+        "/auth/reset-password",
+
+        // OAuth2 소셜 로그인 관련 API
+        "/auth/social/**",
+        "/login/oauth2/**",
+        "/oauth2/**",
+
+        // API 문서 및 개발 도구
+        "/swagger-ui/**",
+        "/v3/api-docs/**",
+        "/swagger-ui.html",
+        "/swagger-resources/**",
+        "/webjars/**",
+
+        // H2 콘솔 (개발환경에서만 사용)
+        "/h2-console/**"
+    };
+
     // JWT 필터 주입
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final ObjectMapper objectMapper;
@@ -43,7 +72,7 @@ public class SecurityConfig implements WebMvcConfigurer {
     private final com.jober.final2teamdrhong.service.OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
     private final com.jober.final2teamdrhong.service.OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
 
-    @Value("${app.cors.allowed-origins:http://localhost:3000,http://127.0.0.1:3000,http://localhost:8080,http://127.0.0.1:8080,http://localhost:8000,http://127.0.0.1:8000}")
+    @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:8080}")
     private String allowedOrigins;
 
     @Value("${app.environment.development:true}")
@@ -67,8 +96,7 @@ public class SecurityConfig implements WebMvcConfigurer {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .headers(headers -> {
-                    // 클릭재킹 공격 방지 (X-Frame-Options)
-                    // 개발 환경에서는 H2 Console을 위해 iframe 허용
+                    // 클릭재킹 공격 방지 (X-Frame-Options) - 개발환경에서는 H2 콘솔을 위해 완화
                     if (isDevelopment) {
                         headers.frameOptions(frameOptions -> frameOptions.sameOrigin());
                     } else {
@@ -124,11 +152,8 @@ public class SecurityConfig implements WebMvcConfigurer {
                     });
                 })
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/signup", "/auth/send-verification-code", "/auth/login", "/auth/refresh", "/auth/logout").permitAll() // 회원가입 및 로그인 관련 API는 누구나 접근 가능
-                        .requestMatchers("/auth/social/**", "/login/oauth2/**", "/oauth2/**").permitAll() // OAuth2 소셜 로그인 관련 API는 누구나 접근 가능
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-resources/**", "/webjars/**").permitAll() // Swagger UI는 누구나 접근 가능
-                        .requestMatchers("/h2-console/**").permitAll() // H2 Console은 누구나 접근 가능
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers(PERMIT_ALL_URLS).permitAll() // 인증 없이 접근 가능한 공개 엔드포인트들
+                        .requestMatchers("/admin/**").hasRole("ADMIN") // 관리자 권한 필요
                         .anyRequest().authenticated() // 나머지 API는 인증된 사용자만 접근 가능
                 )
                 // OAuth2 로그인 설정
@@ -236,7 +261,7 @@ public class SecurityConfig implements WebMvcConfigurer {
             "connect-src 'self' ws: wss:", // WebSocket 허용 (개발 서버)
             "media-src 'self'",
             "object-src 'none'",
-            "frame-src 'self'",
+            "frame-src 'self'", // H2 콘솔을 위해 frame 허용
             "base-uri 'self'",
             "form-action 'self'"
         );
@@ -259,7 +284,7 @@ public class SecurityConfig implements WebMvcConfigurer {
             "connect-src 'self' " + allowedDomains, // API 호출 허용 도메인
             "media-src 'self'",
             "object-src 'none'",
-            "frame-src 'self'",
+            "frame-src 'none'",
             "base-uri 'self'",
             "form-action 'self'",
             "upgrade-insecure-requests", // HTTP를 HTTPS로 업그레이드

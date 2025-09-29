@@ -38,7 +38,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        
+
         // 인증이 필요한 엔드포인트인지 확인
         if (isPublicEndpoint(request.getRequestURI())) {
             // 공개 엔드포인트는 익명 인증으로 처리
@@ -171,11 +171,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      * 공개 엔드포인트 여부 확인 헬퍼 메서드
      */
     private boolean isPublicEndpoint(String requestURI) {
-        return requestURI.startsWith("/api/auth/") ||
+        // 인증이 필요한 /api/auth/ 엔드포인트들
+        if (requestURI.equals("/api/auth/add-local-auth") ||
+            requestURI.equals("/api/auth/connected-methods")) {
+            return false; // 인증 필요
+        }
+
+        // 인증이 불필요한 공개 엔드포인트들
+        return requestURI.startsWith("/api/auth/") ||  // 나머지 auth 엔드포인트들 (signup, login 등)
                requestURI.startsWith("/api/swagger-ui") ||
                requestURI.startsWith("/api/v3/api-docs") ||
                requestURI.startsWith("/api/swagger-resources") ||
                requestURI.startsWith("/api/webjars") ||
-               requestURI.startsWith("/h2-console");
+               requestURI.startsWith("/api/h2-console") ||  // H2 콘솔 경로 추가
+               requestURI.startsWith("/api/oauth2/");  // OAuth2 관련 경로 추가
     }
 }

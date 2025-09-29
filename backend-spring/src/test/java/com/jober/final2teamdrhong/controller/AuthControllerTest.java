@@ -7,7 +7,6 @@ import com.jober.final2teamdrhong.dto.userSignup.UserSignupRequest;
 import com.jober.final2teamdrhong.entity.User;
 import com.jober.final2teamdrhong.entity.UserAuth;
 import com.jober.final2teamdrhong.repository.UserRepository;
-import com.jober.final2teamdrhong.service.RefreshTokenService;
 import com.jober.final2teamdrhong.service.storage.VerificationStorage;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;

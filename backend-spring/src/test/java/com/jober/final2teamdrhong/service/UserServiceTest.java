@@ -1,7 +1,17 @@
 package com.jober.final2teamdrhong.service;
 
+import com.jober.final2teamdrhong.config.AuthProperties;
+import com.jober.final2teamdrhong.dto.changePassword.PasswordResetRequest;
+import com.jober.final2teamdrhong.dto.changePassword.ConfirmPasswordResetRequest;
+import com.jober.final2teamdrhong.dto.user.DeleteUserRequest;
 import com.jober.final2teamdrhong.entity.User;
+import com.jober.final2teamdrhong.entity.UserAuth;
+import com.jober.final2teamdrhong.exception.AuthenticationException;
+import com.jober.final2teamdrhong.exception.BusinessException;
 import com.jober.final2teamdrhong.repository.UserRepository;
+import com.jober.final2teamdrhong.service.storage.VerificationStorage;
+import com.jober.final2teamdrhong.util.TimingAttackProtection;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -9,308 +19,286 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.util.Arrays;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.times;
+import static org.mockito.BDDMockito.willDoNothing;
+import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
-    @Mock
-    private UserRepository userRepository;
-
     @InjectMocks
     private UserService userService;
 
+    @Mock
+    private UserRepository userRepository;
+    @Mock
+    private PasswordEncoder passwordEncoder;
+    @Mock
+    private TokenService tokenService;
+    @Mock
+    private RateLimitService rateLimitService;
+    @Mock
+    private VerificationStorage verificationStorage;
+    @Mock
+    private TimingAttackProtection timingAttackProtection;
+    @Mock
+    private AuthProperties authProperties;
+    @Mock
+    private AuthProperties.Security authSecurityProperties;
+
+    private User user;
+    private UserAuth userAuth;
+
+    @BeforeEach
+    void setUp() {
+        user = User.builder()
+                .userId(1)
+                .userEmail("test@example.com")
+                .userName("testuser")
+                .userNumber("0101234-5678")
+                .build();
+
+        userAuth = UserAuth.builder()
+                .authId(1)
+                .authType(UserAuth.AuthType.LOCAL)
+                .passwordHash("oldPasswordHash")
+                .user(user)
+                .build();
+
+        user.addUserAuth(userAuth);
+    }
+
     @Nested
-    @DisplayName("사용자 ID로 조회 테스트")
-    class FindByIdTest {
+    @DisplayName("비밀번호 변경 테스트")
+    class ChangePasswordTest {
 
         @Test
-        @DisplayName("사용자 ID로 조회 성공 테스트")
-        void shouldReturnUserWhenValidUserId() {
+        @DisplayName("성공: 유효한 요청 시 비밀번호 변경 성공")
+        void changePassword_Success() {
             // given
-            // 1. 테스트용 사용자 ID를 준비합니다.
+            long delay = 300L;
+            PasswordResetRequest request = new PasswordResetRequest("oldPassword", "newPassword");
+
+            given(userRepository.findById(1)).willReturn(Optional.of(user));
+            given(passwordEncoder.matches("oldPassword", "oldPasswordHash")).willReturn(true);
+            given(passwordEncoder.matches("newPassword", "oldPasswordHash")).willReturn(false);
+            given(passwordEncoder.encode("newPassword")).willReturn("newPasswordHash");
+            given(authProperties.getSecurity()).willReturn(authSecurityProperties);
+            given(authSecurityProperties.getTimingAttackDelayMs()).willReturn(delay);
+            willDoNothing().given(timingAttackProtection).startTiming();
+            willDoNothing().given(timingAttackProtection).ensureMinimumResponseTime(delay);
+            willDoNothing().given(timingAttackProtection).clear();
+
+            // when
+            userService.changePassword(1, request, "127.0.0.1");
+
+            // then
+            assertThat(userAuth.getPasswordHash()).isEqualTo("newPasswordHash");
+            then(tokenService).should().addAllUserTokensToBlacklist(1);
+            then(rateLimitService).should().resetLoginRateLimit("test@example.com", "127.0.0.1");
+        }
+
+        @Test
+        @DisplayName("실패: 현재 비밀번호 불일치")
+        void changePassword_Fail_WrongCurrentPassword() {
+            // given
+            long delay = 300L;
+            PasswordResetRequest request = new PasswordResetRequest("wrongOldPassword", "newPassword");
+
+            given(userRepository.findById(1)).willReturn(Optional.of(user));
+            given(passwordEncoder.matches("wrongOldPassword", "oldPasswordHash")).willReturn(false);
+            given(authProperties.getSecurity()).willReturn(authSecurityProperties);
+            given(authSecurityProperties.getTimingAttackDelayMs()).willReturn(delay);
+            willDoNothing().given(timingAttackProtection).startTiming();
+            willDoNothing().given(timingAttackProtection).ensureMinimumResponseTime(delay);
+            willDoNothing().given(timingAttackProtection).clear();
+
+            // when & then
+            assertThatThrownBy(() -> userService.changePassword(1, request, "127.0.0.1"))
+                    .isInstanceOf(AuthenticationException.class)
+                    .hasMessage("현재 비밀번호가 일치하지 않습니다.");
+        }
+
+        @Test
+        @DisplayName("실패: 새 비밀번호가 현재 비밀번호와 동일")
+        void changePassword_Fail_NewPasswordSameAsOld() {
+            // given
+            long delay = 300L;
+            PasswordResetRequest request = new PasswordResetRequest("oldPassword", "oldPassword");
+
+            given(userRepository.findById(1)).willReturn(Optional.of(user));
+            given(passwordEncoder.matches("oldPassword", "oldPasswordHash")).willReturn(true);
+            given(passwordEncoder.matches("oldPassword", "oldPasswordHash")).willReturn(true);
+            given(authProperties.getSecurity()).willReturn(authSecurityProperties);
+            given(authSecurityProperties.getTimingAttackDelayMs()).willReturn(delay);
+            willDoNothing().given(timingAttackProtection).startTiming();
+            willDoNothing().given(timingAttackProtection).ensureMinimumResponseTime(delay);
+            willDoNothing().given(timingAttackProtection).clear();
+
+            // when & then
+            assertThatThrownBy(() -> userService.changePassword(1, request, "127.0.0.1"))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage("새 비밀번호는 현재 비밀번호와 달라야 합니다.");
+        }
+    }
+
+    @Nested
+    @DisplayName("비밀번호 재설정 테스트")
+    class ResetPasswordTest {
+
+        @Test
+        @DisplayName("성공: 유효한 인증 코드로 비밀번호 재설정 성공")
+        void resetPassword_Success() {
+            // given
+            ConfirmPasswordResetRequest request = new ConfirmPasswordResetRequest("test@example.com", "validCode", "newPassword");
+
+            willDoNothing().given(rateLimitService).checkEmailVerifyRateLimit("test@example.com");
+            given(verificationStorage.validateAndDelete("test@example.com", "validCode")).willReturn(true);
+            given(userRepository.findByUserEmail("test@example.com")).willReturn(Optional.of(user));
+            given(passwordEncoder.encode("newPassword")).willReturn("newPasswordHash");
+
+            // when
+            userService.resetPassword(request, "127.0.0.1");
+
+            // then
+            assertThat(userAuth.getPasswordHash()).isEqualTo("newPasswordHash");
+            then(tokenService).should().addAllUserTokensToBlacklist(1);
+            then(rateLimitService).should().resetLoginRateLimit("test@example.com", "127.0.0.1");
+        }
+
+        @Test
+        @DisplayName("실패: 유효하지 않은 인증 코드")
+        void resetPassword_Fail_InvalidVerificationCode() {
+            // given
+            ConfirmPasswordResetRequest request = new ConfirmPasswordResetRequest("test@example.com", "invalidCode", "newPassword");
+
+            willDoNothing().given(rateLimitService).checkEmailVerifyRateLimit("test@example.com");
+            given(verificationStorage.validateAndDelete("test@example.com", "invalidCode")).willReturn(false);
+
+            // when & then
+            assertThatThrownBy(() -> userService.resetPassword(request, "127.0.0.1"))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage("인증 코드가 일치하지 않거나 만료되었습니다.");
+        }
+    }
+
+    @Nested
+    @DisplayName("회원 탈퇴 테스트")
+    class DeleteAccountTest {
+
+        @Test
+        @DisplayName("로컬 계정 회원 탈퇴 성공 테스트")
+        void shouldDeleteLocalAccountSuccessfully() {
+            // given
+            long delay = 300L;
             Integer userId = 1;
-            // 2. 모의 사용자 객체를 생성합니다.
-            User mockUser = User.create("테스트사용자", "test@example.com", "010-1234-5678");
-            // 3. Repository가 사용자를 반환하도록 설정합니다.
-            given(userRepository.findById(userId)).willReturn(Optional.of(mockUser));
+            String password = "Password123!";
+            String clientIp = "192.168.1.1";
+            DeleteUserRequest request = new DeleteUserRequest(password, "회원탈퇴");
+
+            User localUser = User.builder().userId(userId).userEmail("local@example.com").build();
+            UserAuth localAuth = UserAuth.createLocalAuth(localUser, "encoded_password_hash");
+            localUser.addUserAuth(localAuth);
+
+            given(userRepository.findById(userId)).willReturn(Optional.of(localUser));
+            given(authProperties.getSecurity()).willReturn(authSecurityProperties);
+            given(authSecurityProperties.getAnonymizedEmailFormat()).willReturn("deleted_user_%d_%d@deleted.com");
+            given(authSecurityProperties.getTimingAttackDelayMs()).willReturn(delay);
+            willDoNothing().given(timingAttackProtection).startTiming();
+            willDoNothing().given(timingAttackProtection).ensureMinimumResponseTime(delay);
+            willDoNothing().given(timingAttackProtection).clear();
+            given(passwordEncoder.matches(password, "encoded_password_hash")).willReturn(true);
 
             // when
-            // 1. ID로 사용자를 조회합니다.
-            Optional<User> result = userService.findById(userId);
+            userService.deleteAccount(userId, request, clientIp);
 
             // then
-            // 1. 조회 결과가 존재하는지 확인합니다.
-            assertThat(result).isPresent();
-            // 2. 반환된 사용자 정보가 정확한지 검증합니다.
-            assertThat(result.get().getUserName()).isEqualTo("테스트사용자");
-            assertThat(result.get().getUserEmail()).isEqualTo("test@example.com");
-            // 3. Repository의 findById 메소드가 호출되었는지 검증합니다.
-            then(userRepository).should(times(1)).findById(userId);
+            then(tokenService).should().addAllUserTokensToBlacklist(userId);
+            then(rateLimitService).should().resetLoginRateLimit("local@example.com", clientIp);
+            assertThat(localUser.getIsDeleted()).isTrue();
+            assertThat(localUser.getUserEmail()).startsWith("deleted_user_" + userId + "_");
         }
 
         @Test
-        @DisplayName("존재하지 않는 사용자 ID 조회 실패 테스트")
-        void shouldReturnEmptyWhenUserNotFound() {
+        @DisplayName("소셜 계정 회원 탈퇴 성공 테스트 (비밀번호 검증 없음)")
+        void shouldDeleteSocialAccountSuccessfully() {
             // given
-            // 1. 존재하지 않는 사용자 ID를 준비합니다.
-            Integer nonExistingUserId = 999;
-            // 2. Repository가 빈 Optional을 반환하도록 설정합니다.
-            given(userRepository.findById(nonExistingUserId)).willReturn(Optional.empty());
+            Integer userId = 1;
+            String clientIp = "192.168.1.1";
+            DeleteUserRequest request = new DeleteUserRequest("any_password", "회원탈퇴");
+
+            User socialUser = User.builder().userId(userId).userEmail("social@example.com").build();
+            UserAuth googleAuth = UserAuth.createSocialAuth(socialUser, UserAuth.AuthType.GOOGLE, "google123");
+            socialUser.addUserAuth(googleAuth);
+
+            given(userRepository.findById(userId)).willReturn(Optional.of(socialUser));
+            given(authProperties.getSecurity()).willReturn(authSecurityProperties);
+            given(authSecurityProperties.getAnonymizedEmailFormat()).willReturn("deleted_user_%d_%d@deleted.com");
 
             // when
-            // 1. 존재하지 않는 ID로 사용자를 조회합니다.
-            Optional<User> result = userService.findById(nonExistingUserId);
+            userService.deleteAccount(userId, request, clientIp);
 
             // then
-            // 1. 조회 결과가 비어있는지 확인합니다.
-            assertThat(result).isEmpty();
-            // 2. Repository의 findById 메소드가 호출되었는지 검증합니다.
-            then(userRepository).should(times(1)).findById(nonExistingUserId);
+            then(passwordEncoder).should(never()).matches(anyString(), anyString());
+            then(tokenService).should().addAllUserTokensToBlacklist(userId);
+            then(rateLimitService).should().resetLoginRateLimit("social@example.com", clientIp);
+            assertThat(socialUser.getIsDeleted()).isTrue();
         }
 
         @Test
-        @DisplayName("null 사용자 ID 조회 실패 테스트")
-        void shouldReturnEmptyWhenUserIdIsNull() {
+        @DisplayName("비밀번호 불일치 시 회원 탈퇴 실패 테스트")
+        void shouldFailWhenPasswordMismatch() {
             // given
-            // 1. null 사용자 ID를 준비합니다.
-            Integer nullUserId = null;
-            // 2. Repository가 빈 Optional을 반환하도록 설정합니다.
-            given(userRepository.findById(nullUserId)).willReturn(Optional.empty());
+            long delay = 300L;
+            Integer userId = 1;
+            String wrongPassword = "WrongPassword!";
+            DeleteUserRequest request = new DeleteUserRequest(wrongPassword, "회원탈퇴");
 
-            // when
-            // 1. null ID로 사용자를 조회합니다.
-            Optional<User> result = userService.findById(nullUserId);
+            User localUser = User.builder().userId(userId).userEmail("local@example.com").build();
+            UserAuth localAuth = UserAuth.createLocalAuth(localUser, "encoded_password_hash");
+            localUser.addUserAuth(localAuth);
 
-            // then
-            // 1. 조회 결과가 비어있는지 확인합니다.
-            assertThat(result).isEmpty();
-            // 2. Repository의 findById 메소드가 호출되었는지 검증합니다.
-            then(userRepository).should(times(1)).findById(nullUserId);
-        }
-    }
+            given(userRepository.findById(userId)).willReturn(Optional.of(localUser));
+            given(authProperties.getSecurity()).willReturn(authSecurityProperties);
+            given(authSecurityProperties.getTimingAttackDelayMs()).willReturn(delay);
+            willDoNothing().given(timingAttackProtection).startTiming();
+            willDoNothing().given(timingAttackProtection).ensureMinimumResponseTime(delay);
+            willDoNothing().given(timingAttackProtection).clear();
+            given(passwordEncoder.matches(wrongPassword, "encoded_password_hash")).willReturn(false);
 
-    @Nested
-    @DisplayName("사용자 이메일로 조회 테스트")
-    class FindByEmailTest {
+            // when & then
+            assertThatThrownBy(() -> userService.deleteAccount(userId, request, "127.0.0.1"))
+                .isInstanceOf(AuthenticationException.class)
+                .hasMessage("비밀번호가 일치하지 않습니다.");
 
-        @Test
-        @DisplayName("이메일로 사용자 조회 성공 테스트")
-        void shouldReturnUserWhenValidEmail() {
-            // given
-            // 1. 테스트용 이메일을 준비합니다.
-            String email = "test@example.com";
-            // 2. 모의 사용자 객체를 생성합니다.
-            User mockUser = User.create("테스트사용자", email, "010-1234-5678");
-            // 3. Repository가 사용자를 반환하도록 설정합니다.
-            given(userRepository.findByUserEmail(email)).willReturn(Optional.of(mockUser));
-
-            // when
-            // 1. 이메일로 사용자를 조회합니다.
-            Optional<User> result = userService.findByEmail(email);
-
-            // then
-            // 1. 조회 결과가 존재하는지 확인합니다.
-            assertThat(result).isPresent();
-            // 2. 반환된 사용자 정보가 정확한지 검증합니다.
-            assertThat(result.get().getUserEmail()).isEqualTo(email);
-            assertThat(result.get().getUserName()).isEqualTo("테스트사용자");
-            // 3. Repository의 findByUserEmail 메소드가 호출되었는지 검증합니다.
-            then(userRepository).should(times(1)).findByUserEmail(email);
+            assertThat(localUser.getIsDeleted()).isFalse();
+            then(tokenService).should(never()).addAllUserTokensToBlacklist(any());
         }
 
         @Test
-        @DisplayName("존재하지 않는 이메일 조회 실패 테스트")
-        void shouldReturnEmptyWhenEmailNotFound() {
+        @DisplayName("이미 탈퇴한 회원의 탈퇴 시도 시 실패 테스트")
+        void shouldFailWhenUserAlreadyDeleted() {
             // given
-            // 1. 존재하지 않는 이메일을 준비합니다.
-            String nonExistingEmail = "notfound@example.com";
-            // 2. Repository가 빈 Optional을 반환하도록 설정합니다.
-            given(userRepository.findByUserEmail(nonExistingEmail)).willReturn(Optional.empty());
+            Integer userId = 1;
+            DeleteUserRequest request = new DeleteUserRequest("any_password", "회원탈퇴");
 
-            // when
-            // 1. 존재하지 않는 이메일로 사용자를 조회합니다.
-            Optional<User> result = userService.findByEmail(nonExistingEmail);
+            User deletedUser = User.builder().userId(userId).build();
+            deletedUser.deleteAccount("deleted@email.com");
 
-            // then
-            // 1. 조회 결과가 비어있는지 확인합니다.
-            assertThat(result).isEmpty();
-            // 2. Repository의 findByUserEmail 메소드가 호출되었는지 검증합니다.
-            then(userRepository).should(times(1)).findByUserEmail(nonExistingEmail);
-        }
+            given(userRepository.findById(userId)).willReturn(Optional.of(deletedUser));
 
-        @Test
-        @DisplayName("빈 이메일 조회 실패 테스트")
-        void shouldReturnEmptyWhenEmailIsEmpty() {
-            // given
-            // 1. 빈 이메일을 준비합니다.
-            String emptyEmail = "";
-            // 2. Repository가 빈 Optional을 반환하도록 설정합니다.
-            given(userRepository.findByUserEmail(emptyEmail)).willReturn(Optional.empty());
-
-            // when
-            // 1. 빈 이메일로 사용자를 조회합니다.
-            Optional<User> result = userService.findByEmail(emptyEmail);
-
-            // then
-            // 1. 조회 결과가 비어있는지 확인합니다.
-            assertThat(result).isEmpty();
-            // 2. Repository의 findByUserEmail 메소드가 호출되었는지 검증합니다.
-            then(userRepository).should(times(1)).findByUserEmail(emptyEmail);
-        }
-    }
-
-    @Nested
-    @DisplayName("사용자 저장 테스트")
-    class SaveUserTest {
-
-        @Test
-        @DisplayName("사용자 저장 성공 테스트")
-        void shouldSaveUserSuccessfully() {
-            // given
-            // 1. 저장할 사용자 객체를 생성합니다.
-            User userToSave = User.create("새사용자", "newuser@example.com", "010-9876-5432");
-            // 2. Repository가 저장된 사용자를 반환하도록 설정합니다.
-            given(userRepository.save(userToSave)).willReturn(userToSave);
-
-            // when
-            // 1. 사용자를 저장합니다.
-            User result = userService.saveUser(userToSave);
-
-            // then
-            // 1. 저장 결과가 올바른지 확인합니다.
-            assertThat(result).isNotNull();
-            assertThat(result.getUserName()).isEqualTo("새사용자");
-            assertThat(result.getUserEmail()).isEqualTo("newuser@example.com");
-            // 2. Repository의 save 메소드가 호출되었는지 검증합니다.
-            then(userRepository).should(times(1)).save(userToSave);
-        }
-
-        @Test
-        @DisplayName("소셜 사용자 저장 성공 테스트")
-        void shouldSaveSocialUserSuccessfully() {
-            // given
-            // 1. 소셜 로그인 사용자 객체를 생성합니다.
-            User socialUser = User.create("소셜사용자", "social@example.com", "010-1111-2222");
-            // 2. Repository가 저장된 사용자를 반환하도록 설정합니다.
-            given(userRepository.save(socialUser)).willReturn(socialUser);
-
-            // when
-            // 1. 소셜 사용자를 저장합니다.
-            User result = userService.saveUser(socialUser);
-
-            // then
-            // 1. 저장 결과가 올바른지 확인합니다.
-            assertThat(result).isNotNull();
-            assertThat(result.getUserName()).isEqualTo("소셜사용자");
-            assertThat(result.getUserEmail()).isEqualTo("social@example.com");
-            // 2. Repository의 save 메소드가 호출되었는지 검증합니다.
-            then(userRepository).should(times(1)).save(socialUser);
-        }
-    }
-
-    @Nested
-    @DisplayName("사용자 삭제 테스트")
-    class DeleteUserTest {
-
-        @Test
-        @DisplayName("사용자 삭제 성공 테스트")
-        void shouldDeleteUserSuccessfully() {
-            // given
-            // 1. 삭제할 사용자 ID를 준비합니다.
-            Integer userIdToDelete = 1;
-
-            // when
-            // 1. 사용자를 삭제합니다.
-            userService.deleteUser(userIdToDelete);
-
-            // then
-            // 1. Repository의 deleteById 메소드가 호출되었는지 검증합니다.
-            then(userRepository).should(times(1)).deleteById(userIdToDelete);
-        }
-
-        @Test
-        @DisplayName("null ID 사용자 삭제 테스트")
-        void shouldCallRepositoryWhenUserIdIsNull() {
-            // given
-            // 1. null 사용자 ID를 준비합니다.
-            Integer nullUserId = null;
-
-            // when
-            // 1. null ID로 사용자 삭제를 시도합니다.
-            userService.deleteUser(nullUserId);
-
-            // then
-            // 1. Repository의 deleteById 메소드가 호출되었는지 검증합니다.
-            then(userRepository).should(times(1)).deleteById(nullUserId);
-        }
-    }
-
-    @Nested
-    @DisplayName("전체 사용자 조회 테스트")
-    class FindAllUsersTest {
-
-        @Test
-        @DisplayName("전체 사용자 페이지 조회 성공 테스트")
-        void shouldReturnPageOfUsersSuccessfully() {
-            // given
-            // 1. 페이지 요청 객체를 생성합니다.
-            Pageable pageable = PageRequest.of(0, 10);
-            // 2. 모의 사용자 목록을 생성합니다.
-            User user1 = User.create("사용자1", "user1@example.com", "010-1111-1111");
-            User user2 = User.create("사용자2", "user2@example.com", "010-2222-2222");
-            Page<User> mockPage = new PageImpl<>(Arrays.asList(user1, user2), pageable, 2);
-            // 3. Repository가 사용자 페이지를 반환하도록 설정합니다.
-            given(userRepository.findAll(pageable)).willReturn(mockPage);
-
-            // when
-            // 1. 전체 사용자를 페이지별로 조회합니다.
-            Page<User> result = userService.findAllUsers(pageable);
-
-            // then
-            // 1. 조회 결과가 올바른지 확인합니다.
-            assertThat(result).isNotNull();
-            assertThat(result.getContent()).hasSize(2);
-            assertThat(result.getTotalElements()).isEqualTo(2);
-            assertThat(result.getContent().get(0).getUserName()).isEqualTo("사용자1");
-            assertThat(result.getContent().get(1).getUserName()).isEqualTo("사용자2");
-            // 2. Repository의 findAll 메소드가 호출되었는지 검증합니다.
-            then(userRepository).should(times(1)).findAll(pageable);
-        }
-
-        @Test
-        @DisplayName("빈 사용자 목록 조회 테스트")
-        void shouldReturnEmptyPageWhenNoUsers() {
-            // given
-            // 1. 페이지 요청 객체를 생성합니다.
-            Pageable pageable = PageRequest.of(0, 10);
-            // 2. 빈 페이지를 생성합니다.
-            Page<User> emptyPage = new PageImpl<>(Arrays.asList(), pageable, 0);
-            // 3. Repository가 빈 페이지를 반환하도록 설정합니다.
-            given(userRepository.findAll(pageable)).willReturn(emptyPage);
-
-            // when
-            // 1. 전체 사용자를 페이지별로 조회합니다.
-            Page<User> result = userService.findAllUsers(pageable);
-
-            // then
-            // 1. 조회 결과가 빈 페이지인지 확인합니다.
-            assertThat(result).isNotNull();
-            assertThat(result.getContent()).isEmpty();
-            assertThat(result.getTotalElements()).isEqualTo(0);
-            // 2. Repository의 findAll 메소드가 호출되었는지 검증합니다.
-            then(userRepository).should(times(1)).findAll(pageable);
+            // when & then
+            assertThatThrownBy(() -> userService.deleteAccount(userId, request, "127.0.0.1"))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("이미 탈퇴 처리된 계정입니다.");
         }
     }
 }

@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.SQLRestriction;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.time.LocalDateTime;
 
@@ -155,11 +156,32 @@ public class UserAuth extends BaseEntity {
         }
     }
 
+    public void updatePasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+        user.update();
+    }
+
     public void setAsPrimary() {
         this.isPrimary = true;
     }
 
     public void unsetAsPrimary() {
         this.isPrimary = false;
+    }
+
+    /**
+     * 인증 정보를 삭제된 것으로 표시합니다.
+     * 회원 탈퇴 시 호출되어 인증 정보를 무효화합니다.
+     */
+    public void markAsDeleted() {
+        this.isVerified = false;
+        if (this.authType == AuthType.LOCAL && this.passwordHash != null) {
+            // 로컬 인증인 경우 비밀번호 해시를 무효화
+            this.passwordHash = "DELETED_" + System.currentTimeMillis();
+        }
+        if (this.socialId != null) {
+            // 소셜 인증인 경우 소셜 ID를 익명화
+            this.socialId = "DELETED_" + this.authType + "_" + System.currentTimeMillis();
+        }
     }
 }

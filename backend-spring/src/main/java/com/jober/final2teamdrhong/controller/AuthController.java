@@ -1,6 +1,8 @@
 package com.jober.final2teamdrhong.controller;
 
 import com.jober.final2teamdrhong.config.JwtConfig;
+import com.jober.final2teamdrhong.dto.auth.AddLocalAuthRequest;
+import com.jober.final2teamdrhong.dto.changePassword.ConfirmPasswordResetRequest;
 import com.jober.final2teamdrhong.dto.emailVerification.EmailRequest;
 import com.jober.final2teamdrhong.dto.emailVerification.EmailVerificationResponse;
 import com.jober.final2teamdrhong.dto.userLogin.TokenRefreshResponse;
@@ -12,6 +14,7 @@ import com.jober.final2teamdrhong.exception.ErrorResponse;
 import com.jober.final2teamdrhong.service.AuthService;
 import com.jober.final2teamdrhong.service.EmailService;
 import com.jober.final2teamdrhong.service.RateLimitService;
+import com.jober.final2teamdrhong.service.UserService;
 import com.jober.final2teamdrhong.util.ClientIpUtil;
 import com.jober.final2teamdrhong.util.LogMaskingUtil;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,6 +23,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -27,9 +31,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
+import java.util.List;
+import com.jober.final2teamdrhong.service.AuthService.AuthMethodsResponse;
 
 @RestController
 @RequiredArgsConstructor
@@ -41,6 +47,7 @@ public class AuthController {
     private final AuthService authService;
     private final EmailService emailService;
     private final RateLimitService rateLimitService;
+    private final UserService userService;
     private final JwtConfig jwtConfig;
 
     @Value("${app.environment.development:true}")
@@ -209,5 +216,192 @@ public class AuthController {
         authService.logout(accessToken, logoutRequest.refreshToken(), clientIp);
 
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 비밀번호 재설정 (이메일 인증 후)
+     * 비밀번호를 잊어버린 사용자가 이메일로 받은 인증 코드를 통해 비밀번호를 재설정합니다.
+     * 재설정 후 모든 세션이 무효화되어 재로그인이 필요합니다.
+     *
+     * @param request 비밀번호 재설정 요청 정보 (이메일, 인증코드, 새 비밀번호)
+     * @param httpRequest HTTP 요청 (클라이언트 IP 추출용)
+     * @return 성공 응답
+     */
+    @Operation(
+        summary = "비밀번호 재설정",
+        description = "이메일 인증 코드를 통해 비밀번호를 재설정합니다. " +
+                     "재설정 후 모든 세션이 무효화되어 재로그인이 필요합니다."
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "비밀번호 재설정 성공"),
+        @ApiResponse(
+            responseCode = "400",
+            description = "잘못된 요청 (인증 코드 불일치/만료, 사용자 없음, 유효성 검사 실패 등)",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "429",
+            description = "Rate Limit 초과",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "서버 내부 오류",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
+        )
+    })
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(
+            @Parameter(description = "비밀번호 재설정 요청 정보", required = true)
+            @Valid @RequestBody ConfirmPasswordResetRequest request,
+
+            @Parameter(hidden = true)
+            HttpServletRequest httpRequest) {
+
+        log.info("비밀번호 재설정 요청: email={}", LogMaskingUtil.maskEmail(request.email()));
+
+        // 1. 클라이언트 IP 추출
+        String clientIp = ClientIpUtil.getClientIpAddress(httpRequest, isDevelopment);
+
+        // 2. UserService에 비밀번호 재설정 처리 위임
+        userService.resetPassword(request, clientIp);
+
+        log.info("비밀번호 재설정 완료: email={}", LogMaskingUtil.maskEmail(request.email()));
+
+        return ResponseEntity.ok("비밀번호가 성공적으로 재설정되었습니다. 보안을 위해 모든 세션이 종료되었으므로 새 비밀번호로 로그인해주세요.");
+    }
+
+    // ====================================
+    // 계정 통합 관련 API 엔드포인트들
+    // ====================================
+
+    /**
+     * 소셜 로그인 사용자가 로컬 인증을 추가 (계정 통합)
+     * 마이페이지에서 소셜 로그인 사용자가 이메일 인증 후 비밀번호를 설정하여
+     * 소셜 로그인과 로컬 로그인을 모두 사용할 수 있도록 합니다.
+     *
+     * @param request 로컬 인증 추가 요청 정보 (이메일, 인증코드, 비밀번호)
+     * @param userDetails 현재 인증된 사용자 정보
+     * @param httpRequest HTTP 요청 (클라이언트 IP 추출용)
+     * @return 성공 응답
+     */
+    @Operation(
+        summary = "계정 통합 - 소셜 계정에 로컬 인증 추가",
+        description = "소셜 로그인 사용자가 이메일 인증 후 비밀번호를 설정하여 " +
+                     "소셜 로그인과 로컬 로그인을 모두 사용할 수 있도록 계정을 통합합니다. " +
+                     "통합 후 모든 기존 토큰이 무효화되어 재로그인이 필요합니다.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "계정 통합 성공"),
+        @ApiResponse(
+            responseCode = "400",
+            description = "잘못된 요청 (인증 코드 불일치/만료, 이메일 불일치, 이미 로컬 인증 존재 등)",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "인증 실패 (로그인 필요)",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "429",
+            description = "Rate Limit 초과",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "서버 내부 오류",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
+        )
+    })
+    @PostMapping("/add-local-auth")
+    public ResponseEntity<String> addLocalAuth(
+            @Parameter(description = "로컬 인증 추가 요청 정보", required = true)
+            @Valid @RequestBody AddLocalAuthRequest request,
+
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims jwtClaims,
+
+            @Parameter(hidden = true)
+            HttpServletRequest httpRequest) {
+
+        log.info("계정 통합 요청 - 소셜→로컬: user={}", jwtClaims.getEmail());
+
+        // 1. 사용자 ID 추출 (JwtClaims에서 userId 직접 추출)
+        Integer userId = jwtClaims.getUserId();
+
+        // 2. 클라이언트 IP 추출
+        String clientIp = ClientIpUtil.getClientIpAddress(httpRequest, isDevelopment);
+
+        // 3. AuthService에 계정 통합 처리 위임
+        authService.addLocalAuth(userId, request, clientIp);
+
+        log.info("계정 통합 완료 - 소셜→로컬: userId={}", userId);
+
+        return ResponseEntity.ok("계정 통합이 완료되었습니다. 이제 소셜 로그인과 로컬 로그인을 모두 사용할 수 있습니다. " +
+                               "보안을 위해 모든 세션이 종료되었으므로 다시 로그인해주세요.");
+    }
+
+    /**
+     * 사용자의 연결된 인증 방법 조회
+     * 현재 사용자가 어떤 인증 방법들(로컬, 구글 등)을 연결했는지 조회합니다.
+     * 마이페이지에서 계정 통합 상태를 확인할 때 사용됩니다.
+     *
+     * @param userDetails 현재 인증된 사용자 정보
+     * @return 연결된 인증 방법 목록
+     */
+    @Operation(
+        summary = "연결된 인증 방법 조회",
+        description = "현재 사용자가 연결한 인증 방법들(로컬, 구글 등)을 조회합니다. " +
+                     "마이페이지에서 계정 통합 상태를 확인할 때 사용됩니다.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+        @ApiResponse(
+            responseCode = "200",
+            description = "조회 성공",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(
+                    implementation = AuthMethodsResponse.class,
+                    example = """
+                    {
+                        "hasLocalAuth": true,
+                        "socialMethods": ["GOOGLE", "KAKAO"]
+                    }
+                    """,
+                    description = "연결된 인증 방법 정보 (로컬 인증 보유 여부 + 소셜 인증 목록)"
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "인증 실패 (로그인 필요)",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "서버 내부 오류",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
+        )
+    })
+    @GetMapping("/connected-methods")
+    public ResponseEntity<AuthMethodsResponse> getConnectedAuthMethods(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims jwtClaims) {
+
+        log.info("연결된 인증 방법 조회: user={}", jwtClaims.getEmail());
+
+        // 1. 사용자 ID 추출
+        Integer userId = jwtClaims.getUserId();
+
+        // 2. AuthService에 조회 처리 위임 - 기존에 추상화된 응답 객체 활용
+        AuthMethodsResponse response = authService.getConnectedAuthMethods(userId);
+
+        log.info("연결된 인증 방법 조회 완료: userId={}, hasLocal={}, socialMethods={}",
+                userId, response.hasLocalAuth(), response.socialMethods());
+
+        return ResponseEntity.ok(response);
     }
 }

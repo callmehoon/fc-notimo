@@ -36,6 +36,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
 
     private final UserRepository userRepository;
     private final DefaultOAuth2UserService delegate;
+    private final AuthService authService;
 
     @Override
     @Transactional
@@ -66,25 +67,16 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
             Optional<User> existingUser = userRepository.findByUserEmail(oAuth2UserInfo.getEmail());
 
             if (existingUser.isPresent()) {
-                // 기존 사용자 처리
+                // 기존 사용자 처리 - AuthService의 자동 통합 로직 사용
                 User user = existingUser.get();
                 log.info("기존 사용자 OAuth2 로그인: {}", user.getUserEmail());
 
-                // 해당 제공자로 이미 연결된 계정이 있는지 확인
+                // AuthService를 통한 로컬→소셜 자동 통합 처리
                 UserAuth.AuthType authType = OAuth2UserInfoFactory.getAuthType(registrationId);
-                boolean hasExistingAuth = user.getUserAuths().stream()
-                        .anyMatch(auth -> auth.getAuthType() == authType &&
-                                 auth.getSocialId().equals(oAuth2UserInfo.getId()));
-
-                if (!hasExistingAuth) {
-                    // 새로운 소셜 로그인 방식 추가
-                    UserAuth newAuth = UserAuth.createSocialAuth(user, authType, oAuth2UserInfo.getId());
-                    user.addUserAuth(newAuth);
-                    log.info("사용자 {}에 새로운 OAuth2 인증 방식 추가: {}", user.getUserEmail(), authType);
-                }
+                User integratedUser = authService.integrateSocialAuth(user, authType, oAuth2UserInfo.getId());
 
                 // Spring Security가 사용할 OAuth2User 객체 생성 (기존 사용자)
-                return createOAuth2User(oAuth2UserInfo, userNameAttributeName, user, true);
+                return createOAuth2User(oAuth2UserInfo, userNameAttributeName, integratedUser, true);
             } else {
                 // 신규 사용자 처리 - 임시 정보로 OAuth2User 생성
                 log.info("신규 사용자 OAuth2 로그인: {}", oAuth2UserInfo.getEmail());
