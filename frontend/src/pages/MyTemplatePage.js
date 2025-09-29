@@ -70,7 +70,7 @@ export default function TemplatePage() {
     const loadFavorites = async () => {
         try {
             if (workspaceId) {
-                const favoriteResponse = await getFavoriteTemplates(workspaceId, 'INDIVIDUAL', { page: 0, size: 1000 });
+                const favoriteResponse = await getFavoriteTemplates(workspaceId, 'INDIVIDUAL', { page: 0, size: 100 });
                 const favoriteIds = new Set(
                     favoriteResponse.data.content?.map(fav => fav.individualTemplateId).filter(Boolean) || []
                 );
