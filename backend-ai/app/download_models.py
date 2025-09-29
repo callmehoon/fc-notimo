@@ -16,7 +16,7 @@ CLS_MODEL_ID = "klue/bert-base"
 
 # ModelLoader의 상대 경로("../")를 현재 경로("./") 기준으로 변경
 # 이 스크립트를 실행하면 ./models/downloaded_model/ 경로가 생성됩니다.
-DOWNLOADED_PATH = "./models/downloaded_model/"
+DOWNLOADED_PATH = "app/models/downloaded_model/"
 
 
 def download_model_from_hub(model_id: str, base_path: str):

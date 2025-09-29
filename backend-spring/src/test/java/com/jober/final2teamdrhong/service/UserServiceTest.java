@@ -4,6 +4,7 @@ import com.jober.final2teamdrhong.config.AuthProperties;
 import com.jober.final2teamdrhong.dto.changePassword.PasswordResetRequest;
 import com.jober.final2teamdrhong.dto.changePassword.ConfirmPasswordResetRequest;
 import com.jober.final2teamdrhong.dto.user.DeleteUserRequest;
+import com.jober.final2teamdrhong.dto.user.UserProfileResponse;
 import com.jober.final2teamdrhong.entity.User;
 import com.jober.final2teamdrhong.entity.UserAuth;
 import com.jober.final2teamdrhong.exception.AuthenticationException;
@@ -299,6 +300,120 @@ class UserServiceTest {
             assertThatThrownBy(() -> userService.deleteAccount(userId, request, "127.0.0.1"))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("이미 탈퇴 처리된 계정입니다.");
+        }
+    }
+
+    @Nested
+    @DisplayName("사용자 프로필 조회 테스트")
+    class GetUserProfileTest {
+
+        @Test
+        @DisplayName("성공: 로컬 인증만 있는 사용자 프로필 조회")
+        void getUserProfile_LocalAuth_Success() {
+            // given
+            Integer userId = 1;
+            given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+            // when
+            UserProfileResponse response = userService.getUserProfile(userId);
+
+            // then
+            assertThat(response).isNotNull();
+            assertThat(response.userId()).isEqualTo(1);
+            assertThat(response.userName()).isEqualTo("testuser");
+            assertThat(response.userEmail()).isEqualTo("test@example.com");
+            assertThat(response.userNumber()).isEqualTo("0101234-5678");
+            assertThat(response.userRole()).isEqualTo("USER");
+            assertThat(response.authMethods().hasLocalAuth()).isTrue();
+            assertThat(response.authMethods().socialMethods()).isEmpty();
+
+            then(userRepository).should().findById(userId);
+        }
+
+        @Test
+        @DisplayName("성공: 소셜 인증만 있는 사용자 프로필 조회")
+        void getUserProfile_SocialAuth_Success() {
+            // given
+            Integer userId = 1;
+
+            // 소셜 인증만 있는 사용자 생성
+            User socialUser = User.builder()
+                    .userId(userId)
+                    .userName("소셜사용자")
+                    .userEmail("social@example.com")
+                    .userNumber("010-9999-9999")
+                    .userRole(User.UserRole.USER)
+                    .build();
+
+            UserAuth googleAuth = UserAuth.builder()
+                    .authType(UserAuth.AuthType.GOOGLE)
+                    .authId(2)
+                    .socialId("google123")
+                    .user(socialUser)
+                    .build();
+
+            socialUser.addUserAuth(googleAuth);
+
+            given(userRepository.findById(userId)).willReturn(Optional.of(socialUser));
+
+            // when
+            UserProfileResponse response = userService.getUserProfile(userId);
+
+            // then
+            assertThat(response).isNotNull();
+            assertThat(response.userId()).isEqualTo(1);
+            assertThat(response.userName()).isEqualTo("소셜사용자");
+            assertThat(response.userEmail()).isEqualTo("social@example.com");
+            assertThat(response.userNumber()).isEqualTo("010-9999-9999");
+            assertThat(response.userRole()).isEqualTo("USER");
+            assertThat(response.authMethods().hasLocalAuth()).isFalse();
+            assertThat(response.authMethods().socialMethods()).containsExactly("GOOGLE");
+        }
+
+        @Test
+        @DisplayName("성공: 로컬 + 소셜 인증이 모두 있는 사용자 프로필 조회")
+        void getUserProfile_BothAuth_Success() {
+            // given
+            Integer userId = 1;
+
+            // 로컬 + 소셜 인증이 모두 있는 사용자
+            UserAuth googleAuth = UserAuth.builder()
+                    .authType(UserAuth.AuthType.GOOGLE)
+                    .authId(2)
+                    .socialId("google123")
+                    .user(user)
+                    .build();
+
+            user.addUserAuth(googleAuth);
+
+            given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+            // when
+            UserProfileResponse response = userService.getUserProfile(userId);
+
+            // then
+            assertThat(response).isNotNull();
+            assertThat(response.userId()).isEqualTo(1);
+            assertThat(response.userName()).isEqualTo("testuser");
+            assertThat(response.userEmail()).isEqualTo("test@example.com");
+            assertThat(response.userNumber()).isEqualTo("0101234-5678");
+            assertThat(response.authMethods().hasLocalAuth()).isTrue();
+            assertThat(response.authMethods().socialMethods()).containsExactly("GOOGLE");
+        }
+
+        @Test
+        @DisplayName("실패: 존재하지 않는 사용자 조회")
+        void getUserProfile_UserNotFound() {
+            // given
+            Integer userId = 999;
+            given(userRepository.findById(userId)).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> userService.getUserProfile(userId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage("사용자를 찾을 수 없습니다.");
+
+            then(userRepository).should().findById(userId);
         }
     }
 }
