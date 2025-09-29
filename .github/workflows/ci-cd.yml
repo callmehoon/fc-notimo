@@ -99,13 +99,26 @@ jobs:
               git remote set-url origin https://${{ secrets.GH_PAT }}@github.com/Kernel180-BE12/Final-2team-DrHong.git
               git pull origin dev
               git remote set-url origin https://github.com/Kernel180-BE12/Final-2team-DrHong.git
+              # Git LFS 파일들 (파인튜닝된 모델) 다운로드
+              echo "📦 Git LFS 파일들 다운로드 중..."
+              git lfs pull
             else
               echo "📁 프로젝트 폴더 없음. 새로 클론 중..."
               git clone https://${{ secrets.GH_PAT }}@github.com/Kernel180-BE12/Final-2team-DrHong.git
               cd Final-2team-DrHong
               git checkout dev
               git remote set-url origin https://github.com/Kernel180-BE12/Final-2team-DrHong.git
+              # Git LFS 파일들 (파인튜닝된 모델) 다운로드
+              echo "📦 Git LFS 파일들 다운로드 중..."
+              git lfs pull
             fi
+
+            # 베이스 모델 다운로드
+            echo "📦 베이스 모델 다운로드 중..."
+            cd backend-ai/app/
+            pip3 install huggingface_hub
+            python3 download_models.py
+            cd ../..
 
             # .env 파일 확인 및 생성
             if [ ! -f ".env" ]; then
@@ -167,13 +180,26 @@ jobs:
               git remote set-url origin https://${{ secrets.GH_PAT }}@github.com/Kernel180-BE12/Final-2team-DrHong.git
               git pull origin main
               git remote set-url origin https://github.com/Kernel180-BE12/Final-2team-DrHong.git
+              # Git LFS 파일들 (파인튜닝된 모델) 다운로드
+              echo "📦 Git LFS 파일들 다운로드 중..."
+              git lfs pull
             else
               echo "📁 프로젝트 폴더 없음. 새로 클론 중..."
               git clone https://${{ secrets.GH_PAT }}@github.com/Kernel180-BE12/Final-2team-DrHong.git
               cd Final-2team-DrHong
               git checkout main
               git remote set-url origin https://github.com/Kernel180-BE12/Final-2team-DrHong.git
+              # Git LFS 파일들 (파인튜닝된 모델) 다운로드
+              echo "📦 Git LFS 파일들 다운로드 중..."
+              git lfs pull
             fi
+
+            # 베이스 모델 다운로드
+            echo "📦 베이스 모델 다운로드 중..."
+            cd backend-ai/app/
+            pip3 install huggingface_hub
+            python3 download_models.py
+            cd ../..
 
             # .env 파일 확인 및 생성
             if [ ! -f ".env" ]; then
