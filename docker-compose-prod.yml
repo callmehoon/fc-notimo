@@ -55,7 +55,7 @@ services:
         - REACT_APP_AI_API_BASE_URL=http://notimo.kro.kr/ai
     container_name: frontend
     ports:
-      - "80:80"
+      - "3002:80"
     depends_on:
       spring-boot:
         condition: service_started

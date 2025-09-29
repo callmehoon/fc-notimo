@@ -83,66 +83,63 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-          timeout: 1800s  # 30분으로 설정 (기본 10분에서 증가)
-          command_timeout: 1800s  # SSH 명령어 타임아웃도 설정
+          timeout: 1800s
+          command_timeout: 1800s
           script: |
             echo "🚀 개발 환경 배포 시작..."
             
             echo "🔧 Git LFS 설치 중..."
             sudo yum install git-lfs -y
 
-            # 프로젝트 디렉토리로 이동
-            cd /home/ec2-user
-
-            # 프로젝트 폴더 존재 여부 확인 및 코드 업데이트
-            if [ -d "Final-2team-DrHong" ]; then
-              echo "📁 기존 프로젝트 폴더 발견. 최신 코드 업데이트 중..."
-              cd Final-2team-DrHong
-              # PAT를 사용한 인증으로 git pull
-              git remote set-url origin https://${{ secrets.GH_PAT }}@github.com/Kernel180-BE12/Final-2team-DrHong.git
-              git pull origin dev
-              git remote set-url origin https://github.com/Kernel180-BE12/Final-2team-DrHong.git
-              # Git LFS 파일들 (파인튜닝된 모델) 다운로드
-              echo "📦 Git LFS 파일들 다운로드 중..."
-              git lfs pull
-            else
-              echo "📁 프로젝트 폴더 없음. 새로 클론 중..."
-              git clone https://${{ secrets.GH_PAT }}@github.com/Kernel180-BE12/Final-2team-DrHong.git
-              cd Final-2team-DrHong
-              git checkout dev
-              git remote set-url origin https://github.com/Kernel180-BE12/Final-2team-DrHong.git
-              # Git LFS 파일들 (파인튜닝된 모델) 다운로드
-              echo "📦 Git LFS 파일들 다운로드 중..."
-              git lfs pull
-            fi
-
+            # 프로젝트 디렉토리로 이동 및 코드 업데이트
+            cd /home/ec2-user/Final-2team-DrHong
+            git fetch origin
+            git reset --hard origin/dev
+            echo "📦 Git LFS 파일들 다운로드 중..."
+            git lfs pull
 
             # .env 파일 확인 및 생성
             if [ ! -f ".env" ]; then
-              if [ -f ".env.example" ]; then
-                echo "📄 .env 파일 생성 중..."
-                cp .env.example .env
-              else
-                echo "⚠️ 경고: .env.example 파일이 없습니다."
-              fi
+              [ -f ".env.example" ] && cp .env.example .env || echo "⚠️ .env.example 없음"
             fi
 
-            # 기존 개발 환경 컨테이너 정리 (포트 3001)
+            # --- 리버스 프록시 설정 ---
+            echo "🔌 리버스 프록시 설정 중..."
+            sudo yum install -y nginx
+            sudo tee /etc/nginx/conf.d/proxy.conf > /dev/null <<'EOF'
+            server {
+                listen 80;
+                server_name notimo.kro.kr;
+                location / {
+                    proxy_pass http://localhost:3002;
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto $scheme;
+                }
+            }
+            server {
+                listen 80;
+                server_name dev.notimo.kro.kr;
+                location / {
+                    proxy_pass http://localhost:3001;
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto $scheme;
+                }
+            }
+            EOF
+            sudo systemctl enable --now nginx || sudo systemctl restart nginx
+
+            # 개발 환경 컨테이너만 정리 및 배포
             echo "🧹 기존 개발 환경 컨테이너 정리 중..."
             docker-compose -f docker-compose-dev.yml down --remove-orphans --volumes || true
-
-            # 남은 컨테이너들 강제 제거
-            echo "🧹 남은 컨테이너들 강제 제거 중..."
-            docker rm -f redis-dev spring-boot-dev python-ai-dev frontend-dev || true
-
-            # 개발 환경 배포 (H2 DB, 포트 3001)
-            echo "🔨 개발 환경 빌드 및 배포 중... (H2 DB, dev.notimo.kro.kr)"
+            echo "🔨 개발 환경 빌드 및 배포 중..."
             docker-compose -f docker-compose-dev.yml up --build -d
 
-            # 배포 결과 확인
             echo "✅ 개발 환경 배포 완료!"
             echo "🌐 접속 URL: http://dev.notimo.kro.kr"
-            echo "📊 컨테이너 상태:"
             docker-compose -f docker-compose-dev.yml ps
 
   # -------------------------------------------
@@ -161,64 +158,64 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-          timeout: 1800s  # 30분으로 설정 (기본 10분에서 증가)
-          command_timeout: 1800s  # SSH 명령어 타임아웃도 설정
+          timeout: 1800s
+          command_timeout: 1800s
           script: |
             echo "🚀 운영 환경 배포 시작..."
 
             echo "🔧 Git LFS 설치 중..."
             sudo yum install git-lfs -y
 
-            # 프로젝트 디렉토리로 이동
-            cd /home/ec2-user
+            # 프로젝트 디렉토리로 이동 및 코드 업데이트
+            cd /home/ec2-user/Final-2team-DrHong
+            git fetch origin
+            git reset --hard origin/main
+            echo "📦 Git LFS 파일들 다운로드 중..."
+            git lfs pull
 
-            # 프로젝트 폴더 존재 여부 확인 및 코드 업데이트
-            if [ -d "Final-2team-DrHong" ]; then
-              echo "📁 기존 프로젝트 폴더 발견. 최신 코드 업데이트 중..."
-              cd Final-2team-DrHong
-              # PAT를 사용한 인증으로 git pull
-              git remote set-url origin https://${{ secrets.GH_PAT }}@github.com/Kernel180-BE12/Final-2team-DrHong.git
-              git pull origin main
-              git remote set-url origin https://github.com/Kernel180-BE12/Final-2team-DrHong.git
-              # Git LFS 파일들 (파인튜닝된 모델) 다운로드
-              echo "📦 Git LFS 파일들 다운로드 중..."
-              git lfs pull
-            else
-              echo "📁 프로젝트 폴더 없음. 새로 클론 중..."
-              git clone https://${{ secrets.GH_PAT }}@github.com/Kernel180-BE12/Final-2team-DrHong.git
-              cd Final-2team-DrHong
-              git checkout main
-              git remote set-url origin https://github.com/Kernel180-BE12/Final-2team-DrHong.git
-              # Git LFS 파일들 (파인튜닝된 모델) 다운로드
-              echo "📦 Git LFS 파일들 다운로드 중..."
-              git lfs pull
-            fi
-
-
-            # .env 파일 확인 및 생성
+            # .env 파일들 확인 및 생성
             if [ ! -f ".env" ]; then
-              if [ -f ".env.example" ]; then
-                echo "📄 .env 파일 생성 중..."
-                cp .env.example .env
-              else
-                echo "⚠️ 경고: .env.example 파일이 없습니다."
-              fi
+              [ -f ".env.example" ] && cp .env.example .env || echo "⚠️ .env.example 없음"
+            fi
+            if [ ! -f "frontend/.env.prod" ]; then
+              touch frontend/.env.prod
             fi
 
-            # 기존 운영 환경 컨테이너 정리 (포트 3002)
+            # --- 리버스 프록시 설정 ---
+            echo "🔌 리버스 프록시 설정 중..."
+            sudo yum install -y nginx
+            sudo tee /etc/nginx/conf.d/proxy.conf > /dev/null <<'EOF'
+            server {
+                listen 80;
+                server_name notimo.kro.kr;
+                location / {
+                    proxy_pass http://localhost:3002;
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto $scheme;
+                }
+            }
+            server {
+                listen 80;
+                server_name dev.notimo.kro.kr;
+                location / {
+                    proxy_pass http://localhost:3001;
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto $scheme;
+                }
+            }
+            EOF
+            sudo systemctl enable --now nginx || sudo systemctl restart nginx
+
+            # 운영 환경 컨테이너만 정리 및 배포
             echo "🧹 기존 운영 환경 컨테이너 정리 중..."
             docker-compose -f docker-compose-prod.yml down --remove-orphans --volumes || true
-
-            # 남은 컨테이너들 강제 제거
-            echo "🧹 남은 컨테이너들 강제 제거 중..."
-            docker rm -f redis spring-boot python-ai frontend || true
-
-            # 운영 환경 배포 (MySQL RDS, 포트 3002)
-            echo "🔨 운영 환경 빌드 및 배포 중... (MySQL RDS, notimo.kr)"
+            echo "🔨 운영 환경 빌드 및 배포 중..."
             docker-compose -f docker-compose-prod.yml up --build -d
 
-            # 배포 결과 확인
             echo "✅ 운영 환경 배포 완료!"
             echo "🌐 접속 URL: http://notimo.kro.kr"
-            echo "📊 컨테이너 상태:"
             docker-compose -f docker-compose-prod.yml ps
