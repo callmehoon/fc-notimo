@@ -11,7 +11,7 @@ WORKDIR /app
 
 # 4. pyproject.toml 및 poetry.lock 파일 복사
 # (로컬에서 Python 3.12 기준으로 새로 생성한 lock 파일을 사용)
-COPY pyproject.toml poetry.lock ./
+COPY backend-ai/pyproject.toml backend-ai/poetry.lock ./
 
 # 5. 의존성 설치 (베이스 이미지의 기본 Python 3.12를 사용)
 RUN poetry install --only main --no-interaction --no-ansi
