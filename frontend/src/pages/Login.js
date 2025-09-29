@@ -65,8 +65,26 @@ const Login = () => {
                 console.log(formValues.email, formValues.password);
                 navigate('/workspace'); // 로그인 성공 시 워크스페이스 선택 페이지로 이동
             } catch (error) {
-                alert('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
                 console.error("Login error:", error);
+
+                // 탈퇴한 계정에 대한 특별한 메시지
+                if (error.isDeletedAccount) {
+                    const userChoice = window.confirm(
+                        `${error.message}\n\n새로 회원가입하시겠습니까?`
+                    );
+                    if (userChoice) {
+                        navigate('/signup');
+                    }
+                } else if (error.response?.status === 401) {
+                    // 일반적인 로그인 실패 (이메일/비밀번호 불일치)
+                    alert('이메일 또는 비밀번호가 올바르지 않습니다.');
+                } else if (error.response?.data?.message) {
+                    // 백엔드에서 제공하는 에러 메시지
+                    alert(error.response.data.message);
+                } else {
+                    // 일반적인 에러 메시지
+                    alert('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
+                }
             }
         }
     };

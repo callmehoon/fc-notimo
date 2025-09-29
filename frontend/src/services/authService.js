@@ -17,12 +17,49 @@ const handleLogout = () => {
 
 /** 로그인 */
 const login = async (email, password) => {
-    const res = await api.post('/auth/login', { email, password });
-    const { token: accessToken, refreshToken, userRole } = res.data;
-    if (accessToken && refreshToken) {
-        handleLoginSuccess(accessToken, refreshToken, userRole);
+    try {
+        // 로그인 시에는 기존 토큰 없이 호출
+        const res = await api.post('/auth/login', { email, password }, {
+            headers: { Authorization: undefined }
+        });
+        const { token: accessToken, refreshToken, userRole } = res.data;
+        if (accessToken && refreshToken) {
+            handleLoginSuccess(accessToken, refreshToken, userRole);
+        }
+        return res.data;
+    } catch (error) {
+        console.error('로그인 실패:', error);
+        console.error('에러 전체 객체:', error);
+        console.error('응답 객체:', error.response);
+        console.error('응답 데이터:', error.response?.data);
+        console.error('응답 상태:', error.response?.status);
+        console.error('네트워크 에러 여부:', !error.response);
+
+        // 회원탈퇴된 계정에 대한 특별한 메시지 처리
+        const errorMessage = (error.response?.data?.message || error.message || '').toLowerCase();
+        const errorCode = (error.response?.data?.code || '').toUpperCase();
+
+        const isDeletedAccountError = () => {
+            const keywords = [
+                '탈퇴', '비활성화', '삭제', 'deactivated', 'deleted', 'withdrawn',
+                'inactive', 'soft delete', '계정이', '존재하지', '찾을 수 없',
+                'not found', 'user not'
+            ];
+            const errorCodes = ['USER_NOT_FOUND', 'ACCOUNT_DELETED'];
+
+            return keywords.some(keyword => errorMessage.includes(keyword)) ||
+                   errorCodes.some(code => errorCode.includes(code));
+        };
+
+        if ((error.response?.status === 401 || !error.response) && isDeletedAccountError()) {
+            const customError = new Error('이미 탈퇴한 계정입니다.\n같은 이메일로 새로 회원가입하시거나 다른 계정을 이용해주세요.');
+            customError.isDeletedAccount = true;
+            customError.originalError = error;
+            throw customError;
+        }
+
+        throw error;
     }
-    return res.data;
 };
 
 /** 회원가입 */
@@ -76,6 +113,22 @@ const completeSocialSignup = async (socialSignupData) => {
     return res.data;
 };
 
+/** 비밀번호 찾기: 인증 코드 발송 */
+const sendPasswordResetCode = async (email) => {
+    const res = await api.post('/auth/send-verification-code', { email });
+    return res.data;
+};
+
+/** 비밀번호 재설정 */
+const resetPassword = async (email, verificationCode, newPassword) => {
+    const res = await api.post('/auth/reset-password', {
+        email,
+        verificationCode,
+        newPassword
+    });
+    return res.data;
+};
+
 const authService = {
     login,
     signup,
@@ -85,6 +138,8 @@ const authService = {
     getSocialProviders,
     loginWithGoogle,
     completeSocialSignup,
+    sendPasswordResetCode,
+    resetPassword,
 };
 
 export default authService;
