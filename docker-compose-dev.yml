@@ -1,0 +1,68 @@
+services:
+  redis-dev:
+    image: redis:latest
+    container_name: redis-dev
+    ports:
+      - "6380:6379"
+    environment:
+      - TZ=Asia/Seoul
+    volumes:
+      - redis-data:/data
+
+  spring-boot-dev:
+    build:
+      context: .
+      dockerfile: backend-spring/Dockerfile
+    container_name: spring-boot-dev
+    ports:
+      - "8081:8080"
+    depends_on:
+      - redis-dev
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker-dev
+      - TZ=Asia/Seoul
+    env_file:
+      - .env
+
+  python-ai-dev:
+    build:
+      context: .
+      dockerfile: backend-ai/Dockerfile
+    container_name: python-ai-dev
+    ports:
+      - "8001:8000"
+    environment:
+      - TZ=Asia/Seoul
+    env_file:
+      - .env
+    volumes:
+      - ./backend-ai/app/models:/app/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  frontend-dev:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        - NGINX_CONFIG=nginx-dev.conf
+        - REACT_APP_API_BASE_URL=http://dev.notimo.kro.kr/api
+        - REACT_APP_AI_API_BASE_URL=http://dev.notimo.kro.kr/ai
+    container_name: frontend-dev
+    ports:
+      - "80:80"
+    depends_on:
+      spring-boot-dev:
+        condition: service_started
+      python-ai-dev:
+        condition: service_started
+    environment:
+      - TZ=Asia/Seoul
+
+volumes:
+  redis-data:

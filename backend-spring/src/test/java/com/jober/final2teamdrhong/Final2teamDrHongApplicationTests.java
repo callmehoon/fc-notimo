@@ -8,6 +8,7 @@ class Final2teamDrHongApplicationTests {
 
     @Test
     void contextLoads() {
+        // Spring Context가 정상적으로 로드되는지 확인
+        // Redis + 원격 MySQL RDS + Gmail SMTP 설정 검증
     }
-
 }

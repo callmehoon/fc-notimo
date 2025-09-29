@@ -1,0 +1,47 @@
+package com.jober.final2teamdrhong.entity;
+
+import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.SQLRestriction;
+
+@Getter
+@Entity
+@Table(name = "template_modified_history")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@SuperBuilder
+@SQLRestriction("is_deleted = false")
+public class TemplateModifiedHistory extends BaseEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "history_id")
+    private Integer historyId;
+
+    @Column(name = "history_title")
+    private String historyTitle;
+
+    @Column(name = "history_content", columnDefinition = "TEXT")
+    private String historyContent;
+
+    @Column(name = "button_title", length = 50)
+    private String buttonTitle;
+
+    @Column(name = "chat_ai", columnDefinition = "TEXT")
+    private String chatAi;
+
+    @Column(name = "chat_user", columnDefinition = "TEXT")
+    private String chatUser;
+
+    @Column(name = "status", nullable = false, length = 20)
+    @Enumerated(EnumType.STRING)
+    private IndividualTemplate.Status status;
+
+    // ===== 관계 필드 =====
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "individual_template_id", nullable = false)
+    private IndividualTemplate individualTemplate;
+
+}
