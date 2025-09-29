@@ -87,6 +87,9 @@ jobs:
           command_timeout: 1800s  # SSH 명령어 타임아웃도 설정
           script: |
             echo "🚀 개발 환경 배포 시작..."
+            
+            echo "🔧 Git LFS 설치 중..."
+            sudo yum install git-lfs -y
 
             # 프로젝트 디렉토리로 이동
             cd /home/ec2-user
@@ -162,6 +165,9 @@ jobs:
           command_timeout: 1800s  # SSH 명령어 타임아웃도 설정
           script: |
             echo "🚀 운영 환경 배포 시작..."
+
+            echo "🔧 Git LFS 설치 중..."
+            sudo yum install git-lfs -y
 
             # 프로젝트 디렉토리로 이동
             cd /home/ec2-user
