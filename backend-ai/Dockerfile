@@ -17,7 +17,8 @@ COPY pyproject.toml poetry.lock ./
 RUN poetry install --only main --no-interaction --no-ansi
 
 # 6. 애플리케이션 코드 복사
-COPY ./app ./app
+COPY backend-ai/ .
 
 # 7. 컨테이너 시작 명령 (uvicorn으로 변경)
+EXPOSE 8000
 CMD ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
