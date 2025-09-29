@@ -223,7 +223,7 @@ class UserServiceTest {
             // then
             then(tokenService).should().addAllUserTokensToBlacklist(userId);
             then(rateLimitService).should().resetLoginRateLimit("local@example.com", clientIp);
-            assertThat(localUser.isDeleted()).isTrue();
+            assertThat(localUser.getIsDeleted()).isTrue();
             assertThat(localUser.getUserEmail()).startsWith("deleted_user_" + userId + "_");
         }
 
@@ -250,7 +250,7 @@ class UserServiceTest {
             then(passwordEncoder).should(never()).matches(anyString(), anyString());
             then(tokenService).should().addAllUserTokensToBlacklist(userId);
             then(rateLimitService).should().resetLoginRateLimit("social@example.com", clientIp);
-            assertThat(socialUser.isDeleted()).isTrue();
+            assertThat(socialUser.getIsDeleted()).isTrue();
         }
 
         @Test
@@ -279,7 +279,7 @@ class UserServiceTest {
                 .isInstanceOf(AuthenticationException.class)
                 .hasMessage("비밀번호가 일치하지 않습니다.");
 
-            assertThat(localUser.isDeleted()).isFalse();
+            assertThat(localUser.getIsDeleted()).isFalse();
             then(tokenService).should(never()).addAllUserTokensToBlacklist(any());
         }
 
