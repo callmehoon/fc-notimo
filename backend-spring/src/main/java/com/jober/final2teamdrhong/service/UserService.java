@@ -145,7 +145,7 @@ public class UserService {
                 .orElseThrow(() -> new BusinessException("사용자를 찾을 수 없습니다."));
 
         // 2. 이미 탈퇴한 회원인지 확인
-        if (user.isDeleted()) {
+        if (Boolean.TRUE.equals(user.getIsDeleted())) {
             log.warn("[ACCOUNT_DELETE] 이미 탈퇴한 회원의 탈퇴 요청: userId={}", userId);
             throw new BusinessException("이미 탈퇴 처리된 계정입니다.");
         }
