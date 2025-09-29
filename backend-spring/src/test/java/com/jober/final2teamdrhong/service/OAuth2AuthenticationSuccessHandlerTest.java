@@ -129,7 +129,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
             // 2. 사용자 조회가 성공하도록 설정합니다.
             User existingUser = User.create(TEST_NAME, TEST_EMAIL, "010-1234-5678");
             ReflectionTestUtils.setField(existingUser, "userId", TEST_USER_ID);
-            given(userRepository.findById(TEST_USER_ID)).willReturn(Optional.of(existingUser));
+            given(userRepository.findByIdWithAuth(TEST_USER_ID)).willReturn(Optional.of(existingUser));
 
             // 3. IP 주소 추출을 위해 request Mock 설정합니다.
             given(request.getRemoteAddr()).willReturn(TEST_CLIENT_IP);
@@ -144,7 +144,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
 
             // then
             // 1. 사용자 조회가 수행되었는지 확인합니다.
-            then(userRepository).should(times(1)).findById(TEST_USER_ID);
+            then(userRepository).should(times(1)).findByIdWithAuth(TEST_USER_ID);
 
             // 2. JWT 토큰 생성이 수행되었는지 확인합니다.
             then(jwtConfig).should(times(1)).generateAccessToken(TEST_EMAIL, TEST_USER_ID);
@@ -183,7 +183,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
             then(redirectStrategy).should(times(1)).sendRedirect(eq(request), eq(response), contains("error=oauth2_error"));
 
             // 2. 사용자 조회는 수행되지 않았는지 확인합니다.
-            then(userRepository).should(times(0)).findById(any());
+            then(userRepository).should(times(0)).findByIdWithAuth(any());
         }
 
         @Test
@@ -200,7 +200,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
             given(oAuth2User.getAttributes()).willReturn(attributes);
 
             // 2. 사용자 조회가 실패하도록 설정합니다.
-            given(userRepository.findById(TEST_USER_ID)).willReturn(Optional.empty());
+            given(userRepository.findByIdWithAuth(TEST_USER_ID)).willReturn(Optional.empty());
 
             // when
             // 1. OAuth2 로그인 성공 처리를 실행합니다.
@@ -208,7 +208,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
 
             // then
             // 1. 사용자 조회는 수행되었는지 확인합니다.
-            then(userRepository).should(times(1)).findById(TEST_USER_ID);
+            then(userRepository).should(times(1)).findByIdWithAuth(TEST_USER_ID);
 
             // 2. 오류 처리로 에러 페이지로 리다이렉트되는지 확인합니다.
             // URLEncoder.encode()의 인코딩 결과를 고려하여 부분적으로 확인합니다.
@@ -308,7 +308,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
 
             User existingUser = User.create(TEST_NAME, TEST_EMAIL, "010-1234-5678");
             ReflectionTestUtils.setField(existingUser, "userId", TEST_USER_ID);
-            given(userRepository.findById(TEST_USER_ID)).willReturn(Optional.of(existingUser));
+            given(userRepository.findByIdWithAuth(TEST_USER_ID)).willReturn(Optional.of(existingUser));
             given(jwtConfig.generateAccessToken(TEST_EMAIL, TEST_USER_ID)).willReturn(TEST_ACCESS_TOKEN);
             given(tokenService.createRefreshToken(existingUser, forwardedIp)).willReturn(TEST_REFRESH_TOKEN);
 
@@ -341,7 +341,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
 
             User existingUser = User.create(TEST_NAME, TEST_EMAIL, "010-1234-5678");
             ReflectionTestUtils.setField(existingUser, "userId", TEST_USER_ID);
-            given(userRepository.findById(TEST_USER_ID)).willReturn(Optional.of(existingUser));
+            given(userRepository.findByIdWithAuth(TEST_USER_ID)).willReturn(Optional.of(existingUser));
             given(jwtConfig.generateAccessToken(TEST_EMAIL, TEST_USER_ID)).willReturn(TEST_ACCESS_TOKEN);
             given(tokenService.createRefreshToken(existingUser, realIp)).willReturn(TEST_REFRESH_TOKEN);
 
@@ -374,7 +374,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
 
             User existingUser = User.create(TEST_NAME, TEST_EMAIL, "010-1234-5678");
             ReflectionTestUtils.setField(existingUser, "userId", TEST_USER_ID);
-            given(userRepository.findById(TEST_USER_ID)).willReturn(Optional.of(existingUser));
+            given(userRepository.findByIdWithAuth(TEST_USER_ID)).willReturn(Optional.of(existingUser));
             given(jwtConfig.generateAccessToken(TEST_EMAIL, TEST_USER_ID)).willReturn(TEST_ACCESS_TOKEN);
             given(tokenService.createRefreshToken(existingUser, TEST_CLIENT_IP)).willReturn(TEST_REFRESH_TOKEN);
 
