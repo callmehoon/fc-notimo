@@ -92,6 +92,9 @@ public class SecurityConfig implements WebMvcConfigurer {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                // 🚨 UTF-8 인코딩 필터를 가장 먼저 실행하도록 등록
+                // Spring Security 예외 처리보다 먼저 동작하여 모든 응답에 UTF-8 인코딩 보장
+                .addFilterBefore(characterEncodingFilter(), org.springframework.security.web.csrf.CsrfFilter.class)
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -168,25 +171,21 @@ public class SecurityConfig implements WebMvcConfigurer {
                 .exceptionHandling(exceptionHandling -> exceptionHandling
                         // 인증되지 않은 사용자에 대한 기본 처리를 401로 설정 (OAuth2 리다이렉트 대신)
                         .authenticationEntryPoint((request, response, authException) -> {
-                            // 🚨 1. 응답 인코딩을 UTF-8로 강제 설정 (가장 중요)
-                            response.setCharacterEncoding("UTF-8");
-
-                            // 🚨 2. Content-Type 설정 시에도 charset=UTF-8 명시 (setCharacterEncoding 이후에)
-                            response.setContentType("application/json;charset=UTF-8");
-
-                            // 3. HTTP 상태 코드 설정
+                            // HTTP 상태 코드 설정
                             response.setStatus(HttpStatus.UNAUTHORIZED.value());
 
-                            // 4. 에러 메시지 생성
+                            // Content-Type 설정 (CharacterEncodingFilter가 UTF-8 인코딩 처리)
+                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+
+                            // 에러 메시지 생성
                             String errorMessage;
                             if (authException instanceof BadCredentialsException) {
-                                // BadCredentialsException에 대해 원하는 메시지를 명시적으로 사용
                                 errorMessage = "이메일 또는 비밀번호가 일치하지 않습니다.";
                             } else {
-                                errorMessage = "인증이 필요합니다."; // 다른 인증 실패에 대한 일반 메시지
+                                errorMessage = "인증이 필요합니다.";
                             }
 
-                            // 🚨 5. ObjectMapper를 사용해 JSON 응답 작성
+                            // JSON 응답 작성
                             objectMapper.writeValue(response.getWriter(), new ErrorResponse(errorMessage));
                         })
                         // 권한 없는 사용자 접근 시 처리 (403 Forbidden)
@@ -246,6 +245,25 @@ public class SecurityConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         // No interceptors added for now, as RequestTimingInterceptor is removed
+    }
+
+    /**
+     * UTF-8 인코딩 필터 등록
+     * 모든 HTTP 요청과 응답에서 UTF-8 인코딩을 보장합니다.
+     * 특히 한글 메시지가 포함된 에러 응답에서 인코딩 문제를 방지합니다.
+     */
+    @Bean
+    public org.springframework.web.filter.CharacterEncodingFilter characterEncodingFilter() {
+        org.springframework.web.filter.CharacterEncodingFilter encodingFilter =
+            new org.springframework.web.filter.CharacterEncodingFilter();
+
+        // UTF-8 인코딩 설정
+        encodingFilter.setEncoding("UTF-8");
+
+        // 요청과 응답 모두에 강제로 인코딩 적용
+        encodingFilter.setForceEncoding(true);
+
+        return encodingFilter;
     }
 
     /**
