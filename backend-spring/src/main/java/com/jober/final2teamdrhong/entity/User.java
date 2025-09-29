@@ -89,13 +89,4 @@ public class User extends BaseEntity {
             auth.markAsDeleted();
         });
     }
-
-    /**
-     * 탈퇴한 회원인지 확인
-     *
-     * @return 탈퇴한 회원이면 true
-     */
-    public boolean isDeleted() {
-        return Boolean.TRUE.equals(this.getIsDeleted());
-    }
 }
