@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import {Link, Grid, Box, Divider, Typography} from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router-dom';
+import {Link, Box, Divider, Typography} from '@mui/material';
 import FormLayout from '../components/layout/FormLayout';
 import CommonTextField from '../components/form/CommonTextField';
 import CommonButton from '../components/button/CommonButton';
@@ -8,11 +8,33 @@ import authService from "../services/authService";
 
 const Login = () => {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [formValues, setFormValues] = useState({
         email: '',
         password: '',
     });
     const [errors, setErrors] = useState({});
+
+    // 소셜 로그인 성공 처리
+    useEffect(() => {
+        const success = searchParams.get('success');
+        const accessToken = searchParams.get('accessToken');
+        const refreshToken = searchParams.get('refreshToken');
+        const isNewUser = searchParams.get('isNewUser');
+        const accountIntegrated = searchParams.get('accountIntegrated');
+        const provider = searchParams.get('provider');
+        const error = searchParams.get('error');
+        const errorMessage = searchParams.get('message');
+
+        // 소셜 로그인 오류만 처리 (성공은 workspace에서 처리)
+        if (error) {
+            // URL에서 모든 파라미터 제거
+            navigate('/login', { replace: true });
+
+            // 소셜 로그인 오류
+            alert(errorMessage ? decodeURIComponent(errorMessage) : '소셜 로그인 중 오류가 발생했습니다.');
+        }
+    }, [searchParams, navigate]);
 
     const validate = () => {
         let tempErrors = {};
@@ -105,7 +127,7 @@ const Login = () => {
                 <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 2 }}>
                     <CommonButton
                         variant="outlined"
-                        onClick={() => console.log('Google 로그인')}
+                        onClick={() => authService.loginWithGoogle()}
                         sx={{
                             backgroundColor: '#ffffff',
                             color: '#3c4043',
@@ -175,19 +197,19 @@ const Login = () => {
                 </Box>
             </Box>
 
-            <Grid container sx={{ width: '200px', mt : 3, textAlign: 'right' }}>
-                <Grid item xs={12}>
+            <Box sx={{ width: '200px', mt: 3, textAlign: 'right' }}>
+                <Box>
                     <Link component={RouterLink} to="/signup" variant="body2">
                         계정이 없으신가요? 회원가입<br/>
                     </Link>
-                </Grid>
+                </Box>
 
-                <Grid item xs={12} sx={{ mt: 1 }}>
+                <Box sx={{ mt: 1 }}>
                     <Link component={RouterLink} to="/FindPassword" variant="body2">
                         비밀번호를 잊으셨나요?
                     </Link>
-                </Grid>
-            </Grid>
+                </Box>
+            </Box>
 
         </FormLayout>
     );
