@@ -280,18 +280,18 @@ public class SecurityConfig implements WebMvcConfigurer {
 
         return String.join("; ",
             "default-src 'self'",
-            "script-src 'self' 'strict-dynamic'", // nonce 기반 스크립트 허용
-            "style-src 'self' 'unsafe-inline'", // CSS는 해시 기반으로 제한
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Swagger 지원을 위해 완화
+            "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: https:",
             "font-src 'self'",
-            "connect-src 'self' " + allowedDomains, // API 호출 허용 도메인
+            "connect-src 'self' " + allowedDomains,
             "media-src 'self'",
             "object-src 'none'",
             "frame-src 'none'",
             "base-uri 'self'",
             "form-action 'self'",
-            "upgrade-insecure-requests", // HTTP를 HTTPS로 업그레이드
-            "block-all-mixed-content" // 혼합 콘텐츠 차단
+            "upgrade-insecure-requests",
+            "block-all-mixed-content"
         );
     }
 }
