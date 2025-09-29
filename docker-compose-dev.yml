@@ -4,6 +4,8 @@ services:
     container_name: redis-dev
     ports:
       - "6380:6379"
+    environment:
+      - TZ=Asia/Seoul
     volumes:
       - redis-data:/data
 
@@ -18,9 +20,9 @@ services:
       - redis-dev
     environment:
       - SPRING_PROFILES_ACTIVE=docker-dev
-      - DB_PASSWORD=${DB_PASSWORD}
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
-      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - TZ=Asia/Seoul
+    env_file:
+      - .env
 
   python-ai-dev:
     build:
@@ -30,9 +32,9 @@ services:
     ports:
       - "8001:8000"
     environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN}
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - TZ=Asia/Seoul
+    env_file:
+      - .env
 
   frontend-dev:
     build:
@@ -40,6 +42,8 @@ services:
       dockerfile: frontend/Dockerfile
       args:
         - NGINX_CONFIG=nginx-dev.conf
+        - REACT_APP_API_BASE_URL=http://dev.notimo.kro.kr/api
+        - REACT_APP_AI_API_BASE_URL=http://dev.notimo.kro.kr/ai
     container_name: frontend-dev
     ports:
       - "3001:80"
@@ -48,6 +52,8 @@ services:
         condition: service_started
       python-ai-dev:
         condition: service_started
+    environment:
+      - TZ=Asia/Seoul
 
 volumes:
   redis-data:

@@ -241,12 +241,12 @@ public class IndividualTemplateService {
         );
 
         TemplateModifiedHistory history = TemplateModifiedHistory.builder()
-                .historyTitle(individualTemplate.getIndividualTemplateTitle())
-                .historyContent(individualTemplate.getIndividualTemplateContent())
-                .buttonTitle(individualTemplate.getButtonTitle())
+                .historyTitle(request.getIndividualTemplateTitle())
+                .historyContent(request.getIndividualTemplateContent())
+                .buttonTitle(request.getButtonTitle())
                 .chatAi(request.getChatAi())
                 .chatUser(request.getChatUser())
-                .status(individualTemplate.getStatus())
+                .status(IndividualTemplate.Status.DRAFT)
                 .individualTemplate(individualTemplate)
                 .build();
 

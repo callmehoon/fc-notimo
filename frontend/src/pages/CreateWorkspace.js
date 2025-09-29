@@ -3,25 +3,32 @@ import {
     Box,
     Typography,
     Grid,
-    Paper
+    Paper,
+    Alert,
+    CircularProgress
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import MainLayout from '../components/layout/MainLayout';
 import CommonTextField from '../components/form/CommonTextField';
 import CommonButton from '../components/button/CommonButton';
+import workspaceService from '../services/workspaceService';
 
 const CreateWorkspace = () => {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         workspaceName: '',
-        workspaceAlias: '',
-        address: '',
-        addressDetail: '',
-        addressUrl: '',
-        representativeName: '',
-        representativePhone: '',
-        representativeEmail: '',
-        businessName: '',
-        businessRegNumber: '',
+        workspaceSubname: '',
+        workspaceAddress: '',
+        workspaceDetailAddress: '',
+        workspaceUrl: '',
+        representerName: '',
+        representerPhoneNumber: '',
+        representerEmail: '',
+        companyName: '',
+        companyRegisterNumber: '',
     });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -31,20 +38,27 @@ const CreateWorkspace = () => {
         }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        // TODO: 폼 제출 로직 (예: API 호출)
-        console.log('워크스페이스 생성 데이터:', formData);
-        alert('워크스페이스가 생성되었습니다.');
+        setLoading(true);
+        setError(null);
+        try {
+            await workspaceService.createWorkspace(formData);
+            alert('워크스페이스가 성공적으로 생성되었습니다.');
+            navigate('/workspace');
+        } catch (err) {
+            setError(err.response?.data?.message || '워크스페이스 생성에 실패했습니다.');
+            console.error('Error creating workspace:', err);
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
         <MainLayout>
             <Grid container justifyContent="center" sx={{ mt: 4 }}>
-                {/* 이 Grid item의 md 값을 조절하여 너비를 변경할 수 있습니다. (예: md={8} 로 하면 더 넓어짐) */}
                 <Grid item xs={12} sm={8} md={8}>
                     <Paper elevation={3} sx={{ p: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                        {/* 로고 영역 */}
                         <Box
                             sx={{
                                 width: 80,
@@ -57,6 +71,7 @@ const CreateWorkspace = () => {
                             워크스페이스 생성
                         </Typography>
                         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
                             <CommonTextField
                                 name="workspaceName"
                                 label="워크스페이스 명"
@@ -67,27 +82,27 @@ const CreateWorkspace = () => {
                                 autoFocus
                             />
                             <CommonTextField
-                                name="workspaceAlias"
+                                name="workspaceSubname"
                                 label="워크스페이스 별칭"
-                                value={formData.workspaceAlias}
+                                value={formData.workspaceSubname}
                                 onChange={handleChange}
                                 fullWidth
                             />
                             <Grid container spacing={2}>
                                 <Grid item xs={12} sm={6}>
                                     <CommonTextField
-                                        name="address"
+                                        name="workspaceAddress"
                                         label="주소"
-                                        value={formData.address}
+                                        value={formData.workspaceAddress}
                                         onChange={handleChange}
                                         fullWidth
                                     />
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
                                     <CommonTextField
-                                        name="addressDetail"
+                                        name="workspaceDetailAddress"
                                         label="상세 주소"
-                                        value={formData.addressDetail}
+                                        value={formData.workspaceDetailAddress}
                                         onChange={handleChange}
                                         fullWidth
                                     />
@@ -96,47 +111,48 @@ const CreateWorkspace = () => {
                             <CommonTextField
                                 name="workspaceUrl"
                                 label="워크스페이스 고유 URL"
-                                value={formData.representativeName}
+                                value={formData.workspaceUrl}
                                 onChange={handleChange}
                                 required
                                 fullWidth
                             />
                             <CommonTextField
-                                name="representativeName"
+                                name="representerName"
                                 label="대표자 이름"
-                                value={formData.representativeName}
+                                value={formData.representerName}
                                 onChange={handleChange}
                                 required
                                 fullWidth
                             />
                             <CommonTextField
-                                name="representativePhone"
+                                name="representerPhoneNumber"
                                 label="대표 전화번호"
-                                value={formData.representativePhone}
+                                value={formData.representerPhoneNumber}
                                 onChange={handleChange}
                                 required
                                 fullWidth
                             />
                             <CommonTextField
-                                name="representativeEmail"
+                                name="representerEmail"
                                 label="대표 이메일"
                                 type="email"
-                                value={formData.representativeEmail}
-                                onChange={handleChange}
-                                fullWidth
-                            />
-                            <CommonTextField
-                                name="businessName"
-                                label="사업자 명"
-                                value={formData.businessName}
+                                value={formData.representerEmail}
                                 onChange={handleChange}
                                 required
                                 fullWidth
                             />
                             <CommonTextField
-                                name="businessRegNumber"
+                                name="companyName"
+                                label="사업자 명"
+                                value={formData.companyName}
+                                onChange={handleChange}
+                                required
+                                fullWidth
+                            />
+                            <CommonTextField
+                                name="companyRegisterNumber"
                                 label="사업자 등록 번호"
-                                value={formData.businessRegNumber}
+                                value={formData.companyRegisterNumber}
                                 onChange={handleChange}
                                 fullWidth
                             />
@@ -145,8 +161,9 @@ const CreateWorkspace = () => {
                                 fullWidth
                                 variant="contained"
                                 sx={{ mt: 3, mb: 2 }}
+                                disabled={loading}
                             >
-                                생성
+                                {loading ? <CircularProgress size={24} /> : '생성'}
                             </CommonButton>
                         </Box>
                     </Paper>

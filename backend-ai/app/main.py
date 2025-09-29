@@ -23,12 +23,12 @@ async def lifespan(app: FastAPI):
     model_loader.unload_gen_model()
     model_loader.unload_cls_model()
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(lifespan=lifespan, root_path="/ai")
 
 # CORS 설정 - 로컬 개발 환경
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://dev.notimo.kro.kr", "http://notimo.kro.kr"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -36,10 +36,6 @@ app.add_middleware(
 
 app.include_router(template_router)
 app.include_router(validate_router)
-
-@app.get("/", include_in_schema=False)
-async def redirect_to_docs():
-    return RedirectResponse(url="/docs")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)

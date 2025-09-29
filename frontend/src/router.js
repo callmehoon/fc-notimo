@@ -27,7 +27,7 @@ const AppRouter = () => {
             <Route path={"/createworkspace"} element={<CreateWorkspace/>}/>
             <Route path={"/mytemplate"} element={<MyTemplatePage/>}/>
             <Route path={"/publicTemplate"} element={<PublicTemplatePage/>}/>
-            <Route path="/templategenerator" element={<TemplateGeneratorPage/>}/>
+            <Route path="/workspace/:workspaceId/templategenerator/:templateId" element={<TemplateGeneratorPage/>}/>
             <Route path="/favoritetemplates" element={<FavoriteTemplatesPage/>}/>
             <Route path="/contact-management" element={<ContactManagementPage/>}/>
             <Route path="/contact-edit/:id" element={<ContactEditPage/>}/>

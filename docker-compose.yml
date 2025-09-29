@@ -4,6 +4,8 @@ services:
     container_name: redis
     ports:
       - "6379:6379"
+    environment:
+      - TZ=Asia/Seoul
     volumes:
       - redis-data:/data
 
@@ -21,10 +23,12 @@ services:
     container_name: python-ai
     ports:
       - "8000:8000"
+    volumes:
+      - ./backend-ai:/app  # 소스코드 자동 반영
     environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN}
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - TZ=Asia/Seoul
+    env_file:
+      - .env  # 환경변수 파일 직접 로드
 
   frontend:
     # 로컬에서는 별도 스크립트로 실행할 것이므로, Docker 서비스를 비활성화합니다.

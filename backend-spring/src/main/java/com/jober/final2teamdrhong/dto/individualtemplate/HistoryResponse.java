@@ -14,6 +14,9 @@ public class HistoryResponse {
     private final Integer historyId;
     private final String chatUser;
     private final String chatAi;
+    private final String individualTemplateTitle;
+    private final String individualTemplateContent;
+    private final String buttonTitle;
     private final LocalDateTime createdAt;
 
     public static HistoryResponse fromEntity(TemplateModifiedHistory history) {
@@ -21,6 +24,9 @@ public class HistoryResponse {
                 history.getHistoryId(),
                 history.getChatUser(),
                 history.getChatAi(),
+                history.getHistoryTitle(),
+                history.getHistoryContent(),
+                history.getButtonTitle(),
                 history.getCreatedAt()
         );
     }

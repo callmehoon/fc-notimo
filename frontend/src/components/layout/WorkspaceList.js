@@ -13,7 +13,7 @@ export default function WorkspaceList({
                                      }) {
     const navigate = useNavigate();
 
-    const otherWorkspaces = allWorkspaces.filter(ws => ws.id !== selectedWorkspace.id); // Filter by id
+    const otherWorkspaces = allWorkspaces.filter(ws => ws.workspaceId !== selectedWorkspace.workspaceId); // Filter by id
 
     const handleEditClick = (event, workspaceId) => {
         event.stopPropagation(); // Prevent onToggle/onSelect from firing
@@ -37,7 +37,7 @@ export default function WorkspaceList({
                 }}
             >
                 <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" fontWeight="bold">{selectedWorkspace.name}</Typography> {/* Display name */}
+                    <Typography variant="body2" fontWeight="bold">{selectedWorkspace.workspaceName}</Typography> {/* Display name */}
                 </Box>
                 <Box sx={{ borderLeft: '2px solid #333', ml: 1, pl: 1, pr: 0.5, alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>
                     {open ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />}
@@ -47,7 +47,7 @@ export default function WorkspaceList({
             {/* 변경점 2: 나머지 워크스페이스 목록을 선택된 항목 아래에 렌더링합니다. */}
             {open && otherWorkspaces.map((workspace, index) => (
                 <Box
-                    key={workspace.id} // Use id as key
+                    key={workspace.workspaceId} // Use id as key
                     onClick={() => onSelect(workspace)} // Pass full object
                     sx={{
                         display: 'flex',
@@ -63,7 +63,7 @@ export default function WorkspaceList({
                         },
                     }}
                 >
-                    <Typography variant="body2" fontWeight="bold">{workspace.name}</Typography> {/* Display name */}
+                    <Typography variant="body2" fontWeight="bold">{workspace.workspaceName}</Typography> {/* Display name */}
                 </Box>
             ))}
         </Paper>
