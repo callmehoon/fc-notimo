@@ -37,6 +37,13 @@ services:
       - .env
     volumes:
       - ./backend-ai/app/models:/app/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
   frontend-dev:
     build:
