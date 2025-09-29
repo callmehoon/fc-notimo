@@ -1,6 +1,5 @@
 // src/services/api.js
 import axios from 'axios';
-import authService from './authService';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080/api';
 
@@ -47,8 +46,9 @@ api.interceptors.response.use(
             return Promise.reject(error);
         }
 
-        // 401 & 재시도 플래그 없을 때만 수행
-        if (error.response.status === 401 && !originalRequest._retry) {
+        // 401 & 재시도 플래그 없을 때 & 로그인 요청이 아닐 때만 수행
+        const isLoginRequest = originalRequest.url.endsWith('/auth/login');
+        if (error.response.status === 401 && !originalRequest._retry && !isLoginRequest) {
             // 이미 갱신 중이면 큐에 대기
             if (isRefreshing) {
                 return new Promise((resolve, reject) => {
@@ -65,7 +65,25 @@ api.interceptors.response.use(
             isRefreshing = true;
 
             try {
-                const newAccessToken = await authService.refreshToken(); // 아래 authService에서 구현
+                // 순환 참조를 피하기 위해 직접 토큰 갱신 API 호출
+                const refreshToken = localStorage.getItem('refreshToken');
+                if (!refreshToken) {
+                    throw new Error('No refresh token available');
+                }
+
+                const refreshResponse = await axios.post(
+                    `${API_BASE_URL}/auth/refresh`,
+                    {},
+                    { headers: { Authorization: `Bearer ${refreshToken}` } }
+                );
+
+                const { accessToken: newAccessToken, refreshToken: newRefreshToken } = refreshResponse.data;
+
+                if (newAccessToken && newRefreshToken) {
+                    localStorage.setItem('accessToken', newAccessToken);
+                    localStorage.setItem('refreshToken', newRefreshToken);
+                }
+
                 // 기본 헤더 및 재요청 헤더 갱신
                 api.defaults.headers.common['Authorization'] = 'Bearer ' + newAccessToken;
                 originalRequest.headers['Authorization'] = 'Bearer ' + newAccessToken;
@@ -74,7 +92,10 @@ api.interceptors.response.use(
                 return api(originalRequest);
             } catch (refreshError) {
                 processQueue(refreshError, null);
-                authService.logout();
+                // 토큰 정리
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('refreshToken');
+                localStorage.removeItem('userRole');
                 window.location.href = '/login';
                 return Promise.reject(refreshError);
             } finally {

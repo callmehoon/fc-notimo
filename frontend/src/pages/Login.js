@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import {Link, Grid, Box, Divider, Typography} from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router-dom';
+import {Link, Box, Divider, Typography} from '@mui/material';
 import FormLayout from '../components/layout/FormLayout';
 import CommonTextField from '../components/form/CommonTextField';
 import CommonButton from '../components/button/CommonButton';
@@ -8,11 +8,33 @@ import authService from "../services/authService";
 
 const Login = () => {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [formValues, setFormValues] = useState({
         email: '',
         password: '',
     });
     const [errors, setErrors] = useState({});
+
+    // 소셜 로그인 성공 처리
+    useEffect(() => {
+        const success = searchParams.get('success');
+        const accessToken = searchParams.get('accessToken');
+        const refreshToken = searchParams.get('refreshToken');
+        const isNewUser = searchParams.get('isNewUser');
+        const accountIntegrated = searchParams.get('accountIntegrated');
+        const provider = searchParams.get('provider');
+        const error = searchParams.get('error');
+        const errorMessage = searchParams.get('message');
+
+        // 소셜 로그인 오류만 처리 (성공은 workspace에서 처리)
+        if (error) {
+            // URL에서 모든 파라미터 제거
+            navigate('/login', { replace: true });
+
+            // 소셜 로그인 오류
+            alert(errorMessage ? decodeURIComponent(errorMessage) : '소셜 로그인 중 오류가 발생했습니다.');
+        }
+    }, [searchParams, navigate]);
 
     const validate = () => {
         let tempErrors = {};
@@ -43,8 +65,26 @@ const Login = () => {
                 console.log(formValues.email, formValues.password);
                 navigate('/workspace'); // 로그인 성공 시 워크스페이스 선택 페이지로 이동
             } catch (error) {
-                alert('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
                 console.error("Login error:", error);
+
+                // 탈퇴한 계정에 대한 특별한 메시지
+                if (error.isDeletedAccount) {
+                    const userChoice = window.confirm(
+                        `${error.message}\n\n새로 회원가입하시겠습니까?`
+                    );
+                    if (userChoice) {
+                        navigate('/signup');
+                    }
+                } else if (error.response?.status === 401) {
+                    // 일반적인 로그인 실패 (이메일/비밀번호 불일치)
+                    alert('이메일 또는 비밀번호가 올바르지 않습니다.');
+                } else if (error.response?.data?.message) {
+                    // 백엔드에서 제공하는 에러 메시지
+                    alert(error.response.data.message);
+                } else {
+                    // 일반적인 에러 메시지
+                    alert('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
+                }
             }
         }
     };
@@ -105,7 +145,7 @@ const Login = () => {
                 <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 2 }}>
                     <CommonButton
                         variant="outlined"
-                        onClick={() => console.log('Google 로그인')}
+                        onClick={() => authService.loginWithGoogle()}
                         sx={{
                             backgroundColor: '#ffffff',
                             color: '#3c4043',
@@ -175,19 +215,19 @@ const Login = () => {
                 </Box>
             </Box>
 
-            <Grid container sx={{ width: '200px', mt : 3, textAlign: 'right' }}>
-                <Grid item xs={12}>
+            <Box sx={{ width: '200px', mt: 3, textAlign: 'right' }}>
+                <Box>
                     <Link component={RouterLink} to="/signup" variant="body2">
                         계정이 없으신가요? 회원가입<br/>
                     </Link>
-                </Grid>
+                </Box>
 
-                <Grid item xs={12} sx={{ mt: 1 }}>
+                <Box sx={{ mt: 1 }}>
                     <Link component={RouterLink} to="/FindPassword" variant="body2">
                         비밀번호를 잊으셨나요?
                     </Link>
-                </Grid>
-            </Grid>
+                </Box>
+            </Box>
 
         </FormLayout>
     );

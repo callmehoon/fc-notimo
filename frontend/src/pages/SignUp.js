@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link as RouterLink, useNavigate, useSearchParams } from "react-router-dom";
 import {Link, Grid, Box} from "@mui/material";
 import FormLayout from "../components/layout/FormLayout";
 import CommonTextField from "../components/form/CommonTextField";
@@ -9,6 +9,7 @@ import authService from "../services/authService";
 // 회원가입 페이지
 const SignUp = () => {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [formValues, setFormValues] = useState({
         email: '',
         password: '',
@@ -20,6 +21,27 @@ const SignUp = () => {
 
     const [errors, setErrors] = useState({});
     const [isVerificationCodeSent, setIsVerificationCodeSent] = useState(false);
+
+    // 소셜 로그인 감지 및 리다이렉트
+    useEffect(() => {
+        const isNewUser = searchParams.get('isNewUser');
+        const provider = searchParams.get('provider');
+        const email = searchParams.get('email');
+        const name = searchParams.get('name');
+        const socialId = searchParams.get('socialId');
+
+        if (isNewUser === 'true' && provider && email && name) {
+            // 소셜 회원가입 페이지로 리다이렉트
+            navigate('/social-signup', {
+                state: {
+                    provider,
+                    email: decodeURIComponent(email),
+                    name: decodeURIComponent(name),
+                    socialId
+                }
+            });
+        }
+    }, [searchParams, navigate]);
 
     const validateForm = (isSubmitting = false) => {
         let tempErrors = {};
@@ -67,10 +89,22 @@ const SignUp = () => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormValues((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
+
+        if (name === 'phone') {
+            const onlyNums = value.replace(/[^0-9]/g, '');
+            if (onlyNums.length <= 11) {
+                let formatted = onlyNums;
+                if (onlyNums.length > 3 && onlyNums.length <= 7) {
+                    formatted = `${onlyNums.slice(0, 3)}-${onlyNums.slice(3)}`;
+                } else if (onlyNums.length > 7) {
+                    formatted = `${onlyNums.slice(0, 3)}-${onlyNums.slice(3, 7)}-${onlyNums.slice(7)}`;
+                }
+                setFormValues(prev => ({ ...prev, phone: formatted }));
+            }
+        } else {
+            setFormValues(prev => ({ ...prev, [name]: value }));
+        }
+
         if (errors[name]) {
             setErrors((prev) => ({
                 ...prev,

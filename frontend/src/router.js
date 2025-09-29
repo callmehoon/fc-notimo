@@ -13,6 +13,8 @@ import ContactManagementPage from "./pages/ContactManagementPage";
 import ContactEditPage from "./pages/ContactEditPage";
 import UserProfileEditPage from "./pages/UserProfileEditPage";
 import WorkspaceEditPage from "./pages/WorkspaceEditPage";
+import SocialLoginCallback from "./pages/SocialLoginCallback";
+import SocialSignupPage from "./pages/SocialSignupPage";
 
 
 const AppRouter = () => {
@@ -33,6 +35,8 @@ const AppRouter = () => {
             <Route path="/contact-edit/:id" element={<ContactEditPage/>}/>
             <Route path="/profile-edit" element={<UserProfileEditPage/>}/>
             <Route path="/workspace-edit/:id" element={<WorkspaceEditPage/>}/>
+            <Route path="/social-callback" element={<SocialLoginCallback/>}/>
+            <Route path="/social-signup" element={<SocialSignupPage/>}/>
             {/* 예: 메인 페이지 라우트 */}
             {/* <Route path="/main" element={<MainPage />} /> */}
         </Routes>

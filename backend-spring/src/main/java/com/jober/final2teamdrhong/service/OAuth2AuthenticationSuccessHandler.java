@@ -100,8 +100,9 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
             log.info("OAuth2 로그인 성공 - 사용자 ID: {}, 자동통합: {}", userId, hasMultipleAuths);
 
-            // 프론트엔드로 리다이렉트 (토큰을 쿼리 파라미터로 전달)
+            // 프론트엔드 workspace로 직접 리다이렉트 (토큰을 쿼리 파라미터로 전달)
             UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(getRedirectUrl())
+                    .path("/workspace")
                     .queryParam("success", "true")
                     .queryParam("accessToken", accessToken)
                     .queryParam("refreshToken", refreshToken)

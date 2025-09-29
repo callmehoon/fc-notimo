@@ -17,6 +17,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CharacterEncodingFilter;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -79,6 +80,14 @@ public class SecurityConfig implements WebMvcConfigurer {
     private boolean isDevelopment;
 
     @Bean
+    public CharacterEncodingFilter characterEncodingFilter() {
+        CharacterEncodingFilter filter = new CharacterEncodingFilter();
+        filter.setEncoding("UTF-8");
+        filter.setForceEncoding(true);
+        return filter;
+    }
+
+    @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
@@ -92,8 +101,6 @@ public class SecurityConfig implements WebMvcConfigurer {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // 🚨 UTF-8 인코딩 필터를 가장 먼저 실행하도록 등록
-                // Spring Security 예외 처리보다 먼저 동작하여 모든 응답에 UTF-8 인코딩 보장
                 .addFilterBefore(characterEncodingFilter(), org.springframework.security.web.csrf.CsrfFilter.class)
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -171,13 +178,9 @@ public class SecurityConfig implements WebMvcConfigurer {
                 .exceptionHandling(exceptionHandling -> exceptionHandling
                         // 인증되지 않은 사용자에 대한 기본 처리를 401로 설정 (OAuth2 리다이렉트 대신)
                         .authenticationEntryPoint((request, response, authException) -> {
-                            // HTTP 상태 코드 설정
                             response.setStatus(HttpStatus.UNAUTHORIZED.value());
+                            response.setContentType("application/json;charset=UTF-8");
 
-                            // Content-Type 설정 (CharacterEncodingFilter가 UTF-8 인코딩 처리)
-                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-
-                            // 에러 메시지 생성
                             String errorMessage;
                             if (authException instanceof BadCredentialsException) {
                                 errorMessage = "이메일 또는 비밀번호가 일치하지 않습니다.";
@@ -185,8 +188,9 @@ public class SecurityConfig implements WebMvcConfigurer {
                                 errorMessage = "인증이 필요합니다.";
                             }
 
-                            // JSON 응답 작성
-                            objectMapper.writeValue(response.getWriter(), new ErrorResponse(errorMessage));
+                            // Manually construct the JSON and write its UTF-8 bytes
+                            String jsonResponse = objectMapper.writeValueAsString(new ErrorResponse(errorMessage));
+                            response.getOutputStream().write(jsonResponse.getBytes("UTF-8"));
                         })
                         // 권한 없는 사용자 접근 시 처리 (403 Forbidden)
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
@@ -245,25 +249,6 @@ public class SecurityConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         // No interceptors added for now, as RequestTimingInterceptor is removed
-    }
-
-    /**
-     * UTF-8 인코딩 필터 등록
-     * 모든 HTTP 요청과 응답에서 UTF-8 인코딩을 보장합니다.
-     * 특히 한글 메시지가 포함된 에러 응답에서 인코딩 문제를 방지합니다.
-     */
-    @Bean
-    public org.springframework.web.filter.CharacterEncodingFilter characterEncodingFilter() {
-        org.springframework.web.filter.CharacterEncodingFilter encodingFilter =
-            new org.springframework.web.filter.CharacterEncodingFilter();
-
-        // UTF-8 인코딩 설정
-        encodingFilter.setEncoding("UTF-8");
-
-        // 요청과 응답 모두에 강제로 인코딩 적용
-        encodingFilter.setForceEncoding(true);
-
-        return encodingFilter;
     }
 
     /**

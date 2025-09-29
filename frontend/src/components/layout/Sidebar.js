@@ -65,11 +65,14 @@ export default function Sidebar() {
     const handleMenuItemClick = (item) => {
         let path = item.path;
         if (path) {
-            if (item.text === '워크스페이스 관리' && selectedWorkspace) {
-                path = path.replace(':id', selectedWorkspace.workspaceId);
-            } else if (item.text === '워크스페이스 관리' && !selectedWorkspace) {
-                alert('워크스페이스를 선택해주세요.');
-                return;
+            if (item.text === '워크스페이스 관리') {
+                if (selectedWorkspace) {
+                    path = path.replace(':id', selectedWorkspace.workspaceId);
+                } else {
+                    // 워크스페이스가 없으면 선택/생성 페이지로 이동
+                    navigate('/workspace');
+                    return;
+                }
             }
             navigate(path);
         }
