@@ -168,9 +168,14 @@ const FindPassword = () => {
                         <Typography component="p" sx={{ mb: 4 }}>
                             비밀번호가 성공적으로 변경되었습니다.
                         </Typography>
-                        <CommonButton component={RouterLink} to="/login" fullWidth>
-                            로그인 화면으로 돌아가기
-                        </CommonButton>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <CommonButton component={RouterLink} to="/profile-edit" fullWidth>
+                                프로필 페이지로 돌아가기
+                            </CommonButton>
+                            <CommonButton component={RouterLink} to="/login" fullWidth variant="outlined">
+                                로그인 화면으로 돌아가기
+                            </CommonButton>
+                        </Box>
                     </Box>
                 );
             default:

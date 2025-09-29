@@ -45,6 +45,16 @@ const MainLayoutContent = ({ children }) => {
         setAnchorEl(null);
     };
 
+    const handleProfile = () => {
+        navigate('/profile-edit');
+        handleClose();
+    };
+
+    const handleSettings = () => {
+        alert('준비중입니다.');
+        handleClose();
+    };
+
     const handleLogout = () => {
         // 로그아웃 로직 구현
         localStorage.removeItem('accessToken');
@@ -115,13 +125,13 @@ const MainLayoutContent = ({ children }) => {
                             open={Boolean(anchorEl)}
                             onClose={handleClose}
                         >
-                            <MenuItem onClick={handleClose}>
+                            <MenuItem onClick={handleProfile}>
                                 <ListItemIcon>
                                     <AccountCircleIcon fontSize="small" />
                                 </ListItemIcon>
                                 프로필
                             </MenuItem>
-                            <MenuItem onClick={handleClose}>
+                            <MenuItem onClick={handleSettings}>
                                 <ListItemIcon>
                                     <SettingsIcon fontSize="small" />
                                 </ListItemIcon>

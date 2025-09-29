@@ -4,7 +4,6 @@ import {
     Public as PublicIcon,
     Description as DescriptionIcon,
     Favorite as FavoriteIcon,
-    Person as PersonIcon,
     Contacts as ContactsIcon,
     Business as BusinessIcon
 } from '@mui/icons-material';
@@ -15,7 +14,6 @@ const menuItems = [
     { text: '공용 템플릿', icon: <PublicIcon />, path: '/publicTemplate' },
     { text: '나의 템플릿', icon: <DescriptionIcon />, path: '/mytemplate' },
     { text: '즐겨찾기', icon: <FavoriteIcon />, path: '/favoritetemplates' },
-    { text: '회원정보 수정', icon: <PersonIcon />, path: '/profile-edit' },
     { text: '연락처 관리', icon: <ContactsIcon />, path: '/contact-management' },
     { text: '워크스페이스 관리', icon: <BusinessIcon />, path: '/workspace-edit/:id' },
 ];
