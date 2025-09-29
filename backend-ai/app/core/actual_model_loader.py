@@ -16,8 +16,8 @@ class ModelLoader:
     CLS_MODEL_ID = "klue/bert-base"
 
     # 경로를 절대 경로로 재정의
-    DOWNLOADED_PATH = BASE_DIR / "app/models/downloaded_model/"
-    FINETUNED_PATH = BASE_DIR / "app/models/finetuned_model/"
+    DOWNLOADED_PATH = BASE_DIR / "models/downloaded_model/"
+    FINETUNED_PATH = BASE_DIR / "models/finetuned_model/"
 
     GEN_MODEL_PATH = DOWNLOADED_PATH / GEN_MODEL_ID.replace("/", "--")
     CLS_DOWNLOADED_PATH = DOWNLOADED_PATH / CLS_MODEL_ID.replace("/", "--")
