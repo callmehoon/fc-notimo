@@ -113,12 +113,6 @@ jobs:
               git lfs pull
             fi
 
-            # 베이스 모델 다운로드
-            echo "📦 베이스 모델 다운로드 중..."
-            cd backend-ai/app/
-            pip3 install huggingface_hub
-            python3 download_models.py
-            cd ../..
 
             # .env 파일 확인 및 생성
             if [ ! -f ".env" ]; then
@@ -133,6 +127,11 @@ jobs:
             # 기존 개발 환경 컨테이너 정리 (포트 3001)
             echo "🧹 기존 개발 환경 컨테이너 정리 중..."
             docker compose -f docker-compose-dev.yml down --remove-orphans --volumes || true
+
+            # Docker 캐시 정리로 디스크 공간 확보
+            echo "🧹 Docker 캐시 정리 중..."
+            docker system prune -f --filter "until=1h" || true
+            docker builder prune -f || true
 
             # 남은 컨테이너들 강제 제거
             echo "🧹 남은 컨테이너들 강제 제거 중..."
@@ -194,12 +193,6 @@ jobs:
               git lfs pull
             fi
 
-            # 베이스 모델 다운로드
-            echo "📦 베이스 모델 다운로드 중..."
-            cd backend-ai/app/
-            pip3 install huggingface_hub
-            python3 download_models.py
-            cd ../..
 
             # .env 파일 확인 및 생성
             if [ ! -f ".env" ]; then
@@ -214,6 +207,11 @@ jobs:
             # 기존 운영 환경 컨테이너 정리 (포트 3002)
             echo "🧹 기존 운영 환경 컨테이너 정리 중..."
             docker compose -f docker-compose-prod.yml down --remove-orphans --volumes || true
+
+            # Docker 캐시 정리로 디스크 공간 확보
+            echo "🧹 Docker 캐시 정리 중..."
+            docker system prune -f --filter "until=1h" || true
+            docker builder prune -f || true
 
             # 남은 컨테이너들 강제 제거
             echo "🧹 남은 컨테이너들 강제 제거 중..."
