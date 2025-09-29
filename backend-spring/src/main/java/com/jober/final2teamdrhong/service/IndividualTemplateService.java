@@ -4,10 +4,8 @@ import com.jober.final2teamdrhong.dto.individualtemplate.HistoryResponse;
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplatePageableRequest;
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateResponse;
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateUpdateRequest;
-import com.jober.final2teamdrhong.entity.IndividualTemplate;
-import com.jober.final2teamdrhong.entity.PublicTemplate;
-import com.jober.final2teamdrhong.entity.TemplateModifiedHistory;
-import com.jober.final2teamdrhong.entity.Workspace;
+import com.jober.final2teamdrhong.entity.*;
+import com.jober.final2teamdrhong.repository.FavoriteRepository;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
 import com.jober.final2teamdrhong.repository.TemplateModifiedHistoryRepository;
@@ -36,6 +34,7 @@ public class IndividualTemplateService {
     private final PublicTemplateRepository publicTemplateRepository;
     private final WorkspaceValidator workspaceValidator;
     private final TemplateModifiedHistoryRepository templateModifiedHistoryRepository;
+    private final FavoriteRepository favoriteRepository;
 
     @Transactional
     public IndividualTemplateResponse createTemplate(Integer workspaceId, Integer userId) {
@@ -215,6 +214,11 @@ public class IndividualTemplateService {
         IndividualTemplate individualTemplate = workspaceValidator.validateTemplateOwnership(workspaceId, individualTemplateId);
 
         templateModifiedHistoryRepository.bulkSoftDeleteByTemplate(individualTemplate);
+
+        List<Favorite> favorites = favoriteRepository.findAllByIndividualTemplate_individualTemplateId(individualTemplateId);
+
+        individualTemplate.deleteFavorites();
+        favoriteRepository.deleteAll(favorites);
 
         individualTemplate.softDelete();
         individualTemplateRepository.save(individualTemplate);

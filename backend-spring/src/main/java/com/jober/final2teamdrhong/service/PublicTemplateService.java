@@ -3,8 +3,10 @@ package com.jober.final2teamdrhong.service;
 import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplateCreateRequest;
 import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplatePageableRequest;
 import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplateResponse;
+import com.jober.final2teamdrhong.entity.Favorite;
 import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import com.jober.final2teamdrhong.entity.PublicTemplate;
+import com.jober.final2teamdrhong.repository.FavoriteRepository;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateSpecification;
@@ -18,6 +20,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -26,6 +30,7 @@ public class PublicTemplateService {
     private final PublicTemplateRepository publicTemplateRepository;
     private final IndividualTemplateRepository individualTemplateRepository;
     private final WorkspaceValidator workspaceValidator;
+    private final FavoriteRepository favoriteRepository;
     
     /**
      * 삭제되지 않은 공용 템플릿 목록을 페이징하여 조회한다.
@@ -75,6 +80,11 @@ public class PublicTemplateService {
      */
     public void deletePublicTemplate(Integer publicTemplateId) {
         PublicTemplate publicTemplate = publicTemplateRepository.findByIdOrThrow(publicTemplateId);
+
+        List<Favorite> favorites = favoriteRepository.findAllByPublicTemplate_publicTemplateId(publicTemplateId);
+
+        publicTemplate.deleteFavorites();
+        favoriteRepository.deleteAll(favorites);
 
         publicTemplate.softDelete();
     }
