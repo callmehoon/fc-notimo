@@ -100,7 +100,7 @@ const getSocialProviders = async () => {
 /** 구글 소셜 로그인 시작 */
 const loginWithGoogle = () => {
     // 백엔드의 OAuth2 인증 URL로 리다이렉트
-    window.location.href = `${process.env.REACT_APP_API_URL || 'http://localhost:8080/api'}/oauth2/authorization/google`;
+    window.location.href = `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080/api'}/oauth2/authorization/google`;
 };
 
 /** 소셜 회원가입 완료 */
