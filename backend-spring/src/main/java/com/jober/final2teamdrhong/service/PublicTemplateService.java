@@ -5,6 +5,7 @@ import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplatePageableReque
 import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplateResponse;
 import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import com.jober.final2teamdrhong.entity.PublicTemplate;
+import com.jober.final2teamdrhong.repository.FavoriteRepository;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateSpecification;
@@ -26,6 +27,7 @@ public class PublicTemplateService {
     private final PublicTemplateRepository publicTemplateRepository;
     private final IndividualTemplateRepository individualTemplateRepository;
     private final WorkspaceValidator workspaceValidator;
+    private final FavoriteRepository favoriteRepository;
     
     /**
      * 삭제되지 않은 공용 템플릿 목록을 페이징하여 조회한다.
@@ -75,6 +77,9 @@ public class PublicTemplateService {
      */
     public void deletePublicTemplate(Integer publicTemplateId) {
         PublicTemplate publicTemplate = publicTemplateRepository.findByIdOrThrow(publicTemplateId);
+
+        // 공용 템플릿 id 참조하는 모든 Favorite 테이블 데이터 soft-delete
+        favoriteRepository.softDeleteByPublicTemplate(publicTemplate);
 
         publicTemplate.softDelete();
     }
