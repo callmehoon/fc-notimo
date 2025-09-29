@@ -142,15 +142,15 @@ public class SecurityConfig implements WebMvcConfigurer {
                             : buildProductionCSP();
                         response.setHeader("Content-Security-Policy", cspPolicy);
 
-                        // 추가 보안 헤더들
-                        // Cross-Origin-Embedder-Policy
-                        response.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+                        // 추가 보안 헤더들 (Swagger 호환을 위해 조정)
+                        // Cross-Origin-Embedder-Policy - Swagger 사용 시 문제가 될 수 있어 제외
+                        // response.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
 
-                        // Cross-Origin-Opener-Policy
-                        response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+                        // Cross-Origin-Opener-Policy - 완화
+                        response.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
 
-                        // Cross-Origin-Resource-Policy
-                        response.setHeader("Cross-Origin-Resource-Policy", "same-origin");
+                        // Cross-Origin-Resource-Policy - 완화
+                        response.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
 
                         // Expect-CT (Certificate Transparency)
                         if (!isDevelopment) {
