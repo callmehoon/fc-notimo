@@ -35,6 +35,8 @@ services:
       - TZ=Asia/Seoul
     env_file:
       - .env
+    volumes:
+      - ./backend-ai/app/models:/app/models:ro
 
   frontend-dev:
     build:
