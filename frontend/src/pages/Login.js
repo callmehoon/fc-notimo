@@ -145,7 +145,16 @@ const Login = () => {
                 <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 2 }}>
                     <CommonButton
                         variant="outlined"
-                        onClick={() => authService.loginWithGoogle()}
+                        onClick={() => {
+                            console.log('🔥 구글 로그인 버튼이 클릭되었습니다!');
+                            console.log('authService 객체:', authService);
+                            console.log('loginWithGoogle 함수:', authService.loginWithGoogle);
+                            try {
+                                authService.loginWithGoogle();
+                            } catch (error) {
+                                console.error('❌ authService.loginWithGoogle() 실행 중 오류:', error);
+                            }
+                        }}
                         sx={{
                             backgroundColor: '#ffffff',
                             color: '#3c4043',
