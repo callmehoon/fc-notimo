@@ -54,12 +54,37 @@ const refreshToken = async () => {
     return newAccessToken;
 };
 
+/** 소셜 로그인 제공자 목록 조회 */
+const getSocialProviders = async () => {
+    const res = await api.get('/auth/social/providers');
+    return res.data;
+};
+
+/** 구글 소셜 로그인 시작 */
+const loginWithGoogle = () => {
+    // 백엔드의 OAuth2 인증 URL로 리다이렉트
+    window.location.href = `${process.env.REACT_APP_API_URL || 'http://localhost:8080/api'}/oauth2/authorization/google`;
+};
+
+/** 소셜 회원가입 완료 */
+const completeSocialSignup = async (socialSignupData) => {
+    const res = await api.post('/auth/social/signup', socialSignupData);
+    const { accessToken, refreshToken, userRole } = res.data;
+    if (accessToken && refreshToken) {
+        handleLoginSuccess(accessToken, refreshToken, userRole);
+    }
+    return res.data;
+};
+
 const authService = {
     login,
     signup,
     sendVerificationCode,
     logout: handleLogout,
     refreshToken,
+    getSocialProviders,
+    loginWithGoogle,
+    completeSocialSignup,
 };
 
 export default authService;
