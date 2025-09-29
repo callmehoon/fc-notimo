@@ -17,6 +17,7 @@ import com.jober.final2teamdrhong.service.RateLimitService;
 import com.jober.final2teamdrhong.service.UserService;
 import com.jober.final2teamdrhong.util.ClientIpUtil;
 import com.jober.final2teamdrhong.util.LogMaskingUtil;
+import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -34,7 +35,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+
 import com.jober.final2teamdrhong.service.AuthService.AuthMethodsResponse;
 
 @RestController
@@ -142,7 +143,7 @@ public class AuthController {
                     content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = ErrorResponse.class)))
     })
-    @PostMapping(value = "/login", produces = "application/json;charset=UTF-8")
+    @PostMapping(value = "/login")
     public ResponseEntity<UserLoginResponse> login(
             @Parameter(description = "로그인 요청 정보 (이메일, 비밀번호)", required = true)
             @RequestBody @Valid UserLoginRequest userLoginRequest,
@@ -281,7 +282,7 @@ public class AuthController {
      * 소셜 로그인과 로컬 로그인을 모두 사용할 수 있도록 합니다.
      *
      * @param request 로컬 인증 추가 요청 정보 (이메일, 인증코드, 비밀번호)
-     * @param userDetails 현재 인증된 사용자 정보
+     * @param jwtClaims 현재 인증된 사용자 정보
      * @param httpRequest HTTP 요청 (클라이언트 IP 추출용)
      * @return 성공 응답
      */
@@ -321,7 +322,7 @@ public class AuthController {
             @Valid @RequestBody AddLocalAuthRequest request,
 
             @Parameter(hidden = true)
-            @AuthenticationPrincipal com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims jwtClaims,
+            @AuthenticationPrincipal JwtClaims jwtClaims,
 
             @Parameter(hidden = true)
             HttpServletRequest httpRequest) {
@@ -348,7 +349,7 @@ public class AuthController {
      * 현재 사용자가 어떤 인증 방법들(로컬, 구글 등)을 연결했는지 조회합니다.
      * 마이페이지에서 계정 통합 상태를 확인할 때 사용됩니다.
      *
-     * @param userDetails 현재 인증된 사용자 정보
+     * @param jwtClaims 현재 인증된 사용자 정보
      * @return 연결된 인증 방법 목록
      */
     @Operation(
@@ -389,7 +390,7 @@ public class AuthController {
     @GetMapping("/connected-methods")
     public ResponseEntity<AuthMethodsResponse> getConnectedAuthMethods(
             @Parameter(hidden = true)
-            @AuthenticationPrincipal com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims jwtClaims) {
+            @AuthenticationPrincipal JwtClaims jwtClaims) {
 
         log.info("연결된 인증 방법 조회: user={}", jwtClaims.getEmail());
 
