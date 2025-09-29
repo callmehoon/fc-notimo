@@ -8,6 +8,7 @@ import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import com.jober.final2teamdrhong.entity.PublicTemplate;
 import com.jober.final2teamdrhong.entity.TemplateModifiedHistory;
 import com.jober.final2teamdrhong.entity.Workspace;
+import com.jober.final2teamdrhong.repository.FavoriteRepository;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
 import com.jober.final2teamdrhong.repository.TemplateModifiedHistoryRepository;
@@ -36,6 +37,7 @@ public class IndividualTemplateService {
     private final PublicTemplateRepository publicTemplateRepository;
     private final WorkspaceValidator workspaceValidator;
     private final TemplateModifiedHistoryRepository templateModifiedHistoryRepository;
+    private final FavoriteRepository favoriteRepository;
 
     @Transactional
     public IndividualTemplateResponse createTemplate(Integer workspaceId, Integer userId) {
@@ -215,6 +217,9 @@ public class IndividualTemplateService {
         IndividualTemplate individualTemplate = workspaceValidator.validateTemplateOwnership(workspaceId, individualTemplateId);
 
         templateModifiedHistoryRepository.bulkSoftDeleteByTemplate(individualTemplate);
+
+        // 개인 템플릿 id 참조하는 모든 Favorite 테이블 데이터 soft-delete
+        favoriteRepository.softDeleteByIndividualTemplate(individualTemplate);
 
         individualTemplate.softDelete();
         individualTemplateRepository.save(individualTemplate);
