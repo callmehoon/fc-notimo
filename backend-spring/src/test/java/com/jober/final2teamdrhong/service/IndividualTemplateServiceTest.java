@@ -6,6 +6,7 @@ import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateUpdat
 import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import com.jober.final2teamdrhong.entity.PublicTemplate;
 import com.jober.final2teamdrhong.entity.Workspace;
+import com.jober.final2teamdrhong.repository.FavoriteRepository;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
 import com.jober.final2teamdrhong.repository.TemplateModifiedHistoryRepository;
@@ -50,6 +51,9 @@ class IndividualTemplateServiceTest {
 
     @Mock
     private TemplateModifiedHistoryRepository templateModifiedHistoryRepo;
+
+    @Mock
+    private FavoriteRepository favoriteRepository;
 
     @InjectMocks
     private IndividualTemplateService service;
@@ -522,6 +526,7 @@ class IndividualTemplateServiceTest {
             // then
             verify(workspaceValidator).validateAndGetWorkspace(workspaceId, userId);
             verify(workspaceValidator).validateTemplateOwnership(workspaceId, id);
+            verify(favoriteRepository).softDeleteByIndividualTemplate(templateMock);
             verify(templateMock).softDelete();
             verify(individualTemplateRepo).save(templateMock);
         }
