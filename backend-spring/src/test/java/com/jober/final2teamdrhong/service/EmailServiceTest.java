@@ -107,7 +107,8 @@ class EmailServiceTest {
             // 2. 발송된 메일의 내용이 올바른지 확인합니다.
             SimpleMailMessage sentMessage = messageCaptor.getValue();
             assertThat(sentMessage.getTo()).containsExactly(email);
-            assertThat(sentMessage.getSubject()).isEqualTo("[notimo] 회원가입 이메일 인증 코드입니다.");
+            assertThat(sentMessage.getSubject()).isEqualTo("[notimo] 회원가입 인증 코드입니다.");
+            assertThat(sentMessage.getText()).contains("회원가입을 위해 아래 인증 코드를 입력해주세요.");
             assertThat(sentMessage.getText()).contains("인증 코드:");
             assertThat(sentMessage.getText()).contains("5분 후에 만료됩니다");
 
@@ -191,6 +192,116 @@ class EmailServiceTest {
             // then
             // 1. 인증 코드가 저장소에 저장되었는지 확인합니다. (개발환경에서는 저장만 수행)
             then(verificationStorage).should(times(1)).save(eq(email), anyString());
+        }
+    }
+
+    @Nested
+    @DisplayName("EmailPurpose별 인증 코드 발송 테스트")
+    class SendVerificationCodeWithPurposeTest {
+
+        @Test
+        @DisplayName("회원가입용 인증 코드 발송 테스트")
+        void shouldSendSignupVerificationCode() {
+            // given
+            // 1. 유효한 이메일을 준비합니다.
+            String email = "test@example.com";
+            // 2. 메일 발송이 성공하도록 설정합니다.
+            willDoNothing().given(mailSender).send(any(SimpleMailMessage.class));
+
+            // when
+            // 1. 회원가입용 인증 코드를 발송합니다.
+            emailService.sendVerificationCode(email, EmailPurpose.SIGNUP);
+
+            // then
+            // 1. 메일이 발송되었는지 확인합니다.
+            ArgumentCaptor<SimpleMailMessage> messageCaptor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+            then(mailSender).should(times(1)).send(messageCaptor.capture());
+
+            // 2. 발송된 메일의 내용이 회원가입용인지 확인합니다.
+            SimpleMailMessage sentMessage = messageCaptor.getValue();
+            assertThat(sentMessage.getTo()).containsExactly(email);
+            assertThat(sentMessage.getSubject()).isEqualTo("[notimo] 회원가입 인증 코드입니다.");
+            assertThat(sentMessage.getText()).contains("회원가입을 위해 아래 인증 코드를 입력해주세요.");
+        }
+
+        @Test
+        @DisplayName("비밀번호 재설정용 인증 코드 발송 테스트")
+        void shouldSendPasswordResetVerificationCode() {
+            // given
+            // 1. 유효한 이메일을 준비합니다.
+            String email = "test@example.com";
+            // 2. 메일 발송이 성공하도록 설정합니다.
+            willDoNothing().given(mailSender).send(any(SimpleMailMessage.class));
+
+            // when
+            // 1. 비밀번호 재설정용 인증 코드를 발송합니다.
+            emailService.sendVerificationCode(email, EmailPurpose.PASSWORD_RESET);
+
+            // then
+            // 1. 메일이 발송되었는지 확인합니다.
+            ArgumentCaptor<SimpleMailMessage> messageCaptor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+            then(mailSender).should(times(1)).send(messageCaptor.capture());
+
+            // 2. 발송된 메일의 내용이 비밀번호 재설정용인지 확인합니다.
+            SimpleMailMessage sentMessage = messageCaptor.getValue();
+            assertThat(sentMessage.getTo()).containsExactly(email);
+            assertThat(sentMessage.getSubject()).isEqualTo("[notimo] 비밀번호 재설정 인증 코드입니다.");
+            assertThat(sentMessage.getText()).contains("비밀번호 재설정을 위해 아래 인증 코드를 입력해주세요.");
+        }
+
+        @Test
+        @DisplayName("계정 통합용 인증 코드 발송 테스트")
+        void shouldSendAccountMergeVerificationCode() {
+            // given
+            // 1. 유효한 이메일을 준비합니다.
+            String email = "test@example.com";
+            // 2. 메일 발송이 성공하도록 설정합니다.
+            willDoNothing().given(mailSender).send(any(SimpleMailMessage.class));
+
+            // when
+            // 1. 계정 통합용 인증 코드를 발송합니다.
+            emailService.sendVerificationCode(email, EmailPurpose.ACCOUNT_MERGE);
+
+            // then
+            // 1. 메일이 발송되었는지 확인합니다.
+            ArgumentCaptor<SimpleMailMessage> messageCaptor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+            then(mailSender).should(times(1)).send(messageCaptor.capture());
+
+            // 2. 발송된 메일의 내용이 계정 통합용인지 확인합니다.
+            SimpleMailMessage sentMessage = messageCaptor.getValue();
+            assertThat(sentMessage.getTo()).containsExactly(email);
+            assertThat(sentMessage.getSubject()).isEqualTo("[notimo] 계정 통합 인증 코드입니다.");
+            assertThat(sentMessage.getText()).contains("계정 통합을 위해 아래 인증 코드를 입력해주세요.");
+        }
+
+        @Test
+        @DisplayName("Rate Limit과 함께 비밀번호 재설정용 인증 코드 발송 테스트")
+        void shouldSendPasswordResetVerificationCodeWithRateLimit() {
+            // given
+            // 1. 테스트용 이메일과 클라이언트 IP를 준비합니다.
+            String email = "test@example.com";
+            String clientIp = "192.168.1.1";
+            // 2. Rate limit이 통과하도록 설정합니다.
+            willDoNothing().given(rateLimitService).checkEmailSendRateLimit(clientIp, email);
+            // 3. 메일 발송이 성공하도록 설정합니다.
+            willDoNothing().given(mailSender).send(any(SimpleMailMessage.class));
+
+            // when
+            // 1. Rate limit과 함께 비밀번호 재설정용 인증 코드를 발송합니다.
+            emailService.sendVerificationCodeWithRateLimit(email, clientIp, EmailPurpose.PASSWORD_RESET);
+
+            // then
+            // 1. Rate limit 검사가 수행되었는지 확인합니다.
+            then(rateLimitService).should(times(1)).checkEmailSendRateLimit(clientIp, email);
+
+            // 2. 메일이 발송되었는지 확인합니다.
+            ArgumentCaptor<SimpleMailMessage> messageCaptor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+            then(mailSender).should(times(1)).send(messageCaptor.capture());
+
+            // 3. 발송된 메일의 내용이 비밀번호 재설정용인지 확인합니다.
+            SimpleMailMessage sentMessage = messageCaptor.getValue();
+            assertThat(sentMessage.getSubject()).isEqualTo("[notimo] 비밀번호 재설정 인증 코드입니다.");
+            assertThat(sentMessage.getText()).contains("비밀번호 재설정을 위해 아래 인증 코드를 입력해주세요.");
         }
     }
 }

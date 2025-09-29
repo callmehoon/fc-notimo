@@ -264,6 +264,29 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.message").value("인증 코드가 발송되었습니다."));
     }
 
+    @Test
+    @DisplayName("비밀번호 재설정용 인증 코드 발송 성공 테스트")
+    @WithAnonymousUser
+    void sendPasswordResetCode_Success_Test() throws Exception {
+        // given
+        EmailRequest emailRequest = new EmailRequest("reset@example.com");
+        String requestBody = objectMapper.writeValueAsString(emailRequest);
+
+        // when
+        ResultActions resultActions = mockMvc.perform(
+                post("/auth/send-password-reset-code")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody)
+        );
+
+        // then
+        resultActions
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("비밀번호 재설정을 위한 인증 코드가 발송되었습니다."));
+    }
+
     // ==================== 헬퍼 메서드 ====================
 
     /**
