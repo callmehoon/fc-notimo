@@ -1,0 +1,30 @@
+# 프로젝트 루트의 .dockerignore
+# Python AI 모델 파일들 제외 (Volume Mount로 처리)
+backend-ai/app/models/
+
+# Git 관련 파일들
+.git/
+.gitignore
+
+# 기타 불필요한 파일들
+**/.DS_Store
+**/node_modules/
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+**/coverage/
+**/.coverage
+
+# IDE 설정 파일들
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 로그 파일들
+**/*.log
+
+# 환경 설정 파일들 (보안상 제외)
+.env
+.env.*
+!.env.example
