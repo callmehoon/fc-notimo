@@ -4,6 +4,7 @@ import com.jober.final2teamdrhong.config.AuthProperties;
 import com.jober.final2teamdrhong.dto.changePassword.PasswordResetRequest;
 import com.jober.final2teamdrhong.dto.changePassword.ConfirmPasswordResetRequest;
 import com.jober.final2teamdrhong.dto.user.DeleteUserRequest;
+import com.jober.final2teamdrhong.dto.user.UserProfileResponse;
 import com.jober.final2teamdrhong.entity.User;
 import com.jober.final2teamdrhong.entity.UserAuth;
 import com.jober.final2teamdrhong.exception.AuthenticationException;
@@ -32,6 +33,19 @@ public class UserService {
     private final VerificationStorage verificationStorage;
     private final TimingAttackProtection timingAttackProtection;
     private final AuthProperties authProperties;
+
+    /**
+     * 사용자 프로필 정보 조회
+     *
+     * @param userId 사용자 ID
+     * @return 사용자 프로필 정보
+     */
+    public UserProfileResponse getUserProfile(Integer userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("사용자를 찾을 수 없습니다."));
+
+        return UserProfileResponse.from(user);
+    }
 
     /**
      * 마이페이지에서 비밀번호 변경
