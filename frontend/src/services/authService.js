@@ -99,17 +99,19 @@ const getSocialProviders = async () => {
 
 /** 구글 소셜 로그인 시작 */
 const loginWithGoogle = () => {
-    // 디버깅: 환경변수와 생성된 URL 확인
-    const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080/api';
-    const googleAuthUrl = `${baseUrl}/oauth2/authorization/google`;
+    // 디버깅을 위한 콘솔 로그
+    const apiBaseUrl = process.env.REACT_APP_API_BASE_URL;
+    const googleLoginUrl = `${apiBaseUrl}/oauth2/authorization/google`;
 
-    console.log('🚀 Google Login 시작');
-    console.log('📍 Base URL:', baseUrl);
-    console.log('🔗 Google Auth URL:', googleAuthUrl);
-    console.log('🌐 현재 환경변수 REACT_APP_API_BASE_URL:', process.env.REACT_APP_API_BASE_URL);
+    console.log('=== 구글 로그인 디버깅 ===');
+    console.log('REACT_APP_API_BASE_URL:', process.env.REACT_APP_API_BASE_URL);
+    console.log('최종 API Base URL:', apiBaseUrl);
+    console.log('구글 로그인 요청 URL:', googleLoginUrl);
+    console.log('현재 도메인:', window.location.origin);
+    console.log('현재 URL:', window.location.href);
 
     // 백엔드의 OAuth2 인증 URL로 리다이렉트
-    window.location.href = googleAuthUrl;
+    window.location.href = googleLoginUrl;
 };
 
 /** 소셜 회원가입 완료 */

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Box, Typography, Alert } from '@mui/material';
 import FormLayout from '../components/layout/FormLayout';
 import CommonTextField from '../components/form/CommonTextField';
@@ -9,6 +9,7 @@ import authService from '../services/authService';
 const SocialSignupPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const [searchParams] = useSearchParams();
     const [formValues, setFormValues] = useState({
         userNumber: '',
     });
@@ -17,13 +18,31 @@ const SocialSignupPage = () => {
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        // 소셜 로그인 정보가 없으면 로그인 페이지로 리다이렉트
-        if (!location.state || !location.state.provider) {
+        // URL 파라미터에서 소셜 로그인 정보 읽기
+        const provider = searchParams.get('provider');
+        const email = searchParams.get('email');
+        const name = searchParams.get('name');
+        const socialId = searchParams.get('socialId');
+        const success = searchParams.get('success');
+        const isNewUser = searchParams.get('isNewUser');
+
+        // 필수 정보가 없거나 성공하지 않은 경우 로그인 페이지로 리다이렉트
+        if (!provider || !email || !name || !socialId || success !== 'true' || isNewUser !== 'true') {
+            console.error('소셜 로그인 정보가 불완전합니다:', {
+                provider, email, name, socialId, success, isNewUser
+            });
             navigate('/login');
             return;
         }
-        setSocialInfo(location.state);
-    }, [location.state, navigate]);
+
+        // URL에서 디코딩하여 socialInfo 설정
+        setSocialInfo({
+            provider: provider,
+            email: decodeURIComponent(email),
+            name: decodeURIComponent(name),
+            socialId: socialId
+        });
+    }, [searchParams, navigate]);
 
     const validate = () => {
         let tempErrors = {};

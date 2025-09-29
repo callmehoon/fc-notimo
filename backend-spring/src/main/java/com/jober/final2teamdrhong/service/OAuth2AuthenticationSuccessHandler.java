@@ -143,7 +143,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             String encodedSocialId = URLEncoder.encode(oAuth2UserInfo.getId(), StandardCharsets.UTF_8);
 
             String targetUrl = UriComponentsBuilder.fromUriString(getRedirectUrl())
-                    .path("/signup")
+                    .path("/social-signup")
                     .queryParam("isNewUser", "true")
                     .queryParam("provider", provider)
                     .queryParam("email", encodedEmail)

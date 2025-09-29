@@ -255,7 +255,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
                 factoryMock.verify(() -> OAuth2UserInfoFactory.getOAuth2UserInfo(eq(TEST_PROVIDER), any(Map.class)));
 
                 // 2. URL 인코딩을 고려하여 부분적으로 확인합니다.
-                then(redirectStrategy).should(times(1)).sendRedirect(eq(request), eq(response), contains("/signup"));
+                then(redirectStrategy).should(times(1)).sendRedirect(eq(request), eq(response), contains("/social-signup"));
                 then(redirectStrategy).should(times(1)).sendRedirect(eq(request), eq(response), contains("isNewUser=true"));
                 then(redirectStrategy).should(times(1)).sendRedirect(eq(request), eq(response), contains("provider=" + TEST_PROVIDER));
                 then(redirectStrategy).should(times(1)).sendRedirect(eq(request), eq(response), contains("success=true"));
