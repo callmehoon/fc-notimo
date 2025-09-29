@@ -106,14 +106,16 @@ jobs:
             # --- 리버스 프록시 설정 ---
             echo "🔌 리버스 프록시 설정 중..."
             sudo yum install -y nginx
-            sudo tee /etc/nginx/conf.d/proxy.conf > /dev/null <<EOF
+            sudo tee /etc/nginx/conf.d/proxy.conf > /dev/null <<'EOF'
             server {
                 listen 80;
                 server_name notimo.kro.kr;
                 location / {
                     proxy_pass http://localhost:3002;
-                    proxy_set_header Host \$host;
-                    proxy_set_header X-Real-IP \$remote_addr;
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto $scheme;
                 }
             }
             server {
@@ -121,8 +123,10 @@ jobs:
                 server_name dev.notimo.kro.kr;
                 location / {
                     proxy_pass http://localhost:3001;
-                    proxy_set_header Host \$host;
-                    proxy_set_header X-Real-IP \$remote_addr;
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto $scheme;
                 }
             }
             EOF
@@ -180,14 +184,16 @@ jobs:
             # --- 리버스 프록시 설정 ---
             echo "🔌 리버스 프록시 설정 중..."
             sudo yum install -y nginx
-            sudo tee /etc/nginx/conf.d/proxy.conf > /dev/null <<EOF
+            sudo tee /etc/nginx/conf.d/proxy.conf > /dev/null <<'EOF'
             server {
                 listen 80;
                 server_name notimo.kro.kr;
                 location / {
                     proxy_pass http://localhost:3002;
-                    proxy_set_header Host \$host;
-                    proxy_set_header X-Real-IP \$remote_addr;
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto $scheme;
                 }
             }
             server {
@@ -195,8 +201,10 @@ jobs:
                 server_name dev.notimo.kro.kr;
                 location / {
                     proxy_pass http://localhost:3001;
-                    proxy_set_header Host \$host;
-                    proxy_set_header X-Real-IP \$remote_addr;
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto $scheme;
                 }
             }
             EOF
