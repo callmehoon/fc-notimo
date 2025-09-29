@@ -93,7 +93,7 @@ class SocialAuthControllerTest {
         // then
         result.andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().contentType("application/json;charset=UTF-8"))
                 .andExpect(jsonPath("$.providers").exists())
                 .andExpect(jsonPath("$.providers.google").exists())
                 .andExpect(jsonPath("$.message").value(containsString("현재 지원하는 소셜 로그인 제공자 목록입니다")));
@@ -140,7 +140,7 @@ class SocialAuthControllerTest {
         // then
         result.andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().contentType("application/json;charset=UTF-8"))
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.userId").value(1))
                 .andExpect(jsonPath("$.email").value(TEST_EMAIL))
@@ -179,7 +179,7 @@ class SocialAuthControllerTest {
         // then
         result.andDo(print())
                 .andExpect(status().isBadRequest())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().contentType("application/json;charset=UTF-8"))
                 .andExpect(jsonPath("$.message").value("이미 존재하는 사용자입니다."));
     }
 }

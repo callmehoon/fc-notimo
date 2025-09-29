@@ -24,7 +24,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
-import org.springframework.web.filter.CharacterEncodingFilter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -61,8 +60,8 @@ class UserControllerTest {
 
     @BeforeEach
     void setUp() {
+        // SecurityConfig에서 전역 CharacterEncodingFilter가 적용되므로 별도 설정 불필요
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-                .addFilter(new CharacterEncodingFilter("UTF-8", true))
                 .build();
         try {
             redisTemplate.getConnectionFactory().getConnection().flushAll();
@@ -210,7 +209,7 @@ class UserControllerTest {
             mockMvc.perform(get("/users/profile")
                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
-                    .andExpect(content().contentType("application/json;charset=UTF-8"))
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                     .andExpect(jsonPath("$.userId").value(testUser.getUserId()))
                     .andExpect(jsonPath("$.userName").value("테스트사용자"))
                     .andExpect(jsonPath("$.userEmail").value("test@example.com"))
@@ -238,7 +237,7 @@ class UserControllerTest {
             mockMvc.perform(get("/users/profile")
                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
-                    .andExpect(content().contentType("application/json;charset=UTF-8"))
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                     .andExpect(jsonPath("$.userId").value(testUser.getUserId()))
                     .andExpect(jsonPath("$.userName").value("소셜사용자"))
                     .andExpect(jsonPath("$.userEmail").value("social@example.com"))
@@ -273,7 +272,7 @@ class UserControllerTest {
             mockMvc.perform(get("/users/profile")
                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
-                    .andExpect(content().contentType("application/json;charset=UTF-8"))
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                     .andExpect(jsonPath("$.userId").value(testUser.getUserId()))
                     .andExpect(jsonPath("$.userName").value("혼합사용자"))
                     .andExpect(jsonPath("$.userEmail").value("mixed@example.com"))
