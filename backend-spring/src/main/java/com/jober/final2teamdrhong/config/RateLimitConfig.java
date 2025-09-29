@@ -28,7 +28,7 @@ public class RateLimitConfig {
         public static final int SIGNUP_WINDOW_DURATION_MINUTES = 60;
 
         // 로그인 시도 제한 기본값
-        public static final int LOGIN_REQUESTS_PER_WINDOW = 5;
+        public static final int LOGIN_REQUESTS_PER_WINDOW = 15;
         public static final int LOGIN_WINDOW_DURATION_MINUTES = 15;
 
         // 토큰 갱신 제한 기본값
