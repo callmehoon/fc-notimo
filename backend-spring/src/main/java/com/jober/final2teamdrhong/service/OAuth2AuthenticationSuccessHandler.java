@@ -79,8 +79,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 throw new IllegalStateException("사용자 정보가 불완전합니다.");
             }
 
-            // 사용자 정보 조회 (이메일을 위해)
-            User user = userRepository.findById(userId)
+            // 사용자 정보 조회 (UserAuth와 함께 조회하여 LazyInitializationException 방지)
+            User user = userRepository.findByIdWithAuth(userId)
                     .orElseThrow(() -> new IllegalStateException("사용자를 찾을 수 없습니다."));
 
             // 자동 통합 여부 확인 및 로깅
