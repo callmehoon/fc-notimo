@@ -88,58 +88,88 @@ jobs:
           script: |
             echo "🚀 개발 환경 배포 시작..."
             
-            echo "🔧 Git LFS 설치 중..."
+            # --- 기본 패키지 설치 ---
             sudo yum install git-lfs -y
 
-            # 프로젝트 디렉토리로 이동 및 코드 업데이트
+            # --- 프로젝트 코드 업데이트 ---
             cd /home/ec2-user/Final-2team-DrHong
             git fetch origin
             git reset --hard origin/dev
             echo "📦 Git LFS 파일들 다운로드 중..."
             git lfs pull
 
-            # .env 파일 확인 및 생성
+            # --- .env 파일 생성 ---
             if [ ! -f ".env" ]; then
               [ -f ".env.example" ] && cp .env.example .env || echo "⚠️ .env.example 없음"
             fi
 
-            # --- 리버스 프록시 설정 ---
-            echo "🔌 리버스 프록시 설정 중..."
-            sudo yum install -y nginx
-            sudo tee /etc/nginx/conf.d/proxy.conf > /dev/null <<'EOF'
+            # --- HTTPS (SSL) 및 리버스 프록시 설정 ---
+            echo "🔌 HTTPS 및 리버스 프록시 설정 중..."
+            sudo yum install -y nginx certbot python3-certbot-nginx
+            
+            sudo systemctl stop nginx
+            sudo certbot certonly --standalone --non-interactive --agree-tos -m ${{ secrets.ADMIN_EMAIL }} -d notimo.kro.kr -d dev.notimo.kro.kr || echo "Certbot 인증서 발급/갱신 실패"
+            
+            # Nginx 리버스 프록시 설정
+            NGINX_CONF='
             server {
-                listen 80;
-                server_name notimo.kro.kr;
-                location / {
-                    proxy_pass http://localhost:3002;
-                    proxy_set_header Host $host;
-                    proxy_set_header X-Real-IP $remote_addr;
-                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                    proxy_set_header X-Forwarded-Proto $scheme;
-                }
+                listen 80; server_name notimo.kro.kr dev.notimo.kro.kr;
+                location /.well-known/acme-challenge/ { root /var/www/html; }
+                location / { return 301 https://$host$request_uri; }
             }
             server {
-                listen 80;
                 server_name dev.notimo.kro.kr;
-                location / {
-                    proxy_pass http://localhost:3001;
-                    proxy_set_header Host $host;
-                    proxy_set_header X-Real-IP $remote_addr;
-                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                    proxy_set_header X-Forwarded-Proto $scheme;
-                }
+                location /ai/ { proxy_pass http://localhost:8001/; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; }
+                location /api/ { proxy_pass http://localhost:8081/api/; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; }
+                location / { proxy_pass http://localhost:3001; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; }
+                listen 443 ssl;
+                ssl_certificate /etc/letsencrypt/live/notimo.kro.kr/fullchain.pem;
+                ssl_certificate_key /etc/letsencrypt/live/notimo.kro.kr/privkey.pem;
+                include /etc/letsencrypt/options-ssl-nginx.conf;
+                ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
             }
-            EOF
+            server {
+                server_name notimo.kro.kr;
+                location /ai/ { proxy_pass http://localhost:8002/; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; }
+                location /api/ { proxy_pass http://localhost:8082/api/; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; }
+                location / { proxy_pass http://localhost:3002; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; }
+                listen 443 ssl;
+                ssl_certificate /etc/letsencrypt/live/notimo.kro.kr/fullchain.pem;
+                ssl_certificate_key /etc/letsencrypt/live/notimo.kro.kr/privkey.pem;
+                include /etc/letsencrypt/options-ssl-nginx.conf;
+                ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+            }'
+            echo "$NGINX_CONF" | sudo tee /etc/nginx/conf.d/proxy.conf > /dev/null
+            
+            # SSL 파라미터 생성
+            if [ ! -f "/etc/letsencrypt/ssl-dhparams.pem" ]; then
+              sudo openssl dhparam -out /etc/letsencrypt/ssl-dhparams.pem 2048
+            fi
+            if [ ! -f "/etc/letsencrypt/options-ssl-nginx.conf" ]; then
+              SSL_OPTIONS_CONF='
+              ssl_session_cache shared:le_nginx_SSL:10m;
+              ssl_session_timeout 1440m;
+              ssl_session_tickets off;
+              ssl_protocols TLSv1.2 TLSv1.3;
+              ssl_prefer_server_ciphers off;
+              ssl_ciphers "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384";'
+              echo "$SSL_OPTIONS_CONF" | sudo tee /etc/letsencrypt/options-ssl-nginx.conf > /dev/null
+            fi
+            
             sudo systemctl enable --now nginx || sudo systemctl restart nginx
 
-            # 개발 환경 컨테이너만 정리 및 배포
+            # --- 개발 환경 컨테이너 배포 ---
             echo "🧹 기존 개발 환경 컨테이너 정리 중..."
             docker-compose -f docker-compose-dev.yml down --remove-orphans --volumes || true
             echo "🔨 개발 환경 빌드 및 배포 중..."
             docker-compose -f docker-compose-dev.yml up --build -d
 
+            # --- 사용하지 않는 도커 이미지 정리 ---
+            echo "🧹 사용하지 않는 도커 이미지 정리 중..."
+            docker image prune -f
+
             echo "✅ 개발 환경 배포 완료!"
-            echo "🌐 접속 URL: http://dev.notimo.kro.kr"
+            echo "🌐 접속 URL: https://dev.notimo.kro.kr"
             docker-compose -f docker-compose-dev.yml ps
 
   # -------------------------------------------
@@ -163,17 +193,17 @@ jobs:
           script: |
             echo "🚀 운영 환경 배포 시작..."
 
-            echo "🔧 Git LFS 설치 중..."
+            # --- 기본 패키지 설치 ---
             sudo yum install git-lfs -y
 
-            # 프로젝트 디렉토리로 이동 및 코드 업데이트
+            # --- 프로젝트 코드 업데이트 ---
             cd /home/ec2-user/Final-2team-DrHong
             git fetch origin
             git reset --hard origin/main
             echo "📦 Git LFS 파일들 다운로드 중..."
             git lfs pull
 
-            # .env 파일들 확인 및 생성
+            # --- .env 파일 생성 ---
             if [ ! -f ".env" ]; then
               [ -f ".env.example" ] && cp .env.example .env || echo "⚠️ .env.example 없음"
             fi
@@ -181,41 +211,71 @@ jobs:
               touch frontend/.env.prod
             fi
 
-            # --- 리버스 프록시 설정 ---
-            echo "🔌 리버스 프록시 설정 중..."
-            sudo yum install -y nginx
-            sudo tee /etc/nginx/conf.d/proxy.conf > /dev/null <<'EOF'
+            # --- HTTPS (SSL) 및 리버스 프록시 설정 ---
+            echo "🔌 HTTPS 및 리버스 프록시 설정 중..."
+            sudo yum install -y nginx certbot python3-certbot-nginx
+            
+            sudo systemctl stop nginx
+            sudo certbot certonly --standalone --non-interactive --agree-tos -m ${{ secrets.ADMIN_EMAIL }} -d notimo.kro.kr -d dev.notimo.kro.kr || echo "Certbot 인증서 발급/갱신 실패"
+            
+            # Nginx 리버스 프록시 설정
+            NGINX_CONF='
             server {
-                listen 80;
-                server_name notimo.kro.kr;
-                location / {
-                    proxy_pass http://localhost:3002;
-                    proxy_set_header Host $host;
-                    proxy_set_header X-Real-IP $remote_addr;
-                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                    proxy_set_header X-Forwarded-Proto $scheme;
-                }
+                listen 80; server_name notimo.kro.kr dev.notimo.kro.kr;
+                location /.well-known/acme-challenge/ { root /var/www/html; }
+                location / { return 301 https://$host$request_uri; }
             }
             server {
-                listen 80;
                 server_name dev.notimo.kro.kr;
-                location / {
-                    proxy_pass http://localhost:3001;
-                    proxy_set_header Host $host;
-                    proxy_set_header X-Real-IP $remote_addr;
-                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                    proxy_set_header X-Forwarded-Proto $scheme;
-                }
+                location /ai/ { proxy_pass http://localhost:8001/; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; }
+                location /api/ { proxy_pass http://localhost:8081/api/; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; }
+                location / { proxy_pass http://localhost:3001; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; }
+                listen 443 ssl;
+                ssl_certificate /etc/letsencrypt/live/notimo.kro.kr/fullchain.pem;
+                ssl_certificate_key /etc/letsencrypt/live/notimo.kro.kr/privkey.pem;
+                include /etc/letsencrypt/options-ssl-nginx.conf;
+                ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
             }
-            EOF
+            server {
+                server_name notimo.kro.kr;
+                location /ai/ { proxy_pass http://localhost:8002/; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; }
+                location /api/ { proxy_pass http://localhost:8082/api/; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; }
+                location / { proxy_pass http://localhost:3002; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; }
+                listen 443 ssl;
+                ssl_certificate /etc/letsencrypt/live/notimo.kro.kr/fullchain.pem;
+                ssl_certificate_key /etc/letsencrypt/live/notimo.kro.kr/privkey.pem;
+                include /etc/letsencrypt/options-ssl-nginx.conf;
+                ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+            }'
+            echo "$NGINX_CONF" | sudo tee /etc/nginx/conf.d/proxy.conf > /dev/null
+            
+            # SSL 파라미터 생성
+            if [ ! -f "/etc/letsencrypt/ssl-dhparams.pem" ]; then
+              sudo openssl dhparam -out /etc/letsencrypt/ssl-dhparams.pem 2048
+            fi
+            if [ ! -f "/etc/letsencrypt/options-ssl-nginx.conf" ]; then
+              SSL_OPTIONS_CONF='
+              ssl_session_cache shared:le_nginx_SSL:10m;
+              ssl_session_timeout 1440m;
+              ssl_session_tickets off;
+              ssl_protocols TLSv1.2 TLSv1.3;
+              ssl_prefer_server_ciphers off;
+              ssl_ciphers "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384";'
+              echo "$SSL_OPTIONS_CONF" | sudo tee /etc/letsencrypt/options-ssl-nginx.conf > /dev/null
+            fi
+            
             sudo systemctl enable --now nginx || sudo systemctl restart nginx
 
-            # 운영 환경 컨테이너만 정리 및 배포
+            # --- 운영 환경 컨테이너 배포 ---
             echo "🧹 기존 운영 환경 컨테이너 정리 중..."
             docker-compose -f docker-compose-prod.yml down --remove-orphans --volumes || true
             echo "🔨 운영 환경 빌드 및 배포 중..."
             docker-compose -f docker-compose-prod.yml up --build -d
 
+            # --- 사용하지 않는 도커 이미지 정리 ---
+            echo "🧹 사용하지 않는 도커 이미지 정리 중..."
+            docker image prune -f
+
             echo "✅ 운영 환경 배포 완료!"
-            echo "🌐 접속 URL: http://notimo.kro.kr"
+            echo "🌐 접속 URL: https://notimo.kro.kr"
             docker-compose -f docker-compose-prod.yml ps

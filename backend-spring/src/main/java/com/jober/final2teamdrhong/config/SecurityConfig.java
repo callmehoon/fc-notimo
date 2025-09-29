@@ -142,15 +142,15 @@ public class SecurityConfig implements WebMvcConfigurer {
                             : buildProductionCSP();
                         response.setHeader("Content-Security-Policy", cspPolicy);
 
-                        // 추가 보안 헤더들
-                        // Cross-Origin-Embedder-Policy
-                        response.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+                        // 추가 보안 헤더들 (Swagger 호환을 위해 조정)
+                        // Cross-Origin-Embedder-Policy - Swagger 사용 시 문제가 될 수 있어 제외
+                        // response.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
 
-                        // Cross-Origin-Opener-Policy
-                        response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+                        // Cross-Origin-Opener-Policy - 완화
+                        response.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
 
-                        // Cross-Origin-Resource-Policy
-                        response.setHeader("Cross-Origin-Resource-Policy", "same-origin");
+                        // Cross-Origin-Resource-Policy - 완화
+                        response.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
 
                         // Expect-CT (Certificate Transparency)
                         if (!isDevelopment) {
@@ -280,18 +280,18 @@ public class SecurityConfig implements WebMvcConfigurer {
 
         return String.join("; ",
             "default-src 'self'",
-            "script-src 'self' 'strict-dynamic'", // nonce 기반 스크립트 허용
-            "style-src 'self' 'unsafe-inline'", // CSS는 해시 기반으로 제한
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Swagger 지원을 위해 완화
+            "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: https:",
             "font-src 'self'",
-            "connect-src 'self' " + allowedDomains, // API 호출 허용 도메인
+            "connect-src 'self' " + allowedDomains,
             "media-src 'self'",
             "object-src 'none'",
             "frame-src 'none'",
             "base-uri 'self'",
             "form-action 'self'",
-            "upgrade-insecure-requests", // HTTP를 HTTPS로 업그레이드
-            "block-all-mixed-content" // 혼합 콘텐츠 차단
+            "upgrade-insecure-requests",
+            "block-all-mixed-content"
         );
     }
 }
