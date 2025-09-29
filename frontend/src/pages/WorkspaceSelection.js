@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Container, IconButton, CircularProgress, Alert } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import CommonButton from '../components/button/CommonButton';
 import WorkspaceList from '../components/layout/WorkspaceList';
 import workspaceService from '../services/workspaceService';
@@ -10,11 +10,60 @@ import logo from "../assets/logo.png";
 
 const WorkspaceSelection = () => {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [workspaces, setWorkspaces] = useState([]);
     const [selectedWorkspace, setSelectedWorkspace] = useState(null);
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    // 소셜 로그인 성공 처리
+    useEffect(() => {
+        const success = searchParams.get('success');
+        const accessToken = searchParams.get('accessToken');
+        const refreshToken = searchParams.get('refreshToken');
+        const isNewUser = searchParams.get('isNewUser');
+        const accountIntegrated = searchParams.get('accountIntegrated');
+        const provider = searchParams.get('provider');
+
+        // 소셜 로그인 관련 파라미터가 있으면 처리
+        if (success || accountIntegrated) {
+            // sessionStorage로 중복 처리 방지
+            const socialLoginKey = `social_login_${Date.now()}`;
+            const processed = sessionStorage.getItem('socialLoginProcessed');
+
+            if (processed) {
+                navigate('/workspace', { replace: true });
+                return;
+            }
+
+            sessionStorage.setItem('socialLoginProcessed', socialLoginKey);
+
+            // URL에서 모든 파라미터 제거
+            navigate('/workspace', { replace: true });
+
+            if (success === 'true' && accessToken && refreshToken && isNewUser === 'false') {
+                // 기존 사용자 로그인 성공 - 토큰 정리 후 저장
+                const cleanAccessToken = accessToken.split('&')[0].trim();
+                const cleanRefreshToken = refreshToken.split('&')[0].trim();
+                localStorage.setItem('accessToken', cleanAccessToken);
+                localStorage.setItem('refreshToken', cleanRefreshToken);
+
+                if (accountIntegrated === 'true') {
+                    setTimeout(() => {
+                        alert(`${provider} 계정이 기존 계정과 자동으로 연동되었습니다.`);
+                        // 메시지 표시 후 sessionStorage 정리
+                        sessionStorage.removeItem('socialLoginProcessed');
+                    }, 100);
+                } else {
+                    // 메시지가 없는 경우에도 sessionStorage 정리
+                    sessionStorage.removeItem('socialLoginProcessed');
+                }
+            } else {
+                sessionStorage.removeItem('socialLoginProcessed');
+            }
+        }
+    }, [searchParams, navigate]);
 
     useEffect(() => {
         const fetchWorkspaces = async () => {
