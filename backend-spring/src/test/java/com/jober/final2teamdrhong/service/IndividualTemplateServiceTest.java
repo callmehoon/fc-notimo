@@ -526,7 +526,6 @@ class IndividualTemplateServiceTest {
             // then
             verify(workspaceValidator).validateAndGetWorkspace(workspaceId, userId);
             verify(workspaceValidator).validateTemplateOwnership(workspaceId, id);
-            verify(favoriteRepository).softDeleteByIndividualTemplate(templateMock);
             verify(templateMock).softDelete();
             verify(individualTemplateRepo).save(templateMock);
         }

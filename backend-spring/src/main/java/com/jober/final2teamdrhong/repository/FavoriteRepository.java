@@ -15,6 +15,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -83,11 +84,7 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Integer>, Jp
                 .orElseThrow(() -> new IllegalArgumentException("해당 즐겨찾기를 찾을 수 없거나, 권한이 없습니다."));
     }
 
-    @Modifying
-    @Query("UPDATE Favorite f SET f.isDeleted = true WHERE f.individualTemplate = :template")
-    void softDeleteByIndividualTemplate(@Param("template") IndividualTemplate template);
+    List<Favorite> findAllByIndividualTemplate_individualTemplateId(Integer individualTemplateId);
 
-    @Modifying
-    @Query("UPDATE Favorite f SET f.isDeleted = true WHERE f.publicTemplate = :template")
-    void softDeleteByPublicTemplate(@Param("template") PublicTemplate template);
+    List<Favorite> findAllByPublicTemplate_publicTemplateId(Integer publicTemplateId);
 }

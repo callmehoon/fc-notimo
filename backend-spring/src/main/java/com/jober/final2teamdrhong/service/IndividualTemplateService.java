@@ -4,10 +4,7 @@ import com.jober.final2teamdrhong.dto.individualtemplate.HistoryResponse;
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplatePageableRequest;
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateResponse;
 import com.jober.final2teamdrhong.dto.individualtemplate.IndividualTemplateUpdateRequest;
-import com.jober.final2teamdrhong.entity.IndividualTemplate;
-import com.jober.final2teamdrhong.entity.PublicTemplate;
-import com.jober.final2teamdrhong.entity.TemplateModifiedHistory;
-import com.jober.final2teamdrhong.entity.Workspace;
+import com.jober.final2teamdrhong.entity.*;
 import com.jober.final2teamdrhong.repository.FavoriteRepository;
 import com.jober.final2teamdrhong.repository.IndividualTemplateRepository;
 import com.jober.final2teamdrhong.repository.PublicTemplateRepository;
@@ -218,8 +215,10 @@ public class IndividualTemplateService {
 
         templateModifiedHistoryRepository.bulkSoftDeleteByTemplate(individualTemplate);
 
-        // 개인 템플릿 id 참조하는 모든 Favorite 테이블 데이터 soft-delete
-        favoriteRepository.softDeleteByIndividualTemplate(individualTemplate);
+        List<Favorite> favorites = favoriteRepository.findAllByIndividualTemplate_individualTemplateId(individualTemplateId);
+
+        individualTemplate.deleteFavorites();
+        favoriteRepository.deleteAll(favorites);
 
         individualTemplate.softDelete();
         individualTemplateRepository.save(individualTemplate);

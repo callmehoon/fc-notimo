@@ -3,6 +3,7 @@ package com.jober.final2teamdrhong.service;
 import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplateCreateRequest;
 import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplatePageableRequest;
 import com.jober.final2teamdrhong.dto.publicTemplate.PublicTemplateResponse;
+import com.jober.final2teamdrhong.entity.Favorite;
 import com.jober.final2teamdrhong.entity.IndividualTemplate;
 import com.jober.final2teamdrhong.entity.PublicTemplate;
 import com.jober.final2teamdrhong.repository.FavoriteRepository;
@@ -18,6 +19,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -78,8 +81,10 @@ public class PublicTemplateService {
     public void deletePublicTemplate(Integer publicTemplateId) {
         PublicTemplate publicTemplate = publicTemplateRepository.findByIdOrThrow(publicTemplateId);
 
-        // 공용 템플릿 id 참조하는 모든 Favorite 테이블 데이터 soft-delete
-        favoriteRepository.softDeleteByPublicTemplate(publicTemplate);
+        List<Favorite> favorites = favoriteRepository.findAllByPublicTemplate_publicTemplateId(publicTemplateId);
+
+        publicTemplate.deleteFavorites();
+        favoriteRepository.deleteAll(favorites);
 
         publicTemplate.softDelete();
     }

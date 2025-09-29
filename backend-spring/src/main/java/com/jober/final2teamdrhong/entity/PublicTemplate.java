@@ -8,6 +8,9 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.SQLRestriction;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity(name = "public_template")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -28,6 +31,9 @@ public class PublicTemplate extends BaseEntity {
 
     @Column(name = "button_title", length = 50)
     private String buttonTitle;
+
+    @OneToMany(mappedBy = "publicTemplate", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Favorite> favorites;
 
     @Builder.Default
     @Column(name = "share_count", nullable = false)
@@ -51,5 +57,9 @@ public class PublicTemplate extends BaseEntity {
      */
     public void increaseShareCount() {
         this.shareCount++;
+    }
+
+    public void deleteFavorites() {
+        this.favorites = new ArrayList<>();
     }
 }
