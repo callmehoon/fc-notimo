@@ -13,10 +13,12 @@ import com.jober.final2teamdrhong.dto.userSignup.UserSignupRequest;
 import com.jober.final2teamdrhong.exception.ErrorResponse;
 import com.jober.final2teamdrhong.service.AuthService;
 import com.jober.final2teamdrhong.service.EmailService;
+import com.jober.final2teamdrhong.service.EmailPurpose;
 import com.jober.final2teamdrhong.service.RateLimitService;
 import com.jober.final2teamdrhong.service.UserService;
 import com.jober.final2teamdrhong.util.ClientIpUtil;
 import com.jober.final2teamdrhong.util.LogMaskingUtil;
+import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -34,7 +36,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+
 import com.jober.final2teamdrhong.service.AuthService.AuthMethodsResponse;
 
 @RestController
@@ -142,7 +144,7 @@ public class AuthController {
                     content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = ErrorResponse.class)))
     })
-    @PostMapping(value = "/login", produces = "application/json;charset=UTF-8")
+    @PostMapping(value = "/login")
     public ResponseEntity<UserLoginResponse> login(
             @Parameter(description = "로그인 요청 정보 (이메일, 비밀번호)", required = true)
             @RequestBody @Valid UserLoginRequest userLoginRequest,
@@ -218,6 +220,35 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "비밀번호 재설정용 인증 코드 발송", description = "비밀번호 재설정을 위한 6자리 인증 코드를 이메일로 발송합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "인증 코드 발송 성공",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = EmailVerificationResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청: 이메일 형식 오류 등",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "429", description = "Rate Limit 초과",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @PostMapping("/send-password-reset-code")
+    public ResponseEntity<EmailVerificationResponse> sendPasswordResetCode(
+            @Parameter(description = "비밀번호 재설정 인증 코드를 받을 이메일 주소", required = true)
+            @Valid @RequestBody EmailRequest emailRequest,
+            HttpServletRequest request) {
+
+        String clientIp = ClientIpUtil.getClientIpAddress(request, isDevelopment);
+
+        // 비밀번호 재설정용 이메일 발송
+        emailService.sendVerificationCodeWithRateLimit(emailRequest.email(), clientIp, EmailPurpose.PASSWORD_RESET);
+
+        log.info("비밀번호 재설정 인증 코드 발송 성공: ip={}, email={}", clientIp, emailRequest.email());
+        return ResponseEntity.ok(
+            EmailVerificationResponse.success("비밀번호 재설정을 위한 인증 코드가 발송되었습니다.")
+        );
+    }
+
     /**
      * 비밀번호 재설정 (이메일 인증 후)
      * 비밀번호를 잊어버린 사용자가 이메일로 받은 인증 코드를 통해 비밀번호를 재설정합니다.
@@ -275,13 +306,47 @@ public class AuthController {
     // 계정 통합 관련 API 엔드포인트들
     // ====================================
 
+    @Operation(summary = "계정 통합용 인증 코드 발송", description = "계정 통합을 위한 6자리 인증 코드를 이메일로 발송합니다.", security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "인증 코드 발송 성공",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = EmailVerificationResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청: 이메일 형식 오류 등",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "인증 실패 (로그인 필요)",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "429", description = "Rate Limit 초과",
+                    content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @PostMapping("/send-account-merge-code")
+    public ResponseEntity<EmailVerificationResponse> sendAccountMergeCode(
+            @Parameter(description = "계정 통합 인증 코드를 받을 이메일 주소", required = true)
+            @Valid @RequestBody EmailRequest emailRequest,
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal JwtClaims jwtClaims,
+            HttpServletRequest request) {
+
+        String clientIp = ClientIpUtil.getClientIpAddress(request, isDevelopment);
+
+        // 계정 통합용 이메일 발송
+        emailService.sendVerificationCodeWithRateLimit(emailRequest.email(), clientIp, EmailPurpose.ACCOUNT_MERGE);
+
+        log.info("계정 통합 인증 코드 발송 성공: ip={}, email={}, user={}", clientIp, emailRequest.email(), jwtClaims.getEmail());
+        return ResponseEntity.ok(
+            EmailVerificationResponse.success("계정 통합을 위한 인증 코드가 발송되었습니다.")
+        );
+    }
+
     /**
      * 소셜 로그인 사용자가 로컬 인증을 추가 (계정 통합)
      * 마이페이지에서 소셜 로그인 사용자가 이메일 인증 후 비밀번호를 설정하여
      * 소셜 로그인과 로컬 로그인을 모두 사용할 수 있도록 합니다.
      *
      * @param request 로컬 인증 추가 요청 정보 (이메일, 인증코드, 비밀번호)
-     * @param userDetails 현재 인증된 사용자 정보
+     * @param jwtClaims 현재 인증된 사용자 정보
      * @param httpRequest HTTP 요청 (클라이언트 IP 추출용)
      * @return 성공 응답
      */
@@ -321,7 +386,7 @@ public class AuthController {
             @Valid @RequestBody AddLocalAuthRequest request,
 
             @Parameter(hidden = true)
-            @AuthenticationPrincipal com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims jwtClaims,
+            @AuthenticationPrincipal JwtClaims jwtClaims,
 
             @Parameter(hidden = true)
             HttpServletRequest httpRequest) {
@@ -348,7 +413,7 @@ public class AuthController {
      * 현재 사용자가 어떤 인증 방법들(로컬, 구글 등)을 연결했는지 조회합니다.
      * 마이페이지에서 계정 통합 상태를 확인할 때 사용됩니다.
      *
-     * @param userDetails 현재 인증된 사용자 정보
+     * @param jwtClaims 현재 인증된 사용자 정보
      * @return 연결된 인증 방법 목록
      */
     @Operation(
@@ -389,7 +454,7 @@ public class AuthController {
     @GetMapping("/connected-methods")
     public ResponseEntity<AuthMethodsResponse> getConnectedAuthMethods(
             @Parameter(hidden = true)
-            @AuthenticationPrincipal com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims jwtClaims) {
+            @AuthenticationPrincipal JwtClaims jwtClaims) {
 
         log.info("연결된 인증 방법 조회: user={}", jwtClaims.getEmail());
 

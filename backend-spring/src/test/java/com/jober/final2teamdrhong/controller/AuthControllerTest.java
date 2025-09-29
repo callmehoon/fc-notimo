@@ -25,7 +25,6 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
-import org.springframework.web.filter.CharacterEncodingFilter;
 
 import java.util.Set;
 
@@ -77,13 +76,8 @@ class AuthControllerTest {
 
     @BeforeEach
     void setUp() {
-        // 1. UTF-8 인코딩 필터를 적용한 커스텀 MockMvc 설정
-        CharacterEncodingFilter characterEncodingFilter = new CharacterEncodingFilter();
-        characterEncodingFilter.setEncoding("UTF-8");
-        characterEncodingFilter.setForceEncoding(true);
-
+        // SecurityConfig에서 전역 CharacterEncodingFilter가 적용되므로 별도 설정 불필요
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-                .addFilter(characterEncodingFilter)
                 .build();
 
         // 2. 기존 데이터 완전 삭제 및 시퀀스 리셋
@@ -212,7 +206,6 @@ class AuthControllerTest {
         ResultActions resultActions = mockMvc.perform(
                 post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .characterEncoding("UTF-8")
                         .content(requestBody)
         );
 
@@ -237,7 +230,6 @@ class AuthControllerTest {
         ResultActions resultActions = mockMvc.perform(
                 post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .characterEncoding("UTF-8")
                         .content(requestBody)
         );
 
@@ -270,6 +262,29 @@ class AuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("인증 코드가 발송되었습니다."));
+    }
+
+    @Test
+    @DisplayName("비밀번호 재설정용 인증 코드 발송 성공 테스트")
+    @WithAnonymousUser
+    void sendPasswordResetCode_Success_Test() throws Exception {
+        // given
+        EmailRequest emailRequest = new EmailRequest("reset@example.com");
+        String requestBody = objectMapper.writeValueAsString(emailRequest);
+
+        // when
+        ResultActions resultActions = mockMvc.perform(
+                post("/auth/send-password-reset-code")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody)
+        );
+
+        // then
+        resultActions
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("비밀번호 재설정을 위한 인증 코드가 발송되었습니다."));
     }
 
     // ==================== 헬퍼 메서드 ====================

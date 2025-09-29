@@ -182,7 +182,7 @@ class JwtAuthenticationFilterTest {
             // then
             verify(response).setStatus(HttpStatus.UNAUTHORIZED.value());
             verify(response).setContentType(MediaType.APPLICATION_JSON_VALUE);
-            verify(response).setCharacterEncoding("UTF-8");
+            // CharacterEncodingFilter가 전역적으로 UTF-8을 처리하므로 제거
             verify(filterChain, never()).doFilter(request, response);
         }
 

@@ -3,6 +3,7 @@ package com.jober.final2teamdrhong.controller;
 import com.jober.final2teamdrhong.dto.changePassword.PasswordResetRequest;
 import com.jober.final2teamdrhong.dto.jwtClaims.JwtClaims;
 import com.jober.final2teamdrhong.dto.user.DeleteUserRequest;
+import com.jober.final2teamdrhong.dto.user.UserProfileResponse;
 import com.jober.final2teamdrhong.service.UserService;
 import com.jober.final2teamdrhong.util.ClientIpUtil;
 import io.swagger.v3.oas.annotations.Operation;
@@ -129,5 +130,48 @@ public class UserController {
         return ResponseEntity.ok("회원 탈퇴가 완료되었습니다. 그동안 이용해주셔서 감사합니다.");
     }
 
-    // TODO: 추후 사용자 CRUD API 구현
+    /**
+     * 사용자 프로필 조회
+     * 로그인한 사용자의 프로필 정보를 조회합니다. (읽기 전용)
+     * 마이페이지에서 현재 계정 정보 확인용으로 사용됩니다.
+     *
+     * @param jwtClaims 현재 인증된 사용자 정보
+     * @return 사용자 프로필 정보
+     */
+    @Operation(
+        summary = "사용자 프로필 조회",
+        description = "로그인한 사용자의 프로필 정보를 조회합니다. " +
+                     "마이페이지에서 현재 계정 정보 확인용으로 사용되며 읽기 전용입니다.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "프로필 조회 성공"),
+        @ApiResponse(responseCode = "401", description = "인증 실패 (로그인 필요)"),
+        @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음"),
+        @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
+    @GetMapping("/profile")
+    public ResponseEntity<UserProfileResponse> getUserProfile(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal JwtClaims jwtClaims) {
+
+        // 1. 인증 정보 확인
+        if (jwtClaims == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        log.info("사용자 프로필 조회 요청: userId={}", jwtClaims.getUserId());
+
+        // 2. 사용자 ID 추출
+        Integer userId = jwtClaims.getUserId();
+
+        // 2. 프로필 정보 조회
+        UserProfileResponse userProfile = userService.getUserProfile(userId);
+
+        log.info("사용자 프로필 조회 완료: userId={}", userId);
+
+        return ResponseEntity.ok(userProfile);
+    }
+
+
 }

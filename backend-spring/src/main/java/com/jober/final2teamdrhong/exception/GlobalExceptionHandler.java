@@ -51,12 +51,35 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
     }
 
-    // 4-1. Spring Security BadCredentialsException 처리 (로그인 실패)
+    // 4-1. Spring Security BadCredentialsException 처리 (컨트롤러에서 발생하는 로그인 실패)
+    // SecurityConfig의 authenticationEntryPoint는 Spring Security 필터에서만 동작하므로
+    // 컨트롤러 레벨에서는 GlobalExceptionHandler가 처리해야 함
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleBadCredentialsException(BadCredentialsException ex) {
-        ErrorResponse response = new ErrorResponse(ex.getMessage());
+        // ex.getMessage()를 UTF-8로 재인코딩하여 한글 깨짐 문제 해결
+        String message = convertToUtf8(ex.getMessage());
+        ErrorResponse response = new ErrorResponse(message);
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    }
+
+    /**
+     * 잘못된 인코딩으로 저장된 메시지를 UTF-8로 변환하는 유틸리티 메서드
+     * ISO-8859-1로 잘못 인코딩된 한글을 UTF-8로 복원
+     */
+    private String convertToUtf8(String message) {
+        if (message == null) {
+            return null;
+        }
+
+        try {
+            // ISO-8859-1로 인코딩된 바이트를 UTF-8로 재해석
+            byte[] bytes = message.getBytes("ISO-8859-1");
+            return new String(bytes, "UTF-8");
+        } catch (Exception e) {
+            // 변환 실패 시 원본 메시지 반환
+            return message;
+        }
     }
     
     // 5. 중복 리소스 예외 처리 (회원가입 시 이메일 중복)
