@@ -36,7 +36,7 @@ services:
     env_file:
       - .env
     volumes:
-      - ./backend-ai/app/models:/app/models:ro
+      - ./backend-ai/app/models:/app/models
 
   frontend-dev:
     build:
