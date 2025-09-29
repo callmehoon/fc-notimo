@@ -51,8 +51,8 @@ services:
       dockerfile: frontend/Dockerfile
       args:
         - NGINX_CONFIG=nginx-prod.conf
-        - REACT_APP_API_BASE_URL=http://notimo.kro.kr/api
-        - REACT_APP_AI_API_BASE_URL=http://notimo.kro.kr/ai
+        - REACT_APP_API_BASE_URL=https://notimo.kro.kr/api
+        - REACT_APP_AI_API_BASE_URL=https://notimo.kro.kr/ai
     container_name: frontend
     ports:
       - "3002:80"

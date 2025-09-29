@@ -139,7 +139,7 @@ jobs:
             docker-compose -f docker-compose-dev.yml up --build -d
 
             echo "✅ 개발 환경 배포 완료!"
-            echo "🌐 접속 URL: http://dev.notimo.kro.kr"
+            echo "🌐 접속 URL: https://dev.notimo.kro.kr"
             docker-compose -f docker-compose-dev.yml ps
 
   # -------------------------------------------
@@ -217,5 +217,5 @@ jobs:
             docker-compose -f docker-compose-prod.yml up --build -d
 
             echo "✅ 운영 환경 배포 완료!"
-            echo "🌐 접속 URL: http://notimo.kro.kr"
+            echo "🌐 접속 URL: https://notimo.kro.kr"
             docker-compose -f docker-compose-prod.yml ps

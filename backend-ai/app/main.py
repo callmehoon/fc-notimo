@@ -28,7 +28,7 @@ app = FastAPI(lifespan=lifespan, root_path="/ai")
 # CORS 설정 - 로컬 개발 환경
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://dev.notimo.kro.kr", "http://notimo.kro.kr"],
+    allow_origins=["https://localhost:3000", "https://127.0.0.1:3000", "https://dev.notimo.kro.kr", "https://notimo.kro.kr"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
