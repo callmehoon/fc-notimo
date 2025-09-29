@@ -23,9 +23,9 @@ import java.util.function.Supplier;
  * 
  * 기능별 Rate Limiting 제공:
  * - 이메일 발송: IP당 5분간 3회
- * - 이메일 인증: 이메일당 10분간 5회  
+ * - 이메일 인증: 이메일당 10분간 5회
  * - 회원가입: IP당 1시간간 10회
- * - 로그인: IP당 15분간 5회 + 이메일당 15분간 3회 (이중 체크)
+ * - 로그인: IP당 15분간 15회 + 이메일당 15분간 10회 (이중 체크)
  * - 토큰 갱신: IP당 5분간 10회
  * 
  * Redis 사용 가능시 분산 환경 지원, 불가능시 인메모리 폴백 사용
@@ -184,13 +184,13 @@ public class RateLimitService {
     }
     
     /**
-     * 이메일별 로그인 버킷 설정 (더 엄격한 제한)
-     * 동일 계정에 대한 무차별 대입 공격 방지
+     * 이메일별 로그인 버킷 설정 (적절한 제한)
+     * 동일 계정에 대한 무차별 대입 공격 방지하면서도 사용자 편의성 고려
      */
     private BucketConfiguration createLoginByEmailBucketConfig() {
         return BucketConfiguration.builder()
                 .addLimit(Bandwidth.simple(
-                        3, // 이메일별로는 더 엄격하게 3회로 제한
+                        10, // 이메일별로 10회로 완화 (정상 사용자 배려)
                         Duration.ofMinutes(rateLimitConfig.getLogin().getWindowDurationMinutes())
                 ))
                 .build();
