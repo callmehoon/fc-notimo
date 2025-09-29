@@ -89,10 +89,22 @@ const SignUp = () => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormValues((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
+
+        if (name === 'phone') {
+            const onlyNums = value.replace(/[^0-9]/g, '');
+            if (onlyNums.length <= 11) {
+                let formatted = onlyNums;
+                if (onlyNums.length > 3 && onlyNums.length <= 7) {
+                    formatted = `${onlyNums.slice(0, 3)}-${onlyNums.slice(3)}`;
+                } else if (onlyNums.length > 7) {
+                    formatted = `${onlyNums.slice(0, 3)}-${onlyNums.slice(3, 7)}-${onlyNums.slice(7)}`;
+                }
+                setFormValues(prev => ({ ...prev, phone: formatted }));
+            }
+        } else {
+            setFormValues(prev => ({ ...prev, [name]: value }));
+        }
+
         if (errors[name]) {
             setErrors((prev) => ({
                 ...prev,

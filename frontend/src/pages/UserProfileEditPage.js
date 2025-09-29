@@ -33,7 +33,45 @@ export default function UserProfileEditPage() {
     const [integrationEmail, setIntegrationEmail] = useState('');
     const [verificationCode, setVerificationCode] = useState('');
     const [integrationPassword, setIntegrationPassword] = useState('');
-    const [integrationStep, setIntegrationStep] = useState(1);
+    const [isCodeSent, setIsCodeSent] = useState(false);
+
+    // 계정 통합 처리
+    const handleSendCode = async () => {
+        if (!integrationEmail) {
+            alert('이메일을 입력해주세요.');
+            return;
+        }
+        try {
+            await userService.sendAccountIntegrationCode(integrationEmail);
+            alert('인증 코드가 발송되었습니다.');
+            setIsCodeSent(true);
+        } catch (error) {
+            console.error('인증 코드 발송 실패:', error);
+            alert('인증 코드 발송에 실패했습니다.');
+        }
+    };
+
+    const handleCompleteIntegration = async () => {
+        if (!integrationPassword || !verificationCode) {
+            alert('인증코드와 비밀번호를 모두 입력해주세요.');
+            return;
+        }
+        try {
+            await userService.completeAccountIntegration(integrationEmail, verificationCode, integrationPassword);
+            alert('계정 통합이 완료되었습니다. 보안을 위해 재로그인합니다.');
+            localStorage.clear();
+            navigate('/login');
+        } catch (error) {
+            console.error('계정 통합 실패:', error);
+            alert(error.response?.data?.message || '계정 통합에 실패했습니다.');
+        }
+    };
+
+    // 비밀번호 변경 관련
+    const [showPasswordChange, setShowPasswordChange] = useState(false);
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmNewPassword, setConfirmNewPassword] = useState('');
 
     // 회원탈퇴 관련
     const [showDeleteAccount, setShowDeleteAccount] = useState(false);
@@ -43,6 +81,15 @@ export default function UserProfileEditPage() {
     useEffect(() => {
         fetchUserProfile();
     }, []);
+
+    // 로그인 상태 확인
+    useEffect(() => {
+        const accessToken = localStorage.getItem('accessToken');
+        if (!accessToken) {
+            alert('로그인이 필요합니다.');
+            navigate('/login');
+        }
+    }, [navigate]);
 
     const fetchUserProfile = async () => {
         try {
@@ -58,68 +105,103 @@ export default function UserProfileEditPage() {
     };
 
     const handleChange = (e) => {
-        const {name, value} = e.target;
-        setUserProfile(prevProfile => ({
-            ...prevProfile,
-            [name]: value,
-        }));
+        const { name, value } = e.target;
+
+        if (name === 'userNumber') {
+            const onlyNums = value.replace(/[^0-9]/g, '');
+            if (onlyNums.length <= 11) {
+                let formatted = onlyNums;
+                if (onlyNums.length > 3 && onlyNums.length <= 7) {
+                    formatted = `${onlyNums.slice(0, 3)}-${onlyNums.slice(3)}`;
+                } else if (onlyNums.length > 7) {
+                    formatted = `${onlyNums.slice(0, 3)}-${onlyNums.slice(3, 7)}-${onlyNums.slice(7)}`;
+                }
+                setUserProfile(prevProfile => ({
+                    ...prevProfile,
+                    userNumber: formatted,
+                }));
+            }
+        } else {
+            setUserProfile(prevProfile => ({
+                ...prevProfile,
+                [name]: value,
+            }));
+        }
     };
 
-    // 비밀번호 변경 페이지로 이동
-    const handlePasswordChange = () => {
-        navigate('/FindPassword');
-    };
-
-    // 계정 통합 처리
-    const handleSendVerificationCode = async () => {
-        if (!integrationEmail) {
-            alert('이메일을 입력해주세요.');
+    // 비밀번호 변경 처리
+    const handlePasswordChange = async () => {
+        // 유효성 검증
+        if (!currentPassword) {
+            alert('현재 비밀번호를 입력해주세요.');
             return;
         }
+        if (!newPassword) {
+            alert('새 비밀번호를 입력해주세요.');
+            return;
+        }
+        if (newPassword !== confirmNewPassword) {
+            alert('새 비밀번호와 확인 비밀번호가 일치하지 않습니다.');
+            return;
+        }
+        // 백엔드 요구사항에 맞는 비밀번호 유효성 검증
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,20}$/;
+        if (!passwordRegex.test(newPassword)) {
+            alert('새 비밀번호는 6-20자의 대소문자, 숫자, 특수문자(@$!%*?&)를 포함해야 합니다.');
+            return;
+        }
+        if (currentPassword === newPassword) {
+            alert('새 비밀번호는 현재 비밀번호와 달라야 합니다.');
+            return;
+        }
+
+        // 로그인 상태 확인
+        const accessToken = localStorage.getItem('accessToken');
+        if (!accessToken) {
+            alert('로그인이 필요합니다. 다시 로그인해주세요.');
+            navigate('/login');
+            return;
+        }
+
+        console.log('비밀번호 변경 요청 시작...', {
+            currentPasswordLength: currentPassword.length,
+            newPasswordLength: newPassword.length,
+            passwordPattern: passwordRegex.test(newPassword)
+        });
+
         try {
-            await userService.sendAccountIntegrationCode(integrationEmail);
-            alert('인증 코드가 발송되었습니다.');
-            setIntegrationStep(2);
+            await userService.changePassword(currentPassword, newPassword);
+            alert('비밀번호가 성공적으로 변경되었습니다. 보안을 위해 다시 로그인해주세요.');
+
+            // 비밀번호 변경 후 로그아웃 처리
+            localStorage.clear();
+            navigate('/login');
         } catch (error) {
-            console.error('인증 코드 발송 실패:', error);
-            alert('인증 코드 발송에 실패했습니다.');
+            console.error('비밀번호 변경 실패:', error);
+            console.error('응답 데이터:', error.response?.data);
+
+            if (error.response?.status === 401) {
+                alert('인증이 만료되었습니다. 다시 로그인해주세요.');
+                localStorage.clear();
+                navigate('/login');
+            } else if (error.response?.status === 400) {
+                const errorMessage = error.response?.data?.message;
+                if (errorMessage) {
+                    alert(errorMessage);
+                } else {
+                    alert('현재 비밀번호가 올바르지 않거나 새 비밀번호 형식이 맞지 않습니다.');
+                }
+            } else {
+                alert('비밀번호 변경에 실패했습니다. 다시 시도해주세요.');
+            }
         }
     };
 
-    const handleVerifyCode = async () => {
-        if (!verificationCode) {
-            alert('인증 코드를 입력해주세요.');
-            return;
-        }
-        try {
-            await userService.verifyAccountIntegrationCode(integrationEmail, verificationCode);
-            alert('인증이 완료되었습니다.');
-            setIntegrationStep(3);
-        } catch (error) {
-            console.error('인증 코드 검증 실패:', error);
-            alert('인증 코드가 올바르지 않습니다.');
-        }
-    };
-
-    const handleAccountIntegration = async () => {
-        if (!integrationPassword) {
-            alert('비밀번호를 입력해주세요.');
-            return;
-        }
-        try {
-            await userService.completeAccountIntegration(integrationEmail, verificationCode, integrationPassword);
-            alert('계정 통합이 완료되었습니다.');
-            setShowAccountIntegration(false);
-            setIntegrationStep(1);
-            setIntegrationEmail('');
-            setVerificationCode('');
-            setIntegrationPassword('');
-            // 사용자 정보 다시 로드
-            fetchUserProfile();
-        } catch (error) {
-            console.error('계정 통합 실패:', error);
-            alert('계정 통합에 실패했습니다.');
-        }
+    const resetPasswordChangeForm = () => {
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmNewPassword('');
+        setShowPasswordChange(false);
     };
 
     // 회원탈퇴 처리
@@ -135,13 +217,26 @@ export default function UserProfileEditPage() {
         }
 
         try {
-            await userService.deleteUserAccount(deletePassword);
+            await userService.deleteUserAccount(deletePassword, deleteConfirmation);
             alert('회원탈퇴가 처리되었습니다.');
             localStorage.clear();
             navigate('/login');
         } catch (error) {
             console.error('회원탈퇴 실패:', error);
-            alert('회원탈퇴에 실패했습니다. 비밀번호를 확인해주세요.');
+            console.error('응답 데이터:', error.response?.data);
+
+            if (error.response?.status === 400) {
+                const errorMessage = error.response?.data?.message;
+                if (errorMessage) {
+                    alert(errorMessage);
+                } else {
+                    alert('입력한 정보를 다시 확인해주세요. (비밀번호 또는 확인 문구 오류)');
+                }
+            } else if (error.response?.status === 401) {
+                alert('비밀번호가 올바르지 않습니다.');
+            } else {
+                alert('회원탈퇴에 실패했습니다. 다시 시도해주세요.');
+            }
         }
     };
 
@@ -334,17 +429,63 @@ export default function UserProfileEditPage() {
                 </Card>
 
                 {/* 비밀번호 변경 섹션 */}
-                <Card sx={{ mb: 3 }}>
-                    <CardHeader title="비밀번호 변경" />
-                    <CardContent>
-                        <Alert severity="info" sx={{ mb: 2 }}>
-                            비밀번호 변경은 별도 페이지에서 진행됩니다.
-                        </Alert>
-                        <Button variant="outlined" onClick={handlePasswordChange}>
-                            비밀번호 변경하기
-                        </Button>
-                    </CardContent>
-                </Card>
+                {(userProfile.accountType === 'local' || userProfile.accountType === 'integrated') && (
+                    <Card sx={{ mb: 3 }}>
+                        <CardHeader title="비밀번호 변경" />
+                        <CardContent>
+                            <Alert severity="info" sx={{ mb: 2 }}>
+                                현재 비밀번호를 확인 후 새 비밀번호로 변경합니다. 변경 후 보안을 위해 재로그인이 필요합니다.
+                            </Alert>
+                            {!showPasswordChange ? (
+                                <Button variant="outlined" onClick={() => setShowPasswordChange(true)}>
+                                    비밀번호 변경하기
+                                </Button>
+                            ) : (
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                    <TextField
+                                        label="현재 비밀번호"
+                                        type="password"
+                                        value={currentPassword}
+                                        onChange={(e) => setCurrentPassword(e.target.value)}
+                                        fullWidth
+                                        placeholder="현재 비밀번호를 입력하세요"
+                                    />
+                                    <TextField
+                                        label="새 비밀번호"
+                                        type="password"
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                        fullWidth
+                                        placeholder="6-20자, 대소문자/숫자/특수문자 포함"
+                                        helperText="6-20자의 대소문자, 숫자, 특수문자(@$!%*?&) 포함 필수"
+                                    />
+                                    <TextField
+                                        label="새 비밀번호 확인"
+                                        type="password"
+                                        value={confirmNewPassword}
+                                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                                        fullWidth
+                                        placeholder="새 비밀번호를 다시 입력하세요"
+                                        error={newPassword !== '' && confirmNewPassword !== '' && newPassword !== confirmNewPassword}
+                                        helperText={newPassword !== '' && confirmNewPassword !== '' && newPassword !== confirmNewPassword ? '비밀번호가 일치하지 않습니다' : ''}
+                                    />
+                                    <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+                                        <Button
+                                            variant="contained"
+                                            onClick={handlePasswordChange}
+                                            disabled={!currentPassword || !newPassword || !confirmNewPassword || newPassword !== confirmNewPassword}
+                                        >
+                                            비밀번호 변경
+                                        </Button>
+                                        <Button variant="outlined" onClick={resetPasswordChangeForm}>
+                                            취소
+                                        </Button>
+                                    </Box>
+                                </Box>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* 계정 통합 섹션 */}
                 {userProfile.accountType === 'social' && (
@@ -360,7 +501,7 @@ export default function UserProfileEditPage() {
                                 </Button>
                             ) : (
                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                    {integrationStep === 1 && (
+                                    {!isCodeSent ? (
                                         <>
                                             <TextField
                                                 label="통합할 이메일"
@@ -368,9 +509,10 @@ export default function UserProfileEditPage() {
                                                 value={integrationEmail}
                                                 onChange={(e) => setIntegrationEmail(e.target.value)}
                                                 fullWidth
+                                                helperText="계정 통합에 사용할 이메일을 입력하세요."
                                             />
                                             <Box sx={{ display: 'flex', gap: 2 }}>
-                                                <Button variant="contained" onClick={handleSendVerificationCode}>
+                                                <Button variant="contained" onClick={handleSendCode}>
                                                     인증 코드 발송
                                                 </Button>
                                                 <Button variant="outlined" onClick={() => setShowAccountIntegration(false)}>
@@ -378,41 +520,35 @@ export default function UserProfileEditPage() {
                                                 </Button>
                                             </Box>
                                         </>
-                                    )}
-
-                                    {integrationStep === 2 && (
+                                    ) : (
                                         <>
+                                            <TextField
+                                                label="통합할 이메일"
+                                                type="email"
+                                                value={integrationEmail}
+                                                fullWidth
+                                                disabled
+                                            />
                                             <TextField
                                                 label="인증 코드"
                                                 value={verificationCode}
                                                 onChange={(e) => setVerificationCode(e.target.value)}
                                                 fullWidth
+                                                helperText="이메일로 발송된 인증 코드를 입력하세요."
                                             />
-                                            <Box sx={{ display: 'flex', gap: 2 }}>
-                                                <Button variant="contained" onClick={handleVerifyCode}>
-                                                    인증 확인
-                                                </Button>
-                                                <Button variant="outlined" onClick={() => setIntegrationStep(1)}>
-                                                    이전
-                                                </Button>
-                                            </Box>
-                                        </>
-                                    )}
-
-                                    {integrationStep === 3 && (
-                                        <>
                                             <TextField
                                                 label="새 비밀번호 설정"
                                                 type="password"
                                                 value={integrationPassword}
                                                 onChange={(e) => setIntegrationPassword(e.target.value)}
                                                 fullWidth
+                                                helperText="6-20자의 대소문자, 숫자, 특수문자(@$!%*?&) 포함"
                                             />
                                             <Box sx={{ display: 'flex', gap: 2 }}>
-                                                <Button variant="contained" onClick={handleAccountIntegration}>
+                                                <Button variant="contained" onClick={handleCompleteIntegration}>
                                                     통합 완료
                                                 </Button>
-                                                <Button variant="outlined" onClick={() => setIntegrationStep(2)}>
+                                                <Button variant="outlined" onClick={() => setIsCodeSent(false)}>
                                                     이전
                                                 </Button>
                                             </Box>

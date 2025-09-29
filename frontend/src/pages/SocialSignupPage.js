@@ -39,26 +39,21 @@ const SocialSignupPage = () => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        let formattedValue = value;
 
-        // 핸드폰 번호 자동 포맷팅
         if (name === 'userNumber') {
-            formattedValue = value.replace(/[^0-9]/g, '');
-            if (formattedValue.length <= 11) {
-                if (formattedValue.length > 6) {
-                    formattedValue = formattedValue.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
-                } else if (formattedValue.length > 3) {
-                    formattedValue = formattedValue.replace(/(\d{3})(\d{0,4})/, '$1-$2');
+            const onlyNums = value.replace(/[^0-9]/g, '');
+            if (onlyNums.length <= 11) {
+                let formatted = onlyNums;
+                if (onlyNums.length > 3 && onlyNums.length <= 7) {
+                    formatted = `${onlyNums.slice(0, 3)}-${onlyNums.slice(3)}`;
+                } else if (onlyNums.length > 7) {
+                    formatted = `${onlyNums.slice(0, 3)}-${onlyNums.slice(3, 7)}-${onlyNums.slice(7)}`;
                 }
-            } else {
-                formattedValue = formValues.userNumber;
+                setFormValues(prev => ({ ...prev, userNumber: formatted }));
             }
+        } else {
+            setFormValues(prev => ({ ...prev, [name]: value }));
         }
-
-        setFormValues({
-            ...formValues,
-            [name]: formattedValue,
-        });
     };
 
     const handleSubmit = async (e) => {
@@ -70,12 +65,12 @@ const SocialSignupPage = () => {
             const socialSignupData = {
                 provider: socialInfo.provider.toUpperCase(),
                 email: socialInfo.email,
-                userName: socialInfo.name,
-                userNumber: formValues.userNumber,
+                name: socialInfo.name,
+                phoneNumber: formValues.userNumber,
                 socialId: socialInfo.socialId,
-                termsAgreed: true, // 소셜 로그인 시 기본 동의로 처리
-                privacyAgreed: true,
-                marketingAgreed: false
+                agreedToTerms: true, // 소셜 로그인 시 기본 동의로 처리
+                agreedToPrivacyPolicy: true,
+                agreedToMarketing: false
             };
 
             await authService.completeSocialSignup(socialSignupData);
