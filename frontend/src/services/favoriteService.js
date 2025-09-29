@@ -63,7 +63,7 @@ export const removeFavorite = (favoriteId) => {
 export const removePublicTemplateFromFavorites = async (workspaceId, publicTemplateId) => {
     try {
         // 먼저 즐겨찾기 목록에서 해당 템플릿의 favoriteId를 찾음
-        const favorites = await getFavoriteTemplates(workspaceId, 'PUBLIC', { page: 0, size: 1000 });
+        const favorites = await getFavoriteTemplates(workspaceId, 'PUBLIC', { page: 0, size: 100 });
         const favorite = favorites.data.content?.find(fav => fav.publicTemplateId === parseInt(publicTemplateId));
 
         if (favorite) {
@@ -83,7 +83,7 @@ export const removePublicTemplateFromFavorites = async (workspaceId, publicTempl
 export const removeIndividualTemplateFromFavorites = async (workspaceId, individualTemplateId) => {
     try {
         // 먼저 즐겨찾기 목록에서 해당 템플릿의 favoriteId를 찾음
-        const favorites = await getFavoriteTemplates(workspaceId, 'INDIVIDUAL', { page: 0, size: 1000 });
+        const favorites = await getFavoriteTemplates(workspaceId, 'INDIVIDUAL', { page: 0, size: 100 });
         const favorite = favorites.data.content?.find(fav => fav.individualTemplateId === parseInt(individualTemplateId));
 
         if (favorite) {
