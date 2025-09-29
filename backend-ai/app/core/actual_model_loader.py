@@ -75,6 +75,8 @@ class ModelLoader:
                 quantization_config=bnb_config,
                 device_map="auto",
                 offload_folder="/app/offload",
+                offload_state_dict=True,
+                max_memory={0: "20GB", "cpu": "30GB"},
                 low_cpu_mem_usage=True
             )
             model = PeftModel.from_pretrained(base_model, lora_adapter_path)
