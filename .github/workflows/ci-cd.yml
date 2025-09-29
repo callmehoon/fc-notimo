@@ -128,11 +128,6 @@ jobs:
             echo "🧹 기존 개발 환경 컨테이너 정리 중..."
             docker compose -f docker-compose-dev.yml down --remove-orphans --volumes || true
 
-            # Docker 캐시 정리로 디스크 공간 확보
-            echo "🧹 Docker 캐시 정리 중..."
-            docker system prune -f --filter "until=1h" || true
-            docker builder prune -f || true
-
             # 남은 컨테이너들 강제 제거
             echo "🧹 남은 컨테이너들 강제 제거 중..."
             docker rm -f redis-dev spring-boot-dev python-ai-dev frontend-dev || true
@@ -207,11 +202,6 @@ jobs:
             # 기존 운영 환경 컨테이너 정리 (포트 3002)
             echo "🧹 기존 운영 환경 컨테이너 정리 중..."
             docker compose -f docker-compose-prod.yml down --remove-orphans --volumes || true
-
-            # Docker 캐시 정리로 디스크 공간 확보
-            echo "🧹 Docker 캐시 정리 중..."
-            docker system prune -f --filter "until=1h" || true
-            docker builder prune -f || true
 
             # 남은 컨테이너들 강제 제거
             echo "🧹 남은 컨테이너들 강제 제거 중..."
