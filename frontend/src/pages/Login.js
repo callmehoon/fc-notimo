@@ -26,13 +26,49 @@ const Login = () => {
         const error = searchParams.get('error');
         const errorMessage = searchParams.get('message');
 
-        // 소셜 로그인 오류만 처리 (성공은 workspace에서 처리)
+        // 소셜 로그인 오류 처리
         if (error) {
             // URL에서 모든 파라미터 제거
             navigate('/login', { replace: true });
 
             // 소셜 로그인 오류
             alert(errorMessage ? decodeURIComponent(errorMessage) : '소셜 로그인 중 오류가 발생했습니다.');
+            return;
+        }
+
+        // 소셜 로그인 성공 처리 (기존 사용자)
+        if (success === 'true' && accessToken && refreshToken && isNewUser === 'false') {
+            // sessionStorage로 중복 처리 방지
+            const socialLoginKey = `social_login_${Date.now()}`;
+            const processed = sessionStorage.getItem('socialLoginProcessed');
+
+            if (processed) {
+                navigate('/login', { replace: true });
+                return;
+            }
+
+            sessionStorage.setItem('socialLoginProcessed', socialLoginKey);
+
+            // URL에서 모든 파라미터 제거
+            navigate('/login', { replace: true });
+
+            // 토큰 저장
+            localStorage.setItem('accessToken', accessToken);
+            localStorage.setItem('refreshToken', refreshToken);
+
+            // 계정 통합 알림
+            if (accountIntegrated === 'true') {
+                setTimeout(() => {
+                    alert(`${provider} 계정이 기존 계정과 자동으로 연결되었습니다.`);
+                    // 메시지 표시 후 워크스페이스로 이동
+                    sessionStorage.removeItem('socialLoginProcessed');
+                    navigate('/workspace', { replace: true });
+                }, 100);
+            } else {
+                // 계정 통합이 아닌 일반 로그인 - 바로 워크스페이스로 이동
+                sessionStorage.removeItem('socialLoginProcessed');
+                navigate('/workspace', { replace: true });
+            }
         }
     }, [searchParams, navigate]);
 

@@ -145,7 +145,7 @@ class SocialAuthControllerTest {
                 .andExpect(jsonPath("$.userId").value(1))
                 .andExpect(jsonPath("$.email").value(TEST_EMAIL))
                 .andExpect(jsonPath("$.name").value(TEST_NAME))
-                .andExpect(jsonPath("$.role").value("USER"))
+                .andExpect(jsonPath("$.userRole").value("USER"))
                 .andExpect(jsonPath("$.provider").value(TEST_PROVIDER));
     }
 

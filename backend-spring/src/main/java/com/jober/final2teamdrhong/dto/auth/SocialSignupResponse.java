@@ -16,7 +16,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
         "refreshToken": "refresh_token_here",
         "email": "user@example.com",
         "name": "홍길동",
-        "role": "USER",
+        "userRole": "USER",
         "provider": "google"
     }
     """
@@ -44,7 +44,7 @@ public record SocialSignupResponse(
     String name,
 
     @Schema(description = "사용자 역할", example = "USER")
-    String role,
+    String userRole,
 
     @Schema(description = "OAuth2 제공자", example = "google")
     String provider
