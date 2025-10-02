@@ -122,7 +122,7 @@ Spring Boot와 AI 기술을 결합한 지능형 알림톡 템플릿 관리 시�
 - ✅ 공용 템플릿 등록
 - ✅ 공용 템플릿 검색 및 필터링
 - ✅ 조회수/공유수 통계
-- ✅ 정렬 기능 (최신순, 인기순, 공유순)
+- ✅ 정렬 기능 (최신순, 공유순, 가나다순)
 
 #### 🤖 **AI 기능**
 - ✅ 사용자 프롬프트 기반 알림톡 템플릿 자동 생성
@@ -218,12 +218,12 @@ Spring Boot와 AI 기술을 결합한 지능형 알림톡 템플릿 관리 시�
 | DELETE | `/api/templates/{workspaceId}/{templateId}` | 템플릿 삭제 | `workspaceId`, `templateId` | String |
 
 ### 🌐 **공용 템플릿 API** (`/api/public-templates`)
-| Method | Endpoint | Description | Parameters | Response |
-|--------|----------|-------------|------------|----------|
-| GET | `/api/public-templates` | 공용 템플릿 목록 | `page`, `size`, `keyword`, `sort` | `Page<PublicTemplateResponse>` |
-| POST | `/api/public-templates` | 공용 템플릿 생성 | `PublicTemplateCreateRequest` | `PublicTemplateResponse` |
+| Method | Endpoint | Description | Parameters                                                       | Response |
+|--------|----------|-------------|------------------------------------------------------------------|----------|
+| GET | `/api/public-templates` | 공용 템플릿 목록 | `page`, `size`, `sort`, `direction`, `search.keyword`, `search.searchTarget` | `Page<PublicTemplateResponse>` |
+| POST | `/api/public-templates` | 공용 템플릿 생성 | `PublicTemplateCreateRequest`                                    | `PublicTemplateResponse` |
 
-**정렬 옵션**: `latest` (최신순), `popular` (인기순), `mostShared` (공유순)
+**정렬 옵션**: `createdAt` (최신순), `shareCount` (공유순), `publicTemplateTitle` (가나다순)
 
 ### ⭐ **즐겨찾기 API**
 | Method | Endpoint | Description | Request | Response |
