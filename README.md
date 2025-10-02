@@ -56,12 +56,14 @@ Spring Boot와 AI 기술을 결합한 지능형 알림톡 템플릿 관리 시�
 - **Python 3.12** - AI 서비스 백엔드
 - **FastAPI** - AI API 서버 프레임워크
 - **LangChain** - LLM 오케스트레이션
-- **OpenAI GPT-4** - 템플릿 생성 AI
+- **MLP-KTLim/llama-3-Korean-Bllossom-8B** - 템플릿 생성 베이스 모델
+- **klue/bert-base** - 템플릿 검증 베이스 모델
 - **Google Gemini** - 대체 AI 모델
 - **ChromaDB** - 벡터 데이터베이스 (가이드라인 검색)
 - **PyTorch 2.5.1** - 딥러닝 프레임워크
 - **Transformers (Hugging Face)** - 사전학습 모델
 - **PEFT, BitsAndBytes** - 모델 파인튜닝
+- [Fine-Tuning Repository](https://github.com/Kernel180-BE12/Final-2team-DrHong-Finetuning)
 
 ### Frontend
 - **React 19.1.1** - 프론트엔드 프레임워크
@@ -273,8 +275,8 @@ Spring Boot와 AI 기술을 결합한 지능형 알림톡 템플릿 관리 시�
 - **npm 10.9.2** 이상
 - **Docker & Docker Compose** (배포 시)
 - **Git**
-- **OpenAI API Key** (AI 기능 필수)
-- **Google API Key** (선택사항)
+- **OpenAI API Key** (RAG 기능 필수)
+- **Google API Key** (LangChain 기능 필수)
 
 ### 1. 프로젝트 클론
 ```bash
@@ -388,28 +390,7 @@ docker-compose -f docker-compose-prod.yml up -d
 - Frontend: http://localhost:3002
 - Redis: localhost:6381
 
-### 4. 서비스 상태 확인
-
-#### Backend Spring
-```bash
-curl http://localhost:8080/api/health
-```
-
-#### Python AI Service
-```bash
-curl http://localhost:8000/health
-```
-
-#### Frontend
-브라우저에서 http://localhost:3000 접속
-
-#### Redis
-```bash
-redis-cli -p 6379 ping
-# PONG 응답 확인
-```
-
-### 5. Docker Compose 서비스 관리
+### 4. Docker Compose 서비스 관리
 
 #### 서비스 시작
 ```bash
