@@ -214,6 +214,7 @@ Spring Boot와 AI 기술을 결합한 지능형 알림톡 템플릿 관리 시�
 | POST | `/api/templates/{workspaceId}/from-public/{publicTemplateId}` | 공용 템플릿 복사 | `workspaceId`, `publicTemplateId` | `IndividualTemplateResponse` |
 | GET | `/api/templates/{workspaceId}` | 템플릿 목록 조회 | `workspaceId` | `List<IndividualTemplateResponse>` |
 | GET | `/api/templates/{workspaceId}/{templateId}` | 템플릿 상세 조회 | `workspaceId`, `templateId` | `IndividualTemplateResponse` |
+| GET | `/api/templates/{workspaceId}/templates/{individualTemplateId}/histories` | 템플릿 이력 조회 | `workspaceId`, `individualTemplateId`, `jwtClaims` | `List<HistoryResponse>` |
 | PUT | `/api/templates/{workspaceId}/{templateId}` | 템플릿 수정 | `workspaceId`, `templateId`, `TemplateUpdateRequest` | `IndividualTemplateResponse` |
 | DELETE | `/api/templates/{workspaceId}/{templateId}` | 템플릿 삭제 | `workspaceId`, `templateId` | String |
 
