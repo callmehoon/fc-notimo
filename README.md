@@ -221,20 +221,20 @@ Spring Boot와 AI 기술을 결합한 지능형 알림톡 템플릿 관리 시�
 | DELETE | `/api/templates/{workspaceId}/{templateId}`                       | 템플릿 삭제          | `workspaceId`, `templateId` | String                            |
 
 ### 🌐 **공용 템플릿 API** (`/api/public-templates`)
-| Method | Endpoint | Description | Parameters                                                       | Response |
-|--------|----------|-------------|------------------------------------------------------------------|----------|
+| Method | Endpoint | Description | Parameters | Response |
+|--------|----------|-------------|------------|----------|
 | GET | `/api/public-templates` | 공용 템플릿 목록 | `page`, `size`, `sort`, `direction`, `search.keyword`, `search.searchTarget` | `Page<PublicTemplateResponse>` |
-| POST | `/api/public-templates` | 공용 템플릿 생성 | `PublicTemplateCreateRequest`                                    | `PublicTemplateResponse` |
+| POST | `/api/public-templates` | 공용 템플릿 생성 | `PublicTemplateCreateRequest` | `PublicTemplateResponse` |
 
 **정렬 옵션**: `createdAt` (최신순), `shareCount` (공유순), `publicTemplateTitle` (가나다순)
 
 ### ⭐ **즐겨찾기 API**
 | Method | Endpoint | Description | Request | Response |
 |--------|----------|-------------|---------|----------|
-| POST | `/api/individual/favorite` | 개인 템플릿 즐겨찾기 추가 | `FavoriteCreateRequest` | `FavoriteResponse` |
-| POST | `/api/public/favorite` | 공용 템플릿 즐겨찾기 추가 | `FavoriteCreateRequest` | `FavoriteResponse` |
-| GET | `/api/favorites` | 즐겨찾기 목록 조회 | `workspaceId` | `List<FavoriteResponse>` |
-| DELETE | `/api/favorites/{favoriteId}` | 즐겨찾기 삭제 | `favoriteId` | String |
+| POST | `/api/individual/favorite` | 개인 템플릿 즐겨찾기 추가 | `IndividualTemplateFavoriteRequest` | `FavoriteResponse` |
+| POST | `/api/public/favorite` | 공용 템플릿 즐겨찾기 추가 | `PublicTemplateFavoriteRequest` | `FavoriteResponse` |
+| GET | `/api/workspace/{workspaceId}/favorites` | 즐겨찾기 목록 조회 | `workspaceId`, `templateType`, `FavoritePageRequest` | `Page<FavoriteResponse>` |
+| DELETE | `/api/favorites/{favoriteId}` | 즐겨찾기 삭제 | `favoriteId` | 204 No Content |
 
 ### 📱 **주소록 API** (`/api/workspaces/{workspaceId}/phonebooks`)
 | Method | Endpoint | Description | Request                                                                        | Response |
@@ -253,7 +253,7 @@ Spring Boot와 AI 기술을 결합한 지능형 알림톡 템플릿 관리 시�
 | POST | `/api/workspaces/{workspaceId}/recipients` | 수신자 생성 | `RecipientRequest.CreateDTO`, `workspaceId`, `jwtClaims` | `RecipientResponse.SimpleDTO` |
 | GET | `/api/workspaces/{workspaceId}/recipients` | 수신자 목록 | `workspaceId`, `pageable`, `jwtClaims` | `Page<RecipientResponse.SimpleDTO>` |
 | PUT | `/api/workspaces/{workspaceId}/recipients/{recipientId}` | 수신자 수정 | `RecipientRequest.UpdateDTO`, `workspaceId`, `recipientId`, `jwtClaims` | `RecipientResponse.SimpleDTO` |
-    | DELETE | `/api/workspaces/{workspaceId}/recipients/{recipientId}` | 수신자 삭제 | `workspaceId`, `recipientId`, `jwtClaims` | `RecipientResponse.SimpleDTO` |
+| DELETE | `/api/workspaces/{workspaceId}/recipients/{recipientId}` | 수신자 삭제 | `workspaceId`, `recipientId`, `jwtClaims` | `RecipientResponse.SimpleDTO` |
 
 ### 🤖 **AI API** (Python FastAPI)
 | Method | Endpoint | Description | Request | Response |
@@ -264,7 +264,7 @@ Spring Boot와 AI 기술을 결합한 지능형 알림톡 템플릿 관리 시�
 ### 👨‍💼 **관리자 API** (`/api/admin`) - ADMIN 권한 필요
 | Method | Endpoint | Description | Request | Response |
 |--------|----------|-------------|---------|----------|
-| DELETE | `/api/admin/public-templates/{publicTemplateId}` | 공용 템플릿 삭제 | `publicTemplateId` | String |
+| DELETE | `/api/admin/public-templates/{publicTemplateId}` | 공용 템플릿 삭제 | `publicTemplateId` | 204 No Content |
 
 ## 🚀 설치 및 실행
 
