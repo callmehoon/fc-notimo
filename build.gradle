@@ -25,7 +25,7 @@ sourceSets {
 
 group = 'com.jober'
 version = '0.0.1-SNAPSHOT'
-description = 'Final-2team-DrHong'
+description = 'notimo'
 
 java {
     toolchain {
@@ -80,7 +80,7 @@ tasks.named('test') {
 }
 
 springBoot {
-    mainClass = 'com.jober.final2teamdrhong.Final2teamDrHongApplication'
+    mainClass = 'com.jober.final2teamdrhong.NotimoApplication'
 }
 
 bootJar {

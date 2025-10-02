@@ -12,7 +12,7 @@ import java.util.TimeZone;
 @EnableJpaAuditing
 @SpringBootApplication
 @EnableConfigurationProperties(AuthProperties.class)
-public class Final2teamDrHongApplication {
+public class NotimoApplication {
 
     /**
      * 애플리케이션의 기본 시간대를 'Asia/Seoul'로 설정합니다.
@@ -24,7 +24,7 @@ public class Final2teamDrHongApplication {
     }
 
     public static void main(String[] args) {
-        SpringApplication.run(Final2teamDrHongApplication.class, args);
+        SpringApplication.run(NotimoApplication.class, args);
     }
 
 }

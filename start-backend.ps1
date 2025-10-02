@@ -1,5 +1,5 @@
 ﻿# =====================================================
-# Final-2team-DrHong 개발 환경 설정 스크립트 (Windows)
+# notimo 개발 환경 설정 스크립트 (Windows)
 # =====================================================
 # 이 스크립트는 다음 작업을 수행합니다:
 # 1. SSH 터널을 통해 AWS RDS MySQL에 연결 (포트 3307)
@@ -9,7 +9,7 @@
 # 사용법:
 # 1. PowerShell을 관리자 권한으로 실행
 # 2. 실행 정책 설정 (최초 1회): Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-# 3. 스크립트 실행: .\start-tunnel.ps1
+# 3. 스크립트 실행: .\start-backend.ps1
 #
 # 필요 조건:
 # - OpenSSH Client (Windows 10 1809+ 기본 포함)
@@ -27,7 +27,7 @@ if ($currentPolicy -eq "Restricted") {
     Read-Host "실행 정책을 변경한 후 Enter 키를 눌러 계속하세요"
 }
 
-Write-Host "=== Final-2team-DrHong 개발 환경 시작 ===" -ForegroundColor Green
+Write-Host "=== notimo 개발 환경 시작 ===" -ForegroundColor Green
 
 # 현재 스크립트 디렉토리 경로를 가져와서 .env 파일 위치 설정
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path

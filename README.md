@@ -283,8 +283,8 @@ Spring Boot와 AI 기술을 결합한 지능형 알림톡 템플릿 관리 시�
 
 ### 1. 프로젝트 클론
 ```bash
-git clone https://github.com/your-username/Final-2team-DrHong.git
-cd Final-2team-DrHong
+git clone https://github.com/your-username/fc-notimo.git
+cd notimo
 ```
 
 ### 2. 환경 변수 설정
@@ -632,7 +632,7 @@ OpenAI API rate limit exceeded
 ## 📂 프로젝트 구조
 
 ```
-Final-2team-DrHong/
+fc-notimo/
 ├── backend-spring/                       # Spring Boot 백엔드
 │   ├── src/main/java/com/jober/final2teamdrhong/
 │   │   ├── config/                       # 설정 클래스

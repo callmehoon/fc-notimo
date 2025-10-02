@@ -92,7 +92,7 @@ jobs:
             sudo yum install git-lfs -y
 
             # --- 프로젝트 코드 업데이트 ---
-            cd /home/ec2-user/Final-2team-DrHong
+            cd /home/ec2-user/fc-notimo
             git fetch origin
             git reset --hard origin/dev
             echo "📦 Git LFS 파일들 다운로드 중..."
@@ -197,7 +197,7 @@ jobs:
             sudo yum install git-lfs -y
 
             # --- 프로젝트 코드 업데이트 ---
-            cd /home/ec2-user/Final-2team-DrHong
+            cd /home/ec2-user/fc-notimo
             git fetch origin
             git reset --hard origin/main
             echo "📦 Git LFS 파일들 다운로드 중..."
